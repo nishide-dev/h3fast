@@ -11,6 +11,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import isfinite
 from typing import TYPE_CHECKING
 
 from h3fast.benchmarks.protocol import validate_protocol
@@ -39,6 +40,7 @@ class BenchmarkResult:
     artifact_path: str
     artifact_size: int
     artifact_sha256: str
+    server: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable result data."""
@@ -58,6 +60,7 @@ class BenchmarkResult:
                 "size": self.artifact_size,
                 "sha256": self.artifact_sha256,
             },
+            "server": self.server,
         }
 
 
@@ -124,7 +127,9 @@ def _download_content(url: str, destination: Path, timeout: float) -> None:
         raise ValidationError(message) from error
 
 
-def _payload(case: dict[str, object]) -> tuple[dict[str, object], str]:
+def _payload(
+    case: dict[str, object], *, server_perf_dump_path: str | None = None
+) -> tuple[dict[str, object], str]:
     prompt = case.get("prompt")
     if not isinstance(prompt, str) or not prompt:
         message = "benchmark case prompt must be a non-empty string"
@@ -148,8 +153,119 @@ def _payload(case: dict[str, object]) -> tuple[dict[str, object], str]:
         "seed": case.get("seed"),
         "quality": "lossless",
     }
+    if server_perf_dump_path is not None:
+        prefix = "/outputs/h3fast-metrics/"
+        relative = server_perf_dump_path.removeprefix(prefix)
+        if (
+            not server_perf_dump_path.startswith(prefix)
+            or not relative
+            or "/" in relative
+            or relative in {".", ".."}
+        ):
+            message = (
+                "server perf dump path must be a direct file under "
+                "/outputs/h3fast-metrics"
+            )
+            raise ValidationError(message)
+        payload["perf_dump_path"] = server_perf_dump_path
     prompt_sha256 = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     return payload, prompt_sha256
+
+
+def _nonnegative_number(value: object, field: str) -> float:
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not isfinite(float(value))
+        or value < 0
+    ):
+        message = f"server metric {field!r} must be a finite non-negative number"
+        raise ValidationError(message)
+    return float(value)
+
+
+def _load_performance_dump(path: Path, job_id: str) -> dict[str, object]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        message = f"could not read server performance dump {path}: {error}"
+        raise ValidationError(message) from error
+    if not isinstance(value, dict):
+        message = "server performance dump root must be an object"
+        raise ValidationError(message)
+    if value.get("request_id") != job_id:
+        message = "server performance dump request id does not match the video job"
+        raise ValidationError(message)
+
+    stages_raw = value.get("steps")
+    if not isinstance(stages_raw, list) or not stages_raw:
+        message = "server performance dump must contain stage timings"
+        raise ValidationError(message)
+    stages: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for index, stage in enumerate(stages_raw):
+        if not isinstance(stage, dict):
+            message = f"server performance stage {index} must be an object"
+            raise ValidationError(message)
+        name = stage.get("name")
+        if not isinstance(name, str) or not name or name in seen:
+            message = "server performance stage names must be non-empty and unique"
+            raise ValidationError(message)
+        seen.add(name)
+        duration_ms = _nonnegative_number(
+            stage.get("duration_ms"), f"steps[{index}].duration_ms"
+        )
+        stages.append({"name": name, "seconds": duration_ms / 1000.0})
+
+    denoise_raw = value.get("denoise_steps_ms")
+    if not isinstance(denoise_raw, list):
+        message = "server performance dump denoise_steps_ms must be an array"
+        raise ValidationError(message)
+    denoise_seconds: list[float] = []
+    for index, step in enumerate(denoise_raw):
+        if not isinstance(step, dict) or step.get("step") != index:
+            message = "server performance denoise steps must have contiguous indexes"
+            raise ValidationError(message)
+        denoise_seconds.append(
+            _nonnegative_number(
+                step.get("duration_ms"),
+                f"denoise_steps_ms[{index}].duration_ms",
+            )
+            / 1000.0
+        )
+
+    return {
+        "pipeline_total_seconds": _nonnegative_number(
+            value.get("total_duration_ms"), "total_duration_ms"
+        )
+        / 1000.0,
+        "stages": stages,
+        "denoise_steps_seconds": denoise_seconds,
+    }
+
+
+def _server_metadata(
+    status: dict[str, object],
+    *,
+    performance_dump_path: Path | None,
+    job_id: str,
+) -> dict[str, object]:
+    server: dict[str, object] = {}
+    if "inference_time_s" in status:
+        server["inference_time_seconds"] = _nonnegative_number(
+            status["inference_time_s"], "inference_time_s"
+        )
+    if "peak_memory_mb" in status:
+        server["peak_memory_mib"] = _nonnegative_number(
+            status["peak_memory_mb"], "peak_memory_mb"
+        )
+    size = status.get("size")
+    seconds = status.get("seconds")
+    if isinstance(size, str) and size and isinstance(seconds, str) and seconds:
+        server["media_contract"] = {"size": size, "seconds": seconds}
+    if performance_dump_path is not None:
+        server["performance"] = _load_performance_dump(performance_dump_path, job_id)
+    return server
 
 
 def run_case(
@@ -160,6 +276,8 @@ def run_case(
     output_dir: Path,
     poll_interval: float = 1.0,
     timeout: float = 7200.0,
+    server_perf_dump_path: str | None = None,
+    performance_dump_path: Path | None = None,
 ) -> BenchmarkResult:
     """Submit, poll, and download one protocol case from a local SGLang server."""
     if poll_interval <= 0 or timeout <= 0:
@@ -167,7 +285,12 @@ def run_case(
         raise ValidationError(message)
     endpoint = _validate_endpoint(endpoint)
     protocol_id, case = _load_case(protocol_path, case_id)
-    payload, prompt_sha256 = _payload(case)
+    if (server_perf_dump_path is None) != (performance_dump_path is None):
+        message = "server and host performance dump paths must be supplied together"
+        raise ValidationError(message)
+    if performance_dump_path is not None:
+        performance_dump_path.unlink(missing_ok=True)
+    payload, prompt_sha256 = _payload(case, server_perf_dump_path=server_perf_dump_path)
     started_wall = datetime.now(UTC)
     started_monotonic = time.monotonic()
     response = _request_json("POST", f"{endpoint}/v1/videos", payload, timeout)
@@ -205,6 +328,7 @@ def run_case(
     elapsed_seconds = time.monotonic() - started_monotonic
     request_metadata = dict(payload)
     request_metadata.pop("prompt")
+    request_metadata.pop("perf_dump_path", None)
     result = BenchmarkResult(
         protocol_id=protocol_id,
         case_id=case_id,
@@ -217,6 +341,11 @@ def run_case(
         artifact_path=str(artifact.resolve()),
         artifact_size=artifact.stat().st_size,
         artifact_sha256=sha256_file(artifact),
+        server=_server_metadata(
+            status_response,
+            performance_dump_path=performance_dump_path,
+            job_id=job_id,
+        ),
     )
     result_path = output_dir / f"{protocol_id}-{case_id}.json"
     temporary = result_path.with_suffix(".json.partial")

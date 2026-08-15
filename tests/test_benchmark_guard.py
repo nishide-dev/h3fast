@@ -195,17 +195,22 @@ def test_serve_guarded_reports_ready_and_handles_interrupt(
     monkeypatch.setattr("h3fast.benchmarks.guard.time.sleep", interrupt)
 
     report = tmp_path / "unused.json"
+    lifecycle = tmp_path / "lifecycle.json"
     report.write_text("stale", encoding="utf-8")
     serve_guarded(
         _plan(),
         endpoint="http://127.0.0.1:30010",
         report_path=report,
+        lifecycle_path=lifecycle,
         foreign_process_query=lambda _gpus, _root: (),
     )
 
     assert json.loads(capsys.readouterr().out)["event"] == "server-ready"
     assert stopped == [process]
     assert not report.exists()
+    lifecycle_value = json.loads(lifecycle.read_text(encoding="utf-8"))
+    assert lifecycle_value["status"] == "ready"
+    assert lifecycle_value["startup_seconds"] >= 0
 
 
 def test_serve_guarded_records_unexpected_server_exit(

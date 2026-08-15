@@ -194,11 +194,40 @@ def _write_failure(
     temporary.replace(path)
 
 
+def _write_lifecycle(
+    path: Path,
+    *,
+    started_at: datetime,
+    ready_at: datetime,
+    startup_seconds: float,
+    selected_gpus: tuple[int, ...],
+    server_pid: int,
+    endpoint: str,
+) -> None:
+    value = {
+        "schema_version": "1.0",
+        "status": "ready",
+        "started_at": started_at.isoformat(),
+        "ready_at": ready_at.isoformat(),
+        "startup_seconds": startup_seconds,
+        "selected_gpus": list(selected_gpus),
+        "server_pid": server_pid,
+        "endpoint": endpoint,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    temporary.replace(path)
+
+
 def serve_guarded(
     plan: LaunchPlan,
     *,
     endpoint: str,
     report_path: Path,
+    lifecycle_path: Path | None = None,
     startup_timeout: float = 3600.0,
     poll_interval: float = 2.0,
     foreign_process_query: Callable[
@@ -212,6 +241,8 @@ def serve_guarded(
         raise ValidationError(message)
     endpoint = _validate_endpoint(endpoint)
     report_path.unlink(missing_ok=True)
+    if lifecycle_path is not None:
+        lifecycle_path.unlink(missing_ok=True)
     query = foreign_process_query or (
         lambda gpus, root_pid: find_foreign_gpu_processes(
             gpus, allowed_root_pid=root_pid
@@ -266,11 +297,24 @@ def serve_guarded(
 
             if not ready and _health_ready(endpoint, min(poll_interval, 5.0)):
                 ready = True
+                ready_at = datetime.now(UTC)
+                startup_seconds = time.monotonic() - started_monotonic
+                if lifecycle_path is not None:
+                    _write_lifecycle(
+                        lifecycle_path,
+                        started_at=started_at,
+                        ready_at=ready_at,
+                        startup_seconds=startup_seconds,
+                        selected_gpus=plan.selected_gpus,
+                        server_pid=process.pid,
+                        endpoint=endpoint,
+                    )
                 event = json.dumps(
                     {
                         "event": "server-ready",
                         "endpoint": endpoint,
                         "server_pid": process.pid,
+                        "startup_seconds": startup_seconds,
                     },
                     sort_keys=True,
                 )
