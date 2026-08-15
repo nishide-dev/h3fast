@@ -266,6 +266,7 @@ def run_preflight(
     output_path: Path,
     sglang_source: Path | None = None,
     runtime_image: Path | None = None,
+    ffprobe_adapter: Path | None = None,
 ) -> PreflightReport:
     """Check a local baseline environment without importing GPU frameworks."""
     protocol = _protocol(protocol_path)
@@ -273,6 +274,7 @@ def run_preflight(
     environment = _mapping(protocol.get("environment"), "environment")
     accelerator = _mapping(environment.get("accelerator"), "environment.accelerator")
     host = _mapping(environment.get("host"), "environment.host")
+    software = _mapping(environment.get("software"), "environment.software")
     base_model = _mapping(protocol.get("base_model"), "base_model")
     checks: list[PreflightCheck] = []
 
@@ -430,15 +432,21 @@ def run_preflight(
 
     if runtime_image is not None:
         if runtime_image.is_file() and runtime_image.stat().st_size > 0:
+            actual_sha256 = sha256_file(runtime_image)
+            expected_sha256 = str(software.get("sglang_runtime_sif_sha256"))
+            status = "pass" if actual_sha256 == expected_sha256 else "fail"
             checks.append(
                 PreflightCheck(
                     "runtime-image",
-                    "pass",
-                    "runtime image exists and was hashed",
+                    status,
+                    "runtime image digest matches the protocol"
+                    if status == "pass"
+                    else "runtime image digest does not match the protocol",
                     {
                         "path": str(runtime_image.resolve()),
                         "size": runtime_image.stat().st_size,
-                        "sha256": sha256_file(runtime_image),
+                        "sha256": actual_sha256,
+                        "expected_sha256": expected_sha256,
                     },
                 )
             )
@@ -448,6 +456,40 @@ def run_preflight(
                     "runtime-image",
                     "fail",
                     f"runtime image is missing: {runtime_image}",
+                )
+            )
+
+    if ffprobe_adapter is not None:
+        if (
+            ffprobe_adapter.is_file()
+            and ffprobe_adapter.stat().st_size > 0
+            and ffprobe_adapter.stat().st_mode & 0o111
+        ):
+            actual_sha256 = sha256_file(ffprobe_adapter)
+            expected_sha256 = str(software.get("ffprobe_adapter_sha256"))
+            status = "pass" if actual_sha256 == expected_sha256 else "fail"
+            checks.append(
+                PreflightCheck(
+                    "ffprobe-adapter",
+                    status,
+                    "ffprobe adapter digest matches the protocol"
+                    if status == "pass"
+                    else "ffprobe adapter digest does not match the protocol",
+                    {
+                        "path": str(ffprobe_adapter.resolve()),
+                        "size": ffprobe_adapter.stat().st_size,
+                        "sha256": actual_sha256,
+                        "expected_sha256": expected_sha256,
+                    },
+                )
+            )
+        else:
+            checks.append(
+                PreflightCheck(
+                    "ffprobe-adapter",
+                    "fail",
+                    f"ffprobe adapter is missing, empty, or not executable: "
+                    f"{ffprobe_adapter}",
                 )
             )
 

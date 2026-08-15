@@ -38,6 +38,7 @@ packages = ["src/h3fast"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "schemas" = "h3fast/schemas"
+"runtime/ffprobe.py" = "h3fast/runtime/ffprobe.py"
 
 [dependency-groups]
 dev = [

@@ -1,5 +1,6 @@
 """Tests for fail-closed baseline environment checks."""
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -36,7 +37,13 @@ def _write_protocol(path: Path) -> None:
                 "min_free_memory_mib": 45000,
             },
             "host": {"min_ram_gib": 384, "min_output_free_gib": 1},
-            "software": {"sglang": f"git:{REFERENCE_SGLANG_COMMIT}"},
+            "software": {
+                "sglang": f"git:{REFERENCE_SGLANG_COMMIT}",
+                "sglang_runtime_sif_sha256": hashlib.sha256(b"runtime").hexdigest(),
+                "ffprobe_adapter_sha256": hashlib.sha256(
+                    b"#!/usr/bin/env python3\n"
+                ).hexdigest(),
+            },
         },
         "measurement": {},
         "cases": [{"id": "smoke"}],
@@ -84,10 +91,13 @@ def test_preflight_passes_for_idle_pinned_environment(tmp_path, monkeypatch) -> 
     snapshot = tmp_path / "snapshot"
     source = tmp_path / "sglang"
     image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
     _write_protocol(protocol)
     _write_snapshot(snapshot)
     source.mkdir()
     image.write_bytes(b"runtime")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
     monkeypatch.setattr(
         "h3fast.benchmarks.preflight._query_nvidia", lambda: (_devices(), {})
     )
@@ -109,6 +119,7 @@ def test_preflight_passes_for_idle_pinned_environment(tmp_path, monkeypatch) -> 
         output_path=tmp_path / "results" / "preflight.json",
         sglang_source=source,
         runtime_image=image,
+        ffprobe_adapter=adapter,
     )
 
     assert report.ready is True
@@ -122,7 +133,23 @@ def test_preflight_passes_for_idle_pinned_environment(tmp_path, monkeypatch) -> 
         "output-storage",
         "sglang-source",
         "runtime-image",
+        "ffprobe-adapter",
     }
+
+    image.write_bytes(b"changed runtime")
+    adapter.write_text("#!/usr/bin/env python3\n# changed\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    mismatch = run_preflight(
+        protocol,
+        snapshot_path=snapshot,
+        selected_gpus=(1, 2),
+        output_path=tmp_path / "results" / "preflight.json",
+        sglang_source=source,
+        runtime_image=image,
+        ffprobe_adapter=adapter,
+    )
+    failures = {check.name for check in mismatch.checks if check.status == "fail"}
+    assert {"runtime-image", "ffprobe-adapter"} <= failures
 
 
 def test_preflight_accepts_optional_nvidia_model_prefix(tmp_path, monkeypatch) -> None:

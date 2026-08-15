@@ -19,6 +19,7 @@ def test_build_singularity_launch_requires_singularity(
             snapshot_path=tmp_path,
             runtime_image=tmp_path / "runtime.sif",
             sglang_source=tmp_path,
+            ffprobe_adapter=tmp_path / "ffprobe.py",
             output_path=tmp_path,
             selected_gpus=(1, 2),
         )
@@ -28,10 +29,13 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     snapshot = tmp_path / "snapshot"
     source = tmp_path / "sglang"
     image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
     output = tmp_path / "server-output"
     snapshot.mkdir()
     source.mkdir()
     image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
     monkeypatch.setattr(
         "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
     )
@@ -40,6 +44,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         snapshot_path=snapshot,
         runtime_image=image,
         sglang_source=source,
+        ffprobe_adapter=adapter,
         output_path=output,
         selected_gpus=(1, 2),
     )
@@ -48,6 +53,8 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert "CUDA_VISIBLE_DEVICES=1,2" in plan.argv
     assert "--enable-torch-compile" in plan.argv
     assert "false" in plan.argv
+    assert any("/usr/local/bin/ffprobe:ro" in value for value in plan.argv)
+    assert len(plan.ffprobe_adapter_sha256) == 64
     assert plan.to_dict()["shell_command"].startswith("/usr/bin/singularity exec")
     assert output.is_dir()
 
@@ -64,6 +71,7 @@ def test_build_singularity_launch_rejects_missing_runtime(
             snapshot_path=tmp_path / "missing",
             runtime_image=tmp_path / "missing.sif",
             sglang_source=tmp_path / "source",
+            ffprobe_adapter=tmp_path / "missing-probe.py",
             output_path=tmp_path / "output",
             selected_gpus=(1, 2),
         )
@@ -75,9 +83,12 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
     snapshot = tmp_path / "snapshot"
     source = tmp_path / "source"
     image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
     snapshot.mkdir()
     source.mkdir()
     image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
     monkeypatch.setattr(
         "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
     )
@@ -85,6 +96,7 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
         "snapshot_path": snapshot,
         "runtime_image": image,
         "sglang_source": source,
+        "ffprobe_adapter": adapter,
         "output_path": tmp_path / "output",
     }
 
@@ -92,3 +104,7 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
         build_singularity_launch(**arguments, selected_gpus=(1,))
     with pytest.raises(ValidationError, match="port"):
         build_singularity_launch(**arguments, selected_gpus=(1, 2), port=0)
+
+    adapter.chmod(0o644)
+    with pytest.raises(ValidationError, match="not executable"):
+        build_singularity_launch(**arguments, selected_gpus=(1, 2))

@@ -14,7 +14,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 ## Status
 
-このrepositoryは実装初期段階です。Phase 1Aの内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。RTX 6000 Adaではruntime互換性とDiT staging到達までを確認しましたが、GPU競合により最初の試行を中断しており、H3 E2E、性能、品質に関する公開結果はまだありません。
+このrepositoryはPhase 1Aの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 Adaでは固定T2VA caseをAPI送信からaudio-video MP4取得まで1回完走しました。これはE2E互換性のsmoke確認であり、性能分布、品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
@@ -64,10 +64,11 @@ uv run h3fast benchmark preflight \
   --gpus 1,2 \
   --sglang-source runtime-cache/sglang \
   --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
+  --ffprobe-adapter runtime/ffprobe.py \
   --output benchmark-results/preflight.json
 ```
 
-起動argvをJSONで確認し、server起動後に規定caseを実行します。これらはH3の利用権を判定せず、重みも取得しません。
+起動argvをJSONで確認できます。実験では`serve-guarded`を使用し、preflight後も選択GPUを監視します。起動したserver process tree以外のcompute processを検出するとserverを停止し、失敗理由をJSONへ記録します。これらはH3の利用権を判定せず、重みも取得しません。
 
 ```bash
 uv run h3fast benchmark plan-launch \
@@ -75,8 +76,29 @@ uv run h3fast benchmark plan-launch \
   --gpus 1,2 \
   --sglang-source runtime-cache/sglang \
   --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
+  --ffprobe-adapter runtime/ffprobe.py \
   --server-output outputs/server
+```
 
+次のcommandを実行し、`server-ready` eventが出るまで待ちます。
+
+```bash
+uv run h3fast benchmark serve-guarded \
+  --snapshot models/MiniMax-H3 \
+  --gpus 1,2 \
+  --sglang-source runtime-cache/sglang \
+  --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
+  --ffprobe-adapter runtime/ffprobe.py \
+  --server-output benchmark-results/server \
+  --preflight-output benchmark-results/preflight.json \
+  --guard-report benchmark-results/server-failure.json
+```
+
+準備完了後、別shellから規定caseを実行します。生成完了まで`serve-guarded`を終了しないでください。
+
+固定SGLang imageには`ffprobe` CLIが含まれないため、H3Fastはimage内のPyAVを使う限定的な互換adapterをread-only bindします。preflightはSIFとadapterのSHA-256をprotocolの固定値と照合し、launch planにもadapter digestを記録します。
+
+```bash
 uv run h3fast benchmark run-case \
   --case-id smoke-001 \
   --output-dir benchmark-results/smoke-001

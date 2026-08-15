@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from h3fast.backends.sglang import REFERENCE_SGLANG_COMMIT
 from h3fast.exceptions import ValidationError
+from h3fast.manifest.checksums import sha256_file
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -27,6 +28,7 @@ class LaunchPlan:
     selected_gpus: tuple[int, ...]
     sglang_revision: str
     base_image: str
+    ffprobe_adapter_sha256: str
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable launch metadata."""
@@ -36,6 +38,7 @@ class LaunchPlan:
             "selected_gpus": list(self.selected_gpus),
             "sglang_revision": self.sglang_revision,
             "base_image": self.base_image,
+            "ffprobe_adapter_sha256": self.ffprobe_adapter_sha256,
         }
 
 
@@ -44,6 +47,7 @@ def build_singularity_launch(
     snapshot_path: Path,
     runtime_image: Path,
     sglang_source: Path,
+    ffprobe_adapter: Path,
     output_path: Path,
     selected_gpus: tuple[int, ...],
     port: int = 30010,
@@ -57,11 +61,15 @@ def build_singularity_launch(
         ("snapshot", snapshot_path, "directory"),
         ("runtime image", runtime_image, "file"),
         ("SGLang source", sglang_source, "directory"),
+        ("ffprobe adapter", ffprobe_adapter, "file"),
     ):
         valid = path.is_dir() if kind == "directory" else path.is_file()
         if not valid:
             message = f"{name} {kind} is missing: {path}"
             raise ValidationError(message)
+    if not ffprobe_adapter.stat().st_mode & 0o111:
+        message = f"ffprobe adapter is not executable: {ffprobe_adapter}"
+        raise ValidationError(message)
     if len(selected_gpus) != 2 or len(set(selected_gpus)) != 2:
         message = "the pinned launch profile requires two distinct GPUs"
         raise ValidationError(message)
@@ -73,6 +81,7 @@ def build_singularity_launch(
     snapshot = snapshot_path.resolve()
     image = runtime_image.resolve()
     source = sglang_source.resolve()
+    media_probe = ffprobe_adapter.resolve()
     output = output_path.resolve()
     visible_devices = ",".join(str(index) for index in selected_gpus)
     argv = (
@@ -88,6 +97,8 @@ def build_singularity_launch(
         f"{snapshot}:/models/MiniMax-H3:ro",
         "--bind",
         f"{source}:/opt/h3fast/sglang:ro",
+        "--bind",
+        f"{media_probe}:/usr/local/bin/ffprobe:ro",
         "--bind",
         f"{output}:/outputs",
         "--pwd",
@@ -123,4 +134,5 @@ def build_singularity_launch(
         selected_gpus=selected_gpus,
         sglang_revision=REFERENCE_SGLANG_COMMIT,
         base_image=REFERENCE_RUNTIME_IMAGE,
+        ffprobe_adapter_sha256=sha256_file(media_probe),
     )

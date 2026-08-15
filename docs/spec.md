@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.4（レビュー済み、Phase 1A実装中）
+- **状態:** Draft v0.5（レビュー済み、Phase 1A E2E smoke完了）
 - **最終調査日:** 2026-08-15 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
@@ -1717,6 +1717,8 @@ queue
 
 Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/T2VA、768p、5秒とする。これはSGLangの2×RTX 5090 layerwise-offload recipeを基にしたExperimental構成であり、H3 E2E、peak memoryおよび品質確認が完了するまでTierを付与しない。4 GPU構成は空きGPUを同時確保できる環境で別途検証する。
 
+2026-08-15に固定T2VA caseを2×RTX 6000 Adaで1回完走し、API送信からaudio-video MP4取得、23,376 MiBのreported peak GPU memory、media contractを確認した。これはE2E互換性のsmoke結果であり、規定3回の性能測定とquality reference比較は未実施である。Tierは付与せず、protocol statusを`draft`のまま維持する。条件と結果は[`docs/experiments/0002-rtx6000-ada-baseline-smoke.md`](experiments/0002-rtx6000-ada-baseline-smoke.md)に記録する。
+
 ---
 
 ## 20. Release Checklist
@@ -2045,7 +2047,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
-3. **Blocker:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）でH3 E2Eとmemory capacityを検証し、Tier、CI予算、品質referenceを確定する。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）の単一H3 E2E smokeとmemory capacityは確認した。Tier、CI予算、規定回数の性能測定、品質referenceは引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。

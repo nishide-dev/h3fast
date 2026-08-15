@@ -149,7 +149,7 @@ def test_benchmark_preflight_command_writes_report(
     assert json.loads(capsys.readouterr().out)["ready"] is True
 
 
-def test_benchmark_plan_and_run_case_commands(monkeypatch, capsys) -> None:
+def test_benchmark_plan_command(monkeypatch, capsys) -> None:
     class Value:
         @staticmethod
         def to_dict() -> dict[str, object]:
@@ -179,7 +179,66 @@ def test_benchmark_plan_and_run_case_commands(monkeypatch, capsys) -> None:
     )
     assert json.loads(capsys.readouterr().out)["ok"] is True
 
+
+def test_benchmark_serve_guarded_runs_preflight_before_launch(
+    tmp_path, monkeypatch
+) -> None:
+    class Report:
+        ready = True
+
+        @staticmethod
+        def to_dict() -> dict[str, object]:
+            return {"ready": True}
+
+    class Plan:
+        pass
+
+    guarded: list[object] = []
+    monkeypatch.setattr("h3fast.cli.run_preflight", lambda *_args, **_kwargs: Report())
+    monkeypatch.setattr("h3fast.cli.build_singularity_launch", lambda **_kwargs: Plan())
+    monkeypatch.setattr(
+        "h3fast.cli.serve_guarded",
+        lambda plan, **_kwargs: guarded.append(plan),
+    )
+    preflight = tmp_path / "preflight.json"
+
+    status = main(
+        [
+            "benchmark",
+            "serve-guarded",
+            "--snapshot",
+            "snapshot",
+            "--gpus",
+            "1,2",
+            "--sglang-source",
+            "source",
+            "--runtime-image",
+            "runtime.sif",
+            "--server-output",
+            "server",
+            "--preflight-output",
+            str(preflight),
+            "--guard-report",
+            str(tmp_path / "guard.json"),
+        ]
+    )
+
+    assert status == 0
+    assert json.loads(preflight.read_text(encoding="utf-8"))["ready"] is True
+    assert len(guarded) == 1
+
+
+def test_benchmark_run_case_command(tmp_path, monkeypatch, capsys) -> None:
+    class Value:
+        @staticmethod
+        def to_dict() -> dict[str, object]:
+            return {"ok": True}
+
     monkeypatch.setattr("h3fast.cli.run_case", lambda *_args, **_kwargs: Value())
+    output = tmp_path / "output"
+    output.mkdir()
+    failure = output / "smoke-001-failure.json"
+    failure.write_text("stale", encoding="utf-8")
     assert (
         main(
             [
@@ -188,12 +247,13 @@ def test_benchmark_plan_and_run_case_commands(monkeypatch, capsys) -> None:
                 "--case-id",
                 "smoke-001",
                 "--output-dir",
-                "output",
+                str(output),
             ]
         )
         == 0
     )
     assert json.loads(capsys.readouterr().out)["ok"] is True
+    assert not failure.exists()
 
 
 def test_benchmark_run_case_records_failure(tmp_path, monkeypatch, capsys) -> None:

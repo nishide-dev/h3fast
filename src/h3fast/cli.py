@@ -14,6 +14,7 @@ from h3fast.benchmarks import (
     build_singularity_launch,
     run_case,
     run_preflight,
+    serve_guarded,
     validate_protocol,
 )
 from h3fast.diagnostics import run_doctor
@@ -21,6 +22,11 @@ from h3fast.exceptions import H3FastError
 from h3fast.manifest import inspect_snapshot, verify_model_artifact
 
 CommandHandler = Callable[[argparse.Namespace], int]
+
+
+def _default_ffprobe_adapter() -> str:
+    bundled = Path(__file__).parent / "runtime" / "ffprobe.py"
+    return str(bundled if bundled.is_file() else Path("runtime/ffprobe.py"))
 
 
 def _write_json(value: object) -> None:
@@ -95,6 +101,7 @@ def _benchmark_preflight(args: argparse.Namespace) -> int:
         output_path=output,
         sglang_source=Path(args.sglang_source),
         runtime_image=Path(args.runtime_image),
+        ffprobe_adapter=Path(args.ffprobe_adapter),
     )
     data = json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -110,11 +117,51 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         snapshot_path=Path(args.snapshot),
         runtime_image=Path(args.runtime_image),
         sglang_source=Path(args.sglang_source),
+        ffprobe_adapter=Path(args.ffprobe_adapter),
         output_path=Path(args.server_output),
         selected_gpus=args.gpus,
         port=args.port,
     )
     _write_json(plan.to_dict())
+    return 0
+
+
+def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
+    preflight_output = Path(args.preflight_output)
+    report = run_preflight(
+        Path(args.protocol),
+        snapshot_path=Path(args.snapshot),
+        selected_gpus=args.gpus,
+        output_path=preflight_output,
+        sglang_source=Path(args.sglang_source),
+        runtime_image=Path(args.runtime_image),
+        ffprobe_adapter=Path(args.ffprobe_adapter),
+    )
+    data = json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
+    preflight_output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = preflight_output.with_suffix(preflight_output.suffix + ".partial")
+    temporary.write_text(data, encoding="utf-8")
+    temporary.replace(preflight_output)
+    if not report.ready:
+        sys.stdout.write(data)
+        return 1
+
+    plan = build_singularity_launch(
+        snapshot_path=Path(args.snapshot),
+        runtime_image=Path(args.runtime_image),
+        sglang_source=Path(args.sglang_source),
+        ffprobe_adapter=Path(args.ffprobe_adapter),
+        output_path=Path(args.server_output),
+        selected_gpus=args.gpus,
+        port=args.port,
+    )
+    serve_guarded(
+        plan,
+        endpoint=f"http://127.0.0.1:{args.port}",
+        report_path=Path(args.guard_report),
+        startup_timeout=args.startup_timeout,
+        poll_interval=args.poll_interval,
+    )
     return 0
 
 
@@ -146,6 +193,7 @@ def _benchmark_run_case(args: argparse.Namespace) -> int:
         )
         temporary.replace(path)
         raise
+    (output_dir / f"{args.case_id}-failure.json").unlink(missing_ok=True)
     _write_json(result.to_dict())
     return 0
 
@@ -217,6 +265,7 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--gpus", required=True, type=_gpu_ids)
     preflight.add_argument("--sglang-source", required=True)
     preflight.add_argument("--runtime-image", required=True)
+    preflight.add_argument("--ffprobe-adapter", default=_default_ffprobe_adapter())
     preflight.add_argument("--output", required=True)
     preflight.set_defaults(handler=_benchmark_preflight)
 
@@ -228,9 +277,28 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--gpus", required=True, type=_gpu_ids)
     launch.add_argument("--sglang-source", required=True)
     launch.add_argument("--runtime-image", required=True)
+    launch.add_argument("--ffprobe-adapter", default=_default_ffprobe_adapter())
     launch.add_argument("--server-output", required=True)
     launch.add_argument("--port", type=int, default=30010)
     launch.set_defaults(handler=_benchmark_plan_launch)
+
+    guarded = benchmark_subparsers.add_parser(
+        "serve-guarded",
+        help="Preflight, launch, and continuously guard the pinned server",
+    )
+    guarded.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    guarded.add_argument("--snapshot", required=True)
+    guarded.add_argument("--gpus", required=True, type=_gpu_ids)
+    guarded.add_argument("--sglang-source", required=True)
+    guarded.add_argument("--runtime-image", required=True)
+    guarded.add_argument("--ffprobe-adapter", default=_default_ffprobe_adapter())
+    guarded.add_argument("--server-output", required=True)
+    guarded.add_argument("--preflight-output", required=True)
+    guarded.add_argument("--guard-report", required=True)
+    guarded.add_argument("--port", type=int, default=30010)
+    guarded.add_argument("--startup-timeout", type=float, default=3600.0)
+    guarded.add_argument("--poll-interval", type=float, default=2.0)
+    guarded.set_defaults(handler=_benchmark_serve_guarded)
 
     run = benchmark_subparsers.add_parser(
         "run-case",

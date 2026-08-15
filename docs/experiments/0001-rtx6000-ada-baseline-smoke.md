@@ -35,5 +35,6 @@
 ## Follow-up
 
 - 2基のGPUがload開始から生成完了まで排他的に利用できるwindowで同じprotocolを再実行する。
-- 実行直前だけでなく実行中と終了時にもforeign compute processを確認する。
+- 次回試行では追加した`serve-guarded`を使用し、実行直前だけでなくmodel loadから生成完了までforeign compute processを自動監視する。
+- 固定imageに`ffprobe` CLIが含まれないため、最終media検証ではimage内PyAVを使う互換adapterを固定して使用する。
 - E2E完走まではIssue #1をcloseせず、benchmark protocolを`draft`のまま維持する。
