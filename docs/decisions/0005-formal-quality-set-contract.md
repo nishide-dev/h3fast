@@ -31,4 +31,4 @@
 
 契約、private registry compiler、redactionと未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
 
-実際のcase選定、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
+10件のsmoke / 50件のregression candidateはGit管理外に生成し、registry全体のdigestと件数だけを[`formal-quality-registry-attestation.json`](../../benchmarks/quality/formal-quality-registry-attestation.json)へ記録した。per-case metadataのcommit、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。

@@ -75,14 +75,14 @@ uv run h3fast benchmark validate-protocol benchmarks/protocol.yaml
 uv run h3fast benchmark validate-protocol benchmarks/protocol-baseline20.yaml
 ```
 
-formal quality setの件数、層化coverage、rights evidence、metric plan、approvalを検査します。現在のrecordはprompt本文やmediaを含まず、caseと承認が未登録のため終了code 1を返します。不正または矛盾するrecordは終了code 2です。
+formal quality setの件数、層化coverage、rights evidence、metric plan、approvalを検査します。現在のcommitted recordはprompt本文やmediaを含まず、caseと承認が未登録のため終了code 1を返します。Git管理外には10 smoke / 50 regressionのcandidate registryがあり、公開可能な全体digestと件数だけを[`formal-quality-registry-attestation.json`](benchmarks/quality/formal-quality-registry-attestation.json)へ記録しています。不正または矛盾するrecordは終了code 2です。
 
 ```bash
 uv run h3fast benchmark check-quality-set \
   --record benchmarks/quality/formal-quality-set.json
 ```
 
-権利review対象のpromptとreference assetはGit管理外のprivate registryへ置き、公開可能なdigest metadataだけを生成します。compilerはprompt本文、asset path、media本体を出力へコピーせず、reference assetをSHA-256で固定します。`--registry-uri`には権限制御されたregistryのimmutable HTTPS identityを指定し、出力はまず一時fileでsemantic validationしてからatomicに置換します。
+権利review対象のpromptとreference assetはGit管理外のprivate registryへ置き、公開可能なdigest metadataだけを生成します。compilerはprompt本文、asset path、media本体を出力へコピーせず、reference assetをSHA-256で固定します。`--registry-uri`には権限制御されたregistryまたはprompt/mediaを含まないdigest attestationのimmutable HTTPS identityを指定し、出力はまず一時fileでsemantic validationしてからatomicに置換します。
 
 ```bash
 uv run h3fast benchmark compile-quality-registry \
@@ -91,7 +91,7 @@ uv run h3fast benchmark compile-quality-registry \
   --output /tmp/formal-quality-set.candidate.json
 ```
 
-private registryのschemaは[`schemas/private-quality-registry.schema.json`](schemas/private-quality-registry.schema.json)です。registry、prompt、reference asset、生成したcandidate recordをrights/quality approval前にcommitまたはuploadしてはなりません。
+private registryのschemaは[`schemas/private-quality-registry.schema.json`](schemas/private-quality-registry.schema.json)です。registry、prompt、reference asset、per-case digestを含むcandidate formal recordをrights/quality approval前にcommitまたはuploadしてはなりません。全体registry digestだけのattestationは[`schemas/quality-registry-attestation.schema.json`](schemas/quality-registry-attestation.schema.json)に従い、本文、path、mediaを含めません。
 
 `benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。
 
