@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from h3fast.benchmarks import compile_quality_registry
+from h3fast.benchmarks import (
+    apply_quality_registry_review,
+    compile_quality_registry,
+    prepare_quality_registry_review,
+)
 from h3fast.exceptions import ValidationError
 
 TEMPLATE_PATH = Path("benchmarks/quality/formal-quality-set.json")
@@ -248,3 +252,115 @@ def test_compile_registry_rejects_duplicate_case_ids(tmp_path: Path) -> None:
             tmp_path / "output.json",
             registry_uri="https://example.test/private/quality-v1",
         )
+
+
+def test_prepare_review_binds_registry_without_copying_private_inputs(
+    tmp_path: Path,
+) -> None:
+    asset = tmp_path / "private-reference.bin"
+    asset.write_bytes(b"private reference bytes")
+    case = _case(
+        "smoke-001",
+        split="smoke",
+        task="fl2va",
+        references=[{"path": asset.name, "modality": "image"}],
+    )
+    case["rights_status"] = "unreviewed"
+    case["rights_evidence"] = []
+    registry_path = tmp_path / "quality.private-quality-registry.json"
+    raw = _write_registry(registry_path, _registry([case]))
+    output = tmp_path / "quality.private-quality-review.json"
+
+    report = prepare_quality_registry_review(
+        registry_path,
+        output,
+        reviewer="test-reviewer",
+    )
+
+    review = json.loads(output.read_text(encoding="utf-8"))
+    serialized = output.read_text(encoding="utf-8")
+    assert report.source_registry_sha256 == hashlib.sha256(raw).hexdigest()
+    assert report.total_cases == 1
+    assert report.pending_cases == 1
+    assert report.ready is False
+    assert review["cases"][0]["rights_decision"] == "pending"
+    assert review["cases"][0]["selection_decision"] == "pending"
+    assert review["reviewed_at"] is None
+    assert "Private prompt" not in serialized
+    assert asset.name not in serialized
+    assert str(tmp_path) not in serialized
+
+
+def test_apply_complete_review_writes_new_approved_private_registry(
+    tmp_path: Path,
+) -> None:
+    case = _case("smoke-001", split="smoke")
+    case["rights_status"] = "unreviewed"
+    case["rights_evidence"] = []
+    registry = _registry([case])
+    selection = registry["selection"]
+    assert isinstance(selection, dict)
+    selection["exclusions_reviewed"] = False
+    selection["known_failures_reviewed"] = False
+    registry_path = tmp_path / "quality.private-quality-registry.json"
+    _write_registry(registry_path, registry)
+    review_path = tmp_path / "quality.private-quality-review.json"
+    prepare_quality_registry_review(
+        registry_path,
+        review_path,
+        reviewer="test-reviewer",
+    )
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    review["reviewed_at"] = "2026-08-16T12:00:00Z"
+    review["selection"]["method_decision"] = "approved"
+    review["selection"]["exclusions_decision"] = "approved"
+    review["selection"]["known_failures_decision"] = "approved"
+    review["cases"][0]["rights_decision"] = "approved"
+    review["cases"][0]["selection_decision"] = "approved"
+    review["cases"][0]["rights_evidence"] = ["https://example.test/reviews/quality-v1"]
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    output = tmp_path / "reviewed.private-quality-registry.json"
+
+    report = apply_quality_registry_review(registry_path, review_path, output)
+
+    reviewed = json.loads(output.read_text(encoding="utf-8"))
+    assert report.ready is True
+    assert report.approved_cases == 1
+    assert (
+        report.output_registry_sha256 == hashlib.sha256(output.read_bytes()).hexdigest()
+    )
+    assert reviewed["selection"]["exclusions_reviewed"] is True
+    assert reviewed["selection"]["known_failures_reviewed"] is True
+    assert reviewed["cases"][0]["rights_status"] == "approved"
+    assert reviewed["cases"][0]["rights_evidence"] == [
+        "https://example.test/reviews/quality-v1"
+    ]
+    assert json.loads(registry_path.read_text(encoding="utf-8")) == registry
+
+
+def test_apply_review_fails_closed_for_pending_or_stale_review(tmp_path: Path) -> None:
+    case = _case("smoke-001", split="smoke")
+    case["rights_status"] = "unreviewed"
+    case["rights_evidence"] = []
+    registry_path = tmp_path / "quality.private-quality-registry.json"
+    registry = _registry([case])
+    _write_registry(registry_path, registry)
+    review_path = tmp_path / "quality.private-quality-review.json"
+    prepare_quality_registry_review(
+        registry_path,
+        review_path,
+        reviewer="test-reviewer",
+    )
+    output = tmp_path / "reviewed.private-quality-registry.json"
+
+    pending = apply_quality_registry_review(registry_path, review_path, output)
+
+    assert pending.ready is False
+    assert pending.pending_cases == 1
+    assert "reviewed_at:missing" in pending.blockers
+    assert not output.exists()
+
+    case["prompt"] = "Changed private prompt"
+    _write_registry(registry_path, _registry([case]))
+    with pytest.raises(ValidationError, match="source registry digest is stale"):
+        apply_quality_registry_review(registry_path, review_path, output)

@@ -76,6 +76,7 @@ Thumbs.db
 *.wav
 *.flac
 *.private-quality-registry.json
+*.private-quality-review.json
 
 # Local credentials and environment files
 .env

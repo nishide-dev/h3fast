@@ -24,6 +24,8 @@
 - selection method、case registry digest、exclusions、known failuresのreview状態を記録する
 - prompt本文とlocal reference pathを持つregistryは[`schemas/private-quality-registry.schema.json`](../../schemas/private-quality-registry.schema.json)に従いrepository外で管理する
 - `h3fast benchmark compile-quality-registry`はprivate registryとassetをhashし、公開recordへprompt本文、local path、mediaを含めずatomicに出力し、set-level承認を引き継がない
+- `h3fast benchmark prepare-quality-review`はregistry/content digestへ拘束されたlocal-only checklistを生成し、`apply-quality-review`は全selection・case判断とHTTPS evidenceが揃った場合だけ新しいprivate registryへ承認状態を適用する
+- review instanceはper-case digestを含むためGit/CI artifactへ追加せず、commandの実行をreviewerによる実質確認の代替にしない
 
 `h3fast benchmark check-quality-set`は、承認済みrecordだけ終了code 0、正当だが未完了のrecordは1、schemaまたは意味上矛盾するrecordは2を返す。
 
@@ -31,4 +33,4 @@
 
 契約、private registry compiler、redactionと未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
 
-10件のsmoke / 50件のregression candidateはGit管理外に生成し、registry全体のdigestと件数だけを[`formal-quality-registry-attestation.json`](../../benchmarks/quality/formal-quality-registry-attestation.json)へ記録した。per-case metadataのcommit、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
+10件のsmoke / 50件のregression candidateはGit管理外に生成し、registry全体のdigestと件数だけを[`formal-quality-registry-attestation.json`](../../benchmarks/quality/formal-quality-registry-attestation.json)へ記録した。digest拘束されたprivate review workflowは実装済みだが、実際のper-case decision、metadataのcommit、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
