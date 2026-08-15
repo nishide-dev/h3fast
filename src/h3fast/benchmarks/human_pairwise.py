@@ -274,10 +274,10 @@ def prepare_human_pairwise_ballot(
     ballot_cases: list[dict[str, object]] = []
     for case_id in case_ids:
         order_digest = hashlib.sha256(
-            f"{randomization_seed}\0order\0{case_id}".encode()
+            f"{randomization_seed}\0{ballot_id}\0order\0{case_id}".encode()
         ).digest()
         a_source = "baseline" if order_digest[0] % 2 == 0 else "candidate"
-        salt = _sha256(f"{randomization_seed}\0salt\0{case_id}".encode())
+        salt = _sha256(f"{randomization_seed}\0{ballot_id}\0salt\0{case_id}".encode())
         commitment = _canonical_commitment(ballot_id, case_id, a_source, salt)
         assignment_cases.append(
             {

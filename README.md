@@ -120,7 +120,7 @@ uv run h3fast benchmark apply-quality-review \
   --output /secure/h3fast/quality.reviewed.private-quality-registry.json
 ```
 
-human-pairwise評価のballotとhidden assignment keyは別のprivate fileとして準備します。randomization seedは32文字以上で、group/otherから読めないfileに保存してください。seed、ballot、assignmentはGit、CI artifactまたは共有logへ追加せず、assignmentはballot完了までreviewerへ開示しません。次のpathはlocal例であり、環境に合わせて置き換えます。
+human-pairwise評価のballotとhidden assignment keyは別のprivate fileとして準備します。契約は[`private-human-pairwise-ballot.schema.json`](schemas/private-human-pairwise-ballot.schema.json)と[`private-human-pairwise-assignment.schema.json`](schemas/private-human-pairwise-assignment.schema.json)です。randomization seedはballotごとに新規生成し、32文字以上かつgroup/otherから読めないfileに保存してください。seed、ballot、assignmentはGit、CI artifactまたは共有logへ追加せず、assignmentはballot完了までreviewerへ開示しません。次のpathはlocal例であり、環境に合わせて置き換えます。
 
 ```bash
 install -m 600 /dev/null /secure/h3fast/pilot-001.private-human-pairwise-seed
