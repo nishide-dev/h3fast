@@ -2,8 +2,9 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.7（レビュー済み、Phase 1B最初の単一変数最適化まで実測完了）
-- **最終調査日:** 2026-08-16 (Asia/Tokyo)
+- **状態:** Draft v0.8（Phase 1B完了状態を実装監査済み、公開release blockerあり）
+- **最終外部調査日:** 2026-08-15 (Asia/Tokyo)
+- **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
 
@@ -31,7 +32,7 @@
 
 ## 1. エグゼクティブサマリー
 
-H3高速版は「Hugging Faceへ重みを置くプロジェクト」ではなく、次の独立した配布物から構成する。
+H3高速版は「Hugging Faceへ重みを置くプロジェクト」ではない。完成時の製品構成は次の独立した配布物を想定するが、すべてが現在実装・公開済みという意味ではない。
 
 1. **公開ランタイム:** Python SDK、変換CLI、Tritonカーネル、SGLang統合、フォールバック実装
 2. **モデル成果物:** 派生重み、LoRA、量子化重み、AdaLNキャッシュ、最適化マニフェスト
@@ -43,7 +44,7 @@ H3高速版は「Hugging Faceへ重みを置くプロジェクト」ではなく
 初期公開候補は、次の方式に限定する。
 
 > **推奨MVP: Public Runtime + Bring Your Own Weights (BYOW)**
-> 利用者が公式H3を自身の権限と責任で取得し、`h3fast convert`でローカル変換する。派生重みの一般公開は、MiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
+> 利用者が公式H3を自身の権限と責任で取得し、将来の`h3fast convert`でローカル変換する。`convert`はv0.8時点では未実装であり、派生重みの一般公開はMiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
 
 BYOWは重みの再配布を避ける配布方式であり、H3を利用・変換する権利を付与したり、地域制限やAUPを回避したりする仕組みではない。公式H3コード、設定、重みその他のMaterialsを`h3fast`へコピーする場合、公開ランタイム自体がMiniMax H3 Worksの配布に該当し得るため、コード境界を最初のリリース前に確定する。
 
@@ -52,6 +53,25 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 1. **Phase 0:** ライセンス境界、固定baseline、対象GPU、測定方法を確定する。
 2. **Phase 1A:** 単一Python packageでmanifest、検証、doctor、benchmark harnessを実装し、固定したSGLang版を参照backendとしてbaselineを再現する。
 3. **Phase 1B:** プロファイル結果から支配的なbottleneckを特定し、効果を単独測定できる最初の最適化を一つ実装する。
+
+### 1.1 現在の実装状態
+
+2026-08-16時点のrepository実装を次に限定して扱う。将来PhaseのCLI、package、container、service例を現行機能として実行してはならない。
+
+| 区分 | 状態 | 現在の範囲 |
+|---|---|---|
+| 単一Python distribution | 実装済み | `src/h3fast`、Python 3.12、CPU import、wheel/sdist build |
+| BYOW入力検証 | 実装済み | 明示されたlocal snapshotのrevision・構造・任意の全file SHA-256検証。download/convertは行わない |
+| Manifest検証 | 実装済み | `h3fast_manifest.json`とper-file checksumのfail-closed検証 |
+| 診断 | 実装済み | Pythonとoptional SGLangの診断。GPU初期化やmodel downloadは行わない |
+| Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
+| Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
+| 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
+| Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
+| H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
+| Public wheel / OCI / Hosted API | 未公開・未実装 | release、供給網、security、license gate未完了 |
+
+実装監査の詳細は[`docs/audits/0001-phase1b-completion.md`](audits/0001-phase1b-completion.md)を参照する。
 
 SGLangを初期の参照実行系とし、H3 pipelineや非同期video API全体を最初から再実装しない。`h3fast`は検証可能な最適化recipe、manifest、診断、benchmark、および必要なkernel/backend差分を所有する。SGLangの内部APIへ依存する箇所はadapterに隔離し、対応commitを固定する。
 
@@ -243,7 +263,7 @@ CLIはライセンス順守を保証するものではないが、少なくと�
 | Model Card | Hugging Face等 | 原則いいえ | revision固定 | 公開成果物が生じた時点でMUST |
 | 派生重み | Controlled Registry | はい | SHA-256、provenance、承認記録 | 条件付き |
 | AdaLN cache | Model Registry | H3由来データを含み得る | モデルと同じ管理 | 条件付き |
-| benchmark bundle | GitHub/HF | いいえ | 結果JSONと環境manifest | Phase 0からMUST |
+| benchmark bundle | local/controlled storage。公開は権利review後 | いいえ | 結果JSONと環境manifest | Phase 0から内部保存MUST。公開はrelease gate後 |
 | Helm chart | OCI/GitHub | いいえ | tag/release署名 | SHOULD |
 | ComfyUI node | GitHub/Registry | いいえ | release署名 | MAY |
 
@@ -291,7 +311,7 @@ workspace移行後の規則:
 
 ### 5.3 リポジトリ構成
 
-初期実装は次の構成を標準とする。
+現在の単一distribution実装は次の構成を標準とする。存在しないkernel、target、test階層を先に作らない。
 
 ```text
 h3fast/
@@ -299,25 +319,21 @@ h3fast/
 ├── uv.lock
 ├── .python-version
 ├── src/h3fast/
-│   ├── cli/
+│   ├── cli.py
+│   ├── exceptions.py
 │   ├── manifest/
 │   ├── backends/
-│   │   ├── reference.py
 │   │   └── sglang.py
-│   ├── kernels/
-│   │   ├── reference/
-│   │   └── triton/
 │   ├── diagnostics/
 │   └── benchmarks/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   ├── generation/
-│   └── performance/
+├── tests/                     # CPU unit/schema/package contract tests
 ├── benchmarks/
+│   └── quality/
 ├── schemas/
+├── runtime/
+│   └── ffprobe.py             # pinned SGLang image用local adapter
 ├── docs/
-└── targets/                    # 必要になったGPU targetだけを追加
+└── .github/workflows/ci.yml
 ```
 
 workspaceへ移行する場合の目標構成は次の通りとする。
@@ -609,7 +625,8 @@ explicit = true
 
 ### 5.8 build backend方針
 
-- pure Pythonの`h3fast-core`、`h3fast-kernels`、`h3fast`には`uv_build`をSHOULD使用する。
+- v0.8の単一`h3fast` distributionはHatchling `>=1.27,<2`を使用し、wheel/sdistとclean installを検証する。backend変更だけを目的に移行しない。
+- workspace分割後のpure Python `h3fast-core`、`h3fast-kernels`、`h3fast`には`uv_build`をSHOULD検討する。
 - `uv_build`のversionには互換上限をMUST設ける。
 - CUDA/C++/Rust extensionを含むpackageには、extension対応PEP 517 backendをMUST使用する。
 - FlashAttention、DeepGEMM等、installed PyTorchと同じABIへbuildする必要がある依存はtarget projectで管理する。
@@ -621,10 +638,12 @@ explicit = true
 初期の単一distributionでの標準操作は次の通りとする。
 
 ```bash
-uv sync --locked
+uv sync --locked --all-groups
 uv run h3fast --help
-uv run pytest
+uv run pytest --cov=h3fast
+uv run ruff format --check .
 uv run ruff check .
+uv run ty check src/
 uv build --no-sources
 ```
 
@@ -698,7 +717,9 @@ production GPU imageでは、上記のmain workspace lockではなく、該当�
 
 ### 5.11 CI/CDとuv
 
-CIは次の層に分ける。
+v0.8は`.github/workflows/ci.yml`でMain project CPU CIとClean-wheel CIを実装済みである。Target GPU CIとRelease CIは未実装であり、対象targetまたは公開releaseを追加する変更で導入する。
+
+完成時のCIは次の層に分ける。
 
 1. **Main workspace CPU CI**
    - `uv sync --locked`
@@ -938,22 +959,19 @@ driver要件は曖昧な`<exact>`ではなく、比較方法をschemaで定義�
 
 ### 7.1 パッケージ
 
-エンドユーザー向け:
+現在検証済みなのはsource checkoutとbuild済みlocal wheelである。
 
 ```bash
-uv add h3fast
-# または
-pip install h3fast
+uv sync --locked --all-groups
+uv run h3fast --help
+uv build --no-sources
 ```
 
-開発・サーバー用途では、検証済みtarget projectまたは公式OCI imageを優先する。GPUスタックを任意のextraだけで完全に再現できると表現してはならない。
+Public Runtime release後は`uv add h3fast`または`pip install h3fast`を想定するが、v0.8時点ではPyPI公開済みコマンドではない。公開前に別名packageを誤って取得しないよう、現行setup手順として提示してはならない。
+
+将来の開発・サーバー用途では、検証済みtarget projectまたは公式OCI imageを優先する。GPUスタックを任意のextraだけで完全に再現できると表現してはならない。次はtarget作成後に検証する構想例であり、現在は実行できない。
 
 ```bash
-# source checkoutから
-uv sync --locked
-uv run --package h3fast h3fast --help
-
-# production target
 cd targets/nvidia-hopper
 uv sync --locked
 uv run h3fast doctor
@@ -966,6 +984,8 @@ uv run h3fast doctor
 - lockfile、Python/uv version、完全なテスト環境manifestを提供する。
 
 ### 7.2 変換CLI
+
+この節はInitial Runtime releaseへ向けた将来契約である。v0.8に`convert` commandは存在せず、次の例は実行不可である。
 
 ```bash
 h3fast convert \
@@ -992,8 +1012,19 @@ CLI要件:
 
 ### 7.3 検証CLI
 
+現在実装済みの検証commandは次である。
+
 ```bash
+h3fast inspect-snapshot /models/MiniMax-H3 \
+  --variant fl2va \
+  --base-revision <immutable-sha>
 h3fast verify-model /models/H3-Fast-FL2VA-FP8
+h3fast doctor
+```
+
+`verify-image`とmodel-aware `doctor`は将来契約であり、v0.8では実行できない。
+
+```bash
 h3fast verify-image ghcr.io/org/h3fast@sha256:<digest>
 h3fast doctor --model /models/H3-Fast-FL2VA-FP8
 ```
@@ -1134,6 +1165,8 @@ ghcr.io/org/h3fast:1.0.0-rocm-cdna
 
 ### 9.2 起動例
 
+次はOCI distribution実装後の構想例である。v0.8ではH3Fast OCI imageと`h3fast serve`は未実装・未検証であり、digestのplaceholderを実行値として使用してはならない。
+
 ```bash
 docker run --rm --gpus all \
   --ipc=host \
@@ -1187,6 +1220,8 @@ Sidecar or platform service
 ## 10. モデル取得と権限管理
 
 ### 10.1 BYOW
+
+次はconverter実装後に利用者が明示的に取得・変換する構想例である。v0.8はmodelを自動downloadせず、`h3fast convert`も未実装である。H3の取得前に利用権とApplicable Territoryを確認する。
 
 ```bash
 hf download MiniMaxAI/MiniMax-H3 \
@@ -1536,23 +1571,25 @@ NVIDIA SANA TeamのSol Engine H3ページは、stock checkpointに対し、kerne
 
 ### 16.1 Pull Request CI
 
-必須:
+v0.8のCPU-only Pull Request CIは次を実装済みとする。
 
 - pinned uv versionで`uv sync --locked`が成功
-- main workspaceおよび変更対象targetのlockfile差分検証
-- 各公開packageを単独でimport/test
 - build済みwheelだけを用いたclean install test
-- lint / type check
-- unit test
-- schema validation
-- license header check
+- Ruff format/lintと`ty` type check
+- coverage閾値付きunit test
+- 全JSON schemaのmeta-schema検証と、commit済みprotocol/referenceのinstance検証
+- repository外の一時環境でCPU import
+
+Public Runtime release前には次を追加し、完了するまでこのrepositoryのCIをrelease gate済みと扱わない。
+
 - dependency/license scan
 - secret scan
-- CPU import test
-- container build test
-- reference fallback test
+- release artifactのlicense/notice検証
+- 配布対象がある場合のcontainer build、SBOM、vulnerability scan
+- 実装したbackend/kernelのreference fallback test
+- main projectまたは追加済みtargetごとのlockfile差分検証
 
-GPU CI:
+GPU CIは未実装であり、Tier付与またはGPU runtime release前に次を追加する。
 
 - 少なくとも代表1 GPUでkernel correctness
 - nightlyまたはmerge queueで複数GPU世代
@@ -1792,6 +1829,13 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 ## 21. 段階的ロードマップ
 
+| Phase | 2026-08-16時点の状態 | 次のgate |
+|---|---|---|
+| Phase 0 | Release blockerあり | license/territory/code boundary、formal 10/50 quality set、owner/deadline |
+| Phase 1A | 内部technical path実装済み | clean machineでGPU baseline再現、公開可否確認 |
+| Phase 1B | 最初のplacement最適化を実測・採用済み | clean machine再現、formal quality、release supply chain |
+| Phase 2以降 | 未着手 | Phase 0とInitial Runtime release gateの完了 |
+
 ### Phase 0: 法務・基準線
 
 - H3ライセンスとAUPの正式レビュー
@@ -1824,7 +1868,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 ### Phase 1B: First Measured Optimization
 
 - profile結果から選んだbottleneckを一つ最適化
-- PyTorch reference実装、correctness test、安全なfallback
+- 数値kernel/algorithmを変更する場合はPyTorch reference実装とcorrectness testを追加し、全最適化に安全なfallbackまたは明示的unsupported errorを用意
 - stage/E2E/品質のA/B benchmark
 - 効果がない最適化を既定経路へ入れない
 - 必要になった場合のみTriton、target別lock、weightless OCI imageを追加
@@ -1833,6 +1877,8 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 2026-08-16に最初の単一変数最適化としてDiT resident layer数を20から40へ増やし、2×RTX 6000 Adaでwarmup 1回・測定3回を完走した。20層baselineに対し、client E2E p50は889.495秒から883.516秒へ0.672%、denoise p50は847.339秒から842.507秒へ0.570%改善した。measured 3成果物はexact decoded artifact gateをすべて通過したため、40層を既定protocolへ採用した。
 
 reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52.704%）増えた。空きメモリ要件を満たせない場合は20層baseline protocolへ明示的にrollbackする。結果は[`docs/experiments/0005-rtx6000-ada-resident40.md`](experiments/0005-rtx6000-ada-resident40.md)に記録する。単一case・単一host・測定3回の結果であり、Tierまたは公開性能主張へ拡張しない。
+
+このplacement変更は既存BF16計算graph、schedule、step数を変えないため、新しい数値kernel向けPyTorch referenceは該当しない。20層protocolをreference/rollbackとし、protocol差分test、実効setting一致、E2E/stage A/B、exact decoded artifact gateでcorrectnessを確認した。
 
 ### Phase 2: Controlled Derivative Weights
 
@@ -2057,12 +2103,12 @@ reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52
 
 ## 24. 未解決事項
 
-正式実装開始前に、少なくともBlockerを決定する必要がある。各項目にはowner、decision deadline、決定記録へのlinkを追加する。
+Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBlockerを決定する必要がある。v0.8時点では組織上のownerとdecision deadlineが未設定であり、この未割当自体をDraft解除のblockerとする。決定時にowner、deadline、記録へのlinkを追加する。
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
 3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
-4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
+4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
 7. FP8の保存形式と各backend間の互換性。
@@ -2071,7 +2117,12 @@ reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52
 10. Hosted Serviceのmoderation providerと人手review手順。
 11. Benchmark prompt setを公開可能にするか、権利処理が必要か。
 12. Phase 3でSGLang serverをそのまま利用するか、独自serverを維持するか。
-13. 初期のPython minor version、uv version、build backend versionをどこまで固定するか。
+13. **Partially resolved:** Python 3.12、uv `0.11.2`、Hatchling `>=1.27,<2`を固定した。Python patchとbuild backend exact versionをrelease artifactでどこまで固定するか。
 14. Tier 1 targetごとのPyTorch/Triton/SGLang indexとlock更新責任者。
 15. `h3fast-server`をPyPI公開するか、OCI専用applicationとするか。
 16. native CUDA/C++ extensionが必要になった場合のdistribution名とbuild backend。
+17. Public Runtime release前にdependency/license scan、secret scan、artifact notice検証をどのCIで必須化するか。
+18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
+19. schema owner、release承認者、各Blockerのownerとdecision deadlineを誰が担うか。
+
+次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) 項目11を含む権利review済み10/50 quality set、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。

@@ -47,7 +47,7 @@ htmlcov/
 result
 result-*
 
-# direnv - ignore in template repo to avoid "blocked" messages
+# direnv
 .envrc
 .direnv/
 

@@ -576,6 +576,7 @@ def serve_guarded(
                         "endpoint": endpoint,
                         "server_pid": process.pid,
                         "startup_seconds": startup_seconds,
+                        "runtime_settings": plan.runtime_settings,
                     },
                     sort_keys=True,
                 )

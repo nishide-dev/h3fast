@@ -311,7 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     preflight = benchmark_subparsers.add_parser(
         "preflight",
-        help="Fail closed unless the pinned local baseline environment is ready",
+        help="Fail closed unless the pinned local benchmark environment is ready",
     )
     preflight.add_argument("--protocol", default="benchmarks/protocol.yaml")
     preflight.add_argument("--snapshot", required=True)
@@ -351,6 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
     guarded.add_argument("--guard-report", required=True)
     guarded.add_argument(
         "--lifecycle-report",
+        required=True,
         help="Write model-load-to-ready lifecycle metadata to this JSON path",
     )
     guarded.add_argument("--port", type=int, default=30010)

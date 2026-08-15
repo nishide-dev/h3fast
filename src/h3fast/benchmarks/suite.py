@@ -1,4 +1,4 @@
-"""Repeated guarded baseline measurement and deterministic aggregation."""
+"""Repeated guarded benchmark measurement and deterministic aggregation."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ class SummaryStatistics:
 
 @dataclass(frozen=True, slots=True)
 class BenchmarkSuiteResult:
-    """One completed warmup and measured baseline suite."""
+    """One completed warmup and measured benchmark suite."""
 
     protocol_id: str
     case_id: str
@@ -60,7 +60,7 @@ class BenchmarkSuiteResult:
     aggregate: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
-        """Return the machine-readable baseline bundle."""
+        """Return the machine-readable benchmark bundle."""
         return {
             "schema_version": "1.0",
             "protocol_id": self.protocol_id,

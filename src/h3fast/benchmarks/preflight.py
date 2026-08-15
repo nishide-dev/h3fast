@@ -1,4 +1,4 @@
-"""Fail-closed preflight checks for the pinned MiniMax H3 baseline."""
+"""Fail-closed preflight checks for a pinned MiniMax H3 benchmark."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ _NVIDIA_QUERY_TIMEOUT_SECONDS = 30.0
 
 @dataclass(frozen=True, slots=True)
 class PreflightCheck:
-    """One mandatory baseline preflight check."""
+    """One mandatory benchmark preflight check."""
 
     name: str
     status: CheckStatus
@@ -43,7 +43,7 @@ class PreflightCheck:
 
 @dataclass(frozen=True, slots=True)
 class PreflightReport:
-    """Reproducible baseline environment readiness report."""
+    """Reproducible benchmark environment readiness report."""
 
     protocol_id: str
     selected_gpus: tuple[int, ...]
@@ -144,7 +144,7 @@ def _query_nvidia() -> tuple[
 ]:
     executable = shutil.which("nvidia-smi")
     if executable is None:
-        msg = "nvidia-smi is required for the GPU baseline"
+        msg = "nvidia-smi is required for the GPU benchmark"
         raise ValidationError(msg)
     gpu_result = _run(
         [
@@ -269,7 +269,7 @@ def run_preflight(
     runtime_image: Path | None = None,
     ffprobe_adapter: Path | None = None,
 ) -> PreflightReport:
-    """Check a local baseline environment without importing GPU frameworks."""
+    """Check a local benchmark environment without importing GPU frameworks."""
     protocol = _protocol(protocol_path)
     protocol_id = str(protocol["protocol_id"])
     environment = _mapping(protocol.get("environment"), "environment")

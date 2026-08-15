@@ -235,6 +235,8 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
             str(preflight),
             "--guard-report",
             str(tmp_path / "guard.json"),
+            "--lifecycle-report",
+            str(tmp_path / "lifecycle.json"),
         ]
     )
 

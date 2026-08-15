@@ -58,7 +58,7 @@ def build_singularity_launch(
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
     if executable is None:
-        message = "singularity is required for the pinned baseline runtime"
+        message = "singularity is required for the pinned benchmark runtime"
         raise ValidationError(message)
     for name, path, kind in (
         ("snapshot", snapshot_path, "directory"),
