@@ -151,8 +151,10 @@ def test_benchmark_quality_set_command_reports_committed_blockers(capsys) -> Non
     output = json.loads(capsys.readouterr().out)
     assert status == 1
     assert output["ready"] is False
-    assert output["smoke_cases"] == 0
-    assert "approval:rights_reviewer:unassigned" in output["blockers"]
+    assert output["smoke_cases"] == 10
+    assert output["regression_cases"] == 50
+    assert "approval:quality_owner:pending" in output["blockers"]
+    assert "approval:rights_reviewer:unassigned" not in output["blockers"]
 
 
 def test_benchmark_quality_metric_plan_command_reports_draft(capsys) -> None:

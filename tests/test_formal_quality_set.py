@@ -117,15 +117,23 @@ def _cases(record: dict[str, object]) -> list[dict[str, object]]:
 
 def test_committed_formal_quality_set_is_explicitly_incomplete() -> None:
     report = check_formal_quality_set(RECORD_PATH)
+    record = json.loads(RECORD_PATH.read_text(encoding="utf-8"))
+    serialized = RECORD_PATH.read_text(encoding="utf-8")
 
     assert report.status == "incomplete"
     assert report.ready is False
-    assert report.smoke_cases == 0
-    assert report.regression_cases == 0
-    assert "approval:quality_owner:unassigned" in report.blockers
-    assert "cases:smoke-count:0/10" in report.blockers
-    assert "cases:regression-count:0/50" in report.blockers
-    assert "coverage:languages:distinct:0/2" in report.blockers
+    assert report.smoke_cases == 10
+    assert report.regression_cases == 50
+    assert "approval:quality_owner:pending" in report.blockers
+    assert "approval:rights_reviewer:unassigned" not in report.blockers
+    assert not any(blocker.startswith("cases:") for blocker in report.blockers)
+    assert not any(blocker.startswith("coverage:") for blocker in report.blockers)
+    assert '"prompt":' not in serialized
+    assert "benchmarks/quality/private" not in serialized
+    assert "/grouper/" not in serialized
+    assert "file://" not in serialized
+    assert record["approvals"]["rights_reviewer"]["state"] == "approved"
+    assert record["approvals"]["quality_owner"]["state"] == "pending"
 
 
 def test_approved_formal_quality_set_is_ready(tmp_path: Path) -> None:
@@ -238,6 +246,7 @@ def test_formal_set_rejects_inconsistent_approval(tmp_path: Path) -> None:
     assert isinstance(approvals, dict)
     approval = approvals["quality_owner"]
     assert isinstance(approval, dict)
+    approval["state"] = "unassigned"
     approval["owner"] = "quality-owner"
 
     with pytest.raises(ValidationError, match="unassigned approval"):

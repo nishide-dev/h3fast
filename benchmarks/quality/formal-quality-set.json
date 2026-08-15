@@ -1,21 +1,2024 @@
 {
-  "schema_version": "1.0",
-  "set_id": "h3fast-phase0-formal-quality-v1",
-  "status": "incomplete",
-  "updated_at": "2026-08-16",
-  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "approvals": {
+    "quality_owner": {
+      "approved_at": null,
+      "deadline": "2026-08-31",
+      "evidence": [],
+      "owner": "nishide-dev",
+      "state": "pending"
+    },
+    "rights_reviewer": {
+      "approved_at": "2026-08-16T05:03:06+09:00",
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "owner": "nishide-dev",
+      "state": "approved"
+    }
+  },
+  "cases": [
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "smoke-001",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "6b0d3779f0058b9d9bbe4834cd341d8bef076d3914a74d5f7a77b21c7d00d0ac",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12000,
+      "split": "smoke",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "smoke-002",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "32e19703bd36441cc7b0d6497aa0d7b33647c5dd6841f8d7484ad6a9c80dcfd4",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12001,
+      "split": "smoke",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "smoke-003",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "9b9264eadb5dfb7db6d70eb7c26a5c6bab9d7841e3d681bd084eeffae6d443be",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12002,
+      "split": "smoke",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "smoke-004",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "a42eb2c34af49a27e82015016d00753d2fa4af45f83203f3fc62ca8c0b86eb6e",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12003,
+      "split": "smoke",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "smoke-005",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "8213a8fa1fc24fd99beeee8c30b4ed2457febaae8c857560eb0d4d9602a31602",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12004,
+      "split": "smoke",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "smoke-006",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "ead72d86c25a51e11a25fb10a715b3398cc4d68c3789826dc3d0649180ac9114",
+      "reference_asset_sha256s": [
+        "c6ebfe0c3cc152488e3e2a03714768d3d833598d8478baeca8be6b27eff4711f"
+      ],
+      "reference_modalities": [
+        "video"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12005,
+      "split": "smoke",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "smoke-007",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "00f4decc6c11ddf761bb00234cb95f89c35c87a31c67e275e46a0ac9ac4d0e55",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12006,
+      "split": "smoke",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "smoke-008",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "58eb43227da264a8dc6ef4ee8f5cf50de4dcc0b8eede31925cf17fe214dd77ef",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12007,
+      "split": "smoke",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "smoke-009",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "cb89668495d70a792a356c70ff455bad93cff7c956504893a054436772bb6a5d",
+      "reference_asset_sha256s": [
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12008,
+      "split": "smoke",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "smoke-010",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "a49145283aeda45ba9aa2bb542253808db195d97ab72d71573d2197edc4f9bf8",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12009,
+      "split": "smoke",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-001",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "40067f12bf2152da356842d1ce8f1da29021c6c050079e487600bfbea9012c51",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12010,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-002",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "81d01d7b46a1aebd863aba47e3c15c256a0efec4de1ef439847aa79aed9858ba",
+      "reference_asset_sha256s": [
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef",
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio",
+        "image",
+        "mixed"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12011,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-003",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "8dd8e7c362281a5fdb16f63194f70e9762cf8961393c1de0edc451c66d563959",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12012,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-004",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "9184ad67345e0f5a6469e8936fd557d23c0f68f9cbc44ef07b2d2356b86efadf",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12013,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-005",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "fb2f7aaf1fb9def3a1eeaa48756725c60ebae91f82ce3786c0f70456b4273d98",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12014,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-006",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "3b65d4f3aa846fcc85591471e25d8e492e04e39372f990e440fd493ae956539f",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12015,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-007",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "020f0d680396aef6e1eac4a1edef1986b4430158b64c4bb34bf7dec6efe67715",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12016,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-008",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "83d11c681f31f084aae04da0f7c214c5174e365a17d7880ed9bbfeb4057a9701",
+      "reference_asset_sha256s": [
+        "c6ebfe0c3cc152488e3e2a03714768d3d833598d8478baeca8be6b27eff4711f"
+      ],
+      "reference_modalities": [
+        "video"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12017,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-009",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "19a9a814346536949b3c622f425d72c817b4b4a3f120b44565016c95448ef733",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12018,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-010",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "eb8199af85ccbc36f4a180029025552529d4a42ac6d6c22667a1f3b2865a7b81",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12019,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-011",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "959a9500a66f6cc0e567efa68895b318c596a88e72c45e7c0d941dcf3a3a66b5",
+      "reference_asset_sha256s": [
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12020,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-012",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "4d7fdf20f760e20ec6240f62b530447df0f0ece6eae0af61498413136bf25cf2",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12021,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-013",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "fa3dc78bd9d348112ae9617df627b17c030e0b0fde53ff5dc4dd92c0f85e0e2c",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12022,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-014",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "1756be851db88fcda75e410679bede73b20030214a281e5301cdf0f38d5ca81e",
+      "reference_asset_sha256s": [
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef",
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio",
+        "image",
+        "mixed"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12023,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-015",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "bfc5aea6f7707fe32ffa79c5e43cd76c172d0c36ea259e54ab407d638fa3bb04",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12024,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-016",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "5d3b01f384133a7af46d3e427e50bb531f7e7f71da1053b449b9ffea971e3472",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12025,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-017",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "0e14153c1d9eac09b4f1bbaaaaaaf0829ca0237ef272f99ef9a157c1106419f1",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12026,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-018",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "4a962cccf43fdb41f42845e3d57f9b06ef22e23d9827ffd521984d4cfcdd9ac3",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12027,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-019",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "98300cde2dc068fda0fd64e918598e46fa514e56cd30cced9de3f43e614922d9",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12028,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-020",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "74f3643d4275d872886e75f4a1bf27cc7b31e6ecefb8bb281935de5f868f7454",
+      "reference_asset_sha256s": [
+        "c6ebfe0c3cc152488e3e2a03714768d3d833598d8478baeca8be6b27eff4711f"
+      ],
+      "reference_modalities": [
+        "video"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12029,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-021",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "a8915ecba8af2367d02cf9947458a49d8589a20a75839b2531ea85082db40d43",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12030,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-022",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "9d0443d986f8e7a94cc30c35309a93afcb887479307f6c31503c889e8086f894",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12031,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-023",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "db232b01afac5db8f2f5e6df04af97fa474513485f697b6f638c2e5379ff11d9",
+      "reference_asset_sha256s": [
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12032,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-024",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "c4960c237087c0653477c847afcd2dcb104b3abb4b6e372756c92370336157de",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12033,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-025",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "924bf64082485ce8ac88d06569123a1e3008083a589522cfb817aad01bb305ad",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12034,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-026",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "2a8810e42d94f018a5e838531d061993e3a074a0953ecb2cdb92b951aef410ed",
+      "reference_asset_sha256s": [
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef",
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio",
+        "image",
+        "mixed"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12035,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-027",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "3d8878e937e967d9554c8e745ecd5846a3ccdaa099dc8996aea26f37e3c3f66c",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12036,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-028",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "1ab7fbeb46d1cb29472c152044b58a70ddbdca9a5cfb248b6ab1fa1f8541c913",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12037,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-029",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "4d85788a50a3cd5a9277fdee00fdacf3929b586b32cc98bdc51a2e30737ceb14",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12038,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-030",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "ae831660de5f68e40a38c0cc5e3c7637266c25e7a5a76e6172dfb0d4f797ee53",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12039,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-031",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "910d148d2432f4ab4371444a0976cb934b94ed35a765ebba0c906854d483a91f",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12040,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-032",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "8bc048908ef9715079bfd5a3e0a6e8bac8fd37019d5835b8093b48d2c4429eb9",
+      "reference_asset_sha256s": [
+        "c6ebfe0c3cc152488e3e2a03714768d3d833598d8478baeca8be6b27eff4711f"
+      ],
+      "reference_modalities": [
+        "video"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12041,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-033",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "fa43ae8986bdc45f09b4626b566f09289d9aa718ab2eb6a71aad87616d9f508a",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12042,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-034",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "d1e3beceb967faa7ca47d928c73862094d019d78ed13b3845ccc8dc9ee0d4eee",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12043,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-035",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "4d80d08621d23d9a9fa926f70d942bd4742dbbf6f25d30f8de1b9293891f4b60",
+      "reference_asset_sha256s": [
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12044,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-036",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "89b9a68b118dde244980cf4e656f0cd03a68faf1d7fafd1d063e88d16860d20d",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12045,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-037",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "103bf55685a7e3ef27d50b7e0f5d1dcfddf015c6fc87f46e15a3134cafe519bd",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12046,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-038",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "3f9571ef7b5e818c4608d93590f707637226f44bd8b31c12b4bb0619aebfa80c",
+      "reference_asset_sha256s": [
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef",
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio",
+        "image",
+        "mixed"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12047,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-039",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "df91211da3d27edf6aa5eec6b44cfa600ca6aa743041e6e13cd980f526a8fb66",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12048,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-040",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "8bc0d62eb7d721ce85f26766a3233bdf9c8338cf83e9f2e0f6d16e7d24955a93",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12049,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-041",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "a9f3ae272b70ac202b92e8c57f24a264a28133983e9b6e4a7b0109863b88f8b4",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12050,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-042",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "c0598c60cdecb9a26c3f3dc91c1be59c0b4bebed46283ce4b5bc501df0eb7be5",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12051,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-043",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "ee7e53b5e3eed9364d4f5e2b52ecf620877f2b98d918686b7a8d9463c2e872b3",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12052,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-044",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "9bb35d2d8ffac61e2691c5672b7104deab526b38a52e168b08356bc6cc2b530a",
+      "reference_asset_sha256s": [
+        "c6ebfe0c3cc152488e3e2a03714768d3d833598d8478baeca8be6b27eff4711f"
+      ],
+      "reference_modalities": [
+        "video"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12053,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-045",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "990e049f0ce09740e9d38aad0daaef053d915fe00542a43c43cd6269eb13b534",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12054,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-046",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "da27b66bfdb0c792c4c546b7ecec7b33339ca9a3477f32958e65d82bf2f337ca",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12055,
+      "split": "regression",
+      "subject_tags": [
+        "face"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "dialogue"
+      ],
+      "duration_seconds": 4,
+      "id": "regression-047",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "20a5d1159936b7bb4f160b8b3fbc3b670939c2b6bcb67f931d64b27c8ee94d41",
+      "reference_asset_sha256s": [
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12056,
+      "split": "regression",
+      "subject_tags": [
+        "hands"
+      ],
+      "task": "ref2va"
+    },
+    {
+      "aspect_ratio": "landscape",
+      "audio_tags": [
+        "environment"
+      ],
+      "duration_seconds": 5,
+      "id": "regression-048",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "dynamic"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "76e431caf0f9dc6d44febeac2360ac8d8558ae5f644ca40760adfbd5863f9ab0",
+      "reference_asset_sha256s": [],
+      "reference_modalities": [
+        "none"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12057,
+      "split": "regression",
+      "subject_tags": [
+        "text"
+      ],
+      "task": "t2va"
+    },
+    {
+      "aspect_ratio": "square",
+      "audio_tags": [
+        "music"
+      ],
+      "duration_seconds": 10,
+      "id": "regression-049",
+      "languages": [
+        "ja"
+      ],
+      "motion_tags": [
+        "static"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "7a9a52a8534d25cbc003512cd0ff584b88745b9cc8a92c74a48945c5492d494b",
+      "reference_asset_sha256s": [
+        "1934a4a94bfedd4104cf96d7f59a381ececad0be89183ab5612d2253f0a67dd1",
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef"
+      ],
+      "reference_modalities": [
+        "image"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12058,
+      "split": "regression",
+      "subject_tags": [
+        "product"
+      ],
+      "task": "fl2va"
+    },
+    {
+      "aspect_ratio": "portrait",
+      "audio_tags": [
+        "near-silent"
+      ],
+      "duration_seconds": 15,
+      "id": "regression-050",
+      "languages": [
+        "en"
+      ],
+      "motion_tags": [
+        "camera-movement"
+      ],
+      "notes": "Project-authored candidate; rights review pending.",
+      "prompt_sha256": "f5360b3119b84b9105896c754f3e3f53c6884fb79e4acc501b0581c13f371c63",
+      "reference_asset_sha256s": [
+        "3e7a358efca005412416f6544f673caa65b955e56b8d5ffaed0b42260acee4ef",
+        "0eb8a7731450233a71c3499f2a4e27bb59fef796a3c4fbb21d090a9cdae28496"
+      ],
+      "reference_modalities": [
+        "audio",
+        "image",
+        "mixed"
+      ],
+      "rights_evidence": [
+        "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
+      ],
+      "rights_status": "approved",
+      "seed": 12059,
+      "split": "regression",
+      "subject_tags": [
+        "multiple-people"
+      ],
+      "task": "ref2va"
+    }
+  ],
+  "limitations": [
+    "No prompt text, reference media, generated media, or model artifact is stored in this record.",
+    "Case notes preserve the pre-review candidate wording; rights_status and immutable rights_evidence are authoritative after review.",
+    "This incomplete inventory is not evidence of quality equivalence, losslessness, or support-tier readiness.",
+    "The single-case exact decoded-artifact gate remains limited to placement-only regression testing."
+  ],
+  "metrics": [
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "prompt-adherence",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    },
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "perceptual-video",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    },
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "temporal-consistency",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    },
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "audio-quality",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    },
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "av-sync",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    },
+    {
+      "budget": null,
+      "evidence": [],
+      "family": "human-pairwise",
+      "implementation": null,
+      "owner": null,
+      "state": "unassigned",
+      "version": null
+    }
+  ],
   "requirements": {
-    "smoke_min_cases": 10,
-    "regression_min_cases": 50,
     "minimum_distinct_languages": 2,
-    "required_tasks": ["t2va", "fl2va", "ref2va"],
-    "required_durations_seconds": [4, 5, 10, 15],
-    "required_aspect_ratios": ["landscape", "square", "portrait"],
-    "required_languages": ["ja"],
-    "required_subject_tags": ["face", "hands", "text", "product", "multiple-people"],
-    "required_motion_tags": ["dynamic", "static", "camera-movement"],
-    "required_audio_tags": ["dialogue", "environment", "music", "near-silent"],
-    "required_reference_modalities": ["none", "image", "video", "audio", "mixed"],
+    "regression_min_cases": 50,
+    "required_aspect_ratios": [
+      "landscape",
+      "square",
+      "portrait"
+    ],
+    "required_audio_tags": [
+      "dialogue",
+      "environment",
+      "music",
+      "near-silent"
+    ],
+    "required_durations_seconds": [
+      4,
+      5,
+      10,
+      15
+    ],
+    "required_languages": [
+      "ja"
+    ],
     "required_metric_families": [
       "prompt-adherence",
       "perceptual-video",
@@ -23,93 +2026,45 @@
       "audio-quality",
       "av-sync",
       "human-pairwise"
-    ]
+    ],
+    "required_motion_tags": [
+      "dynamic",
+      "static",
+      "camera-movement"
+    ],
+    "required_reference_modalities": [
+      "none",
+      "image",
+      "video",
+      "audio",
+      "mixed"
+    ],
+    "required_subject_tags": [
+      "face",
+      "hands",
+      "text",
+      "product",
+      "multiple-people"
+    ],
+    "required_tasks": [
+      "t2va",
+      "fl2va",
+      "ref2va"
+    ],
+    "smoke_min_cases": 10
   },
+  "schema_version": "1.0",
   "selection": {
-    "method": null,
-    "registry_uri": null,
-    "registry_sha256": null,
-    "exclusions_reviewed": false,
     "exclusions": [],
-    "known_failures_reviewed": false,
-    "known_failures": []
+    "exclusions_reviewed": true,
+    "known_failures": [],
+    "known_failures_reviewed": true,
+    "method": "Deterministic stratified schedule across the required Phase 0 task, duration, aspect, language, subject, motion, audio, and reference categories.",
+    "registry_sha256": "f14dd75b8eb321773f06f6c1f80bfebf3fd2f56a5b47c97d2120667a6a83d1ab",
+    "registry_uri": "https://github.com/nishide-dev/h3fast/blob/a9df39b6392d6a21ebd5a78bcdd32a75a3e65f12/benchmarks/quality/formal-quality-review-attestation.json"
   },
-  "approvals": {
-    "quality_owner": {
-      "state": "unassigned",
-      "owner": null,
-      "deadline": "2026-08-31",
-      "approved_at": null,
-      "evidence": []
-    },
-    "rights_reviewer": {
-      "state": "unassigned",
-      "owner": null,
-      "deadline": "2026-08-31",
-      "approved_at": null,
-      "evidence": []
-    }
-  },
-  "metrics": [
-    {
-      "family": "prompt-adherence",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    },
-    {
-      "family": "perceptual-video",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    },
-    {
-      "family": "temporal-consistency",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    },
-    {
-      "family": "audio-quality",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    },
-    {
-      "family": "av-sync",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    },
-    {
-      "family": "human-pairwise",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
-      "version": null,
-      "budget": null,
-      "evidence": []
-    }
-  ],
-  "cases": [],
-  "limitations": [
-    "No prompt text, reference media, generated media, or model artifact is stored in this record.",
-    "This incomplete inventory is not evidence of quality equivalence, losslessness, or support-tier readiness.",
-    "The single-case exact decoded-artifact gate remains limited to placement-only regression testing."
-  ]
+  "set_id": "h3fast-phase0-formal-quality-v1",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "status": "incomplete",
+  "updated_at": "2026-08-16"
 }
