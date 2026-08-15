@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/benchmark-failure.schema.json",
+  "title": "H3Fast benchmark failure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "recorded_at",
+    "case_id",
+    "error_type",
+    "error"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "status": { "const": "failed" },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "case_id": { "type": "string", "minLength": 1 },
+    "error_type": { "type": "string", "minLength": 1 },
+    "error": { "type": "string", "minLength": 1 }
+  }
+}

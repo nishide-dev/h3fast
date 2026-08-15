@@ -10,12 +10,12 @@ The repository was initialized from `ml-research-template`. The current MNIST, P
 
 ## Current phase and priorities
 
-The project is pre-implementation and follows this order:
+The project is in Phase 1A implementation and follows this order:
 
-1. Resolve the remaining Phase 0 blockers in `docs/spec.md`: license and territory applicability, immutable base revision, and quality reference set. Confirm the selected FL2VA/T2VA and 4×RTX 6000 Ada candidate with an H3 E2E run before calling it supported.
-2. Reproduce and record one fixed BF16 baseline.
-3. Build the smallest single-package BYOW validation and benchmark path.
-4. Profile the baseline and implement one independently measurable optimization.
+1. Resolve the remaining Phase 0 blockers in `docs/spec.md`: license and territory applicability and the quality reference set. The base revision is immutable and one FL2VA/T2VA E2E smoke has completed on 2×RTX 6000 Ada, but this is not yet a support tier or performance baseline.
+2. Extend the fixed BF16 harness from one smoke run to stage-level profiling and the protocol's measured-run set.
+3. Keep the smallest single-package BYOW validation and benchmark path reproducible and CPU-import-safe.
+4. Use the profile to select and implement one independently measurable optimization.
 5. Publish only after legal, quality, reproducibility, and supply-chain gates pass.
 
 Avoid speculative support for multiple GPU vendors, task families, quantization schemes, servers, or package distributions before an actual need and test environment exist.

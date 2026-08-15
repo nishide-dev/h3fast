@@ -14,7 +14,8 @@ def test_repository_protocol_is_valid_draft() -> None:
 
     assert report.status == "draft"
     assert report.ready is False
-    assert "immutable base model revision" in report.unresolved
+    assert "immutable base model revision" not in report.unresolved
+    assert "quality reference set" in report.unresolved
 
 
 def test_ready_protocol_requires_immutable_revision(tmp_path: Path) -> None:

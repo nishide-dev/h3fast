@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from importlib import metadata
 
-REFERENCE_SGLANG_VERSION = "0.5.15.post1"
+REFERENCE_SGLANG_COMMIT = "6eb941a34cb100b708a42ed1d26d2bdefafbd01e"
+REFERENCE_SGLANG_VERSION = f"git:{REFERENCE_SGLANG_COMMIT}"
 
 
 @dataclass(frozen=True, slots=True)
