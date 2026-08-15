@@ -132,6 +132,18 @@ def _health_ready(endpoint: str, timeout: float) -> bool:
         return False
 
 
+def _query_with_timeout_retry(
+    query: Callable[[tuple[int, ...], int], tuple[ForeignGpuProcess, ...]],
+    selected_gpus: tuple[int, ...],
+    root_pid: int,
+) -> tuple[ForeignGpuProcess, ...]:
+    """Retry one transient nvidia-smi timeout, while failing other errors immediately."""
+    try:
+        return query(selected_gpus, root_pid)
+    except subprocess.TimeoutExpired:
+        return query(selected_gpus, root_pid)
+
+
 def _signal_and_wait(
     process: subprocess.Popen[bytes], process_signal: signal.Signals, timeout: float
 ) -> bool:
@@ -271,7 +283,9 @@ def serve_guarded(
                 raise ValidationError(message)
 
             try:
-                foreign = query(plan.selected_gpus, process.pid)
+                foreign = _query_with_timeout_retry(
+                    query, plan.selected_gpus, process.pid
+                )
             except (OSError, subprocess.TimeoutExpired, ValidationError) as error:
                 message = f"GPU guard query failed: {error}"
                 _write_failure(

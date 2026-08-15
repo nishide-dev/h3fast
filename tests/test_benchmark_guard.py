@@ -11,6 +11,7 @@ import pytest
 from h3fast.benchmarks.guard import (
     ForeignGpuProcess,
     _health_ready,
+    _query_with_timeout_retry,
     _signal_and_wait,
     find_foreign_gpu_processes,
     serve_guarded,
@@ -135,6 +136,27 @@ def test_signal_and_wait_reports_success_and_timeout(monkeypatch) -> None:
     process.return_code = None
     monkeypatch.setattr(process, "wait", timeout)
     assert _signal_and_wait(process, signal.SIGTERM, 1.0) is False
+
+
+def test_gpu_query_retries_one_timeout_only() -> None:
+    calls = 0
+    command = "nvidia-smi"
+
+    def transient(_gpus: tuple[int, ...], _root: int):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise subprocess.TimeoutExpired(command, 10)
+        return ()
+
+    assert _query_with_timeout_retry(transient, (1, 2), 100) == ()
+    assert calls == 2
+
+    def persistent(_gpus: tuple[int, ...], _root: int):
+        raise subprocess.TimeoutExpired(command, 10)
+
+    with pytest.raises(subprocess.TimeoutExpired):
+        _query_with_timeout_retry(persistent, (1, 2), 100)
 
 
 def test_signal_and_wait_finishes_cleanup_after_interrupt(monkeypatch) -> None:
