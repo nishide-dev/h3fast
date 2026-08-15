@@ -8,7 +8,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
-- prompt/mediaを含めないformal quality-set contractとfail-closed検査
+- private registryからprompt/pathを除いたmetadataを生成するformal quality compilerとfail-closed検査
 - 承認前にfail closedするmachine-readable release gate
 - CPU-only環境でimport可能な単一Python package
 
@@ -81,6 +81,17 @@ formal quality setの件数、層化coverage、rights evidence、metric plan、a
 uv run h3fast benchmark check-quality-set \
   --record benchmarks/quality/formal-quality-set.json
 ```
+
+権利review対象のpromptとreference assetはGit管理外のprivate registryへ置き、公開可能なdigest metadataだけを生成します。compilerはprompt本文、asset path、media本体を出力へコピーせず、reference assetをSHA-256で固定します。`--registry-uri`には権限制御されたregistryのimmutable HTTPS identityを指定し、出力はまず一時fileでsemantic validationしてからatomicに置換します。
+
+```bash
+uv run h3fast benchmark compile-quality-registry \
+  --registry /secure/h3fast/quality.private-quality-registry.json \
+  --registry-uri https://registry.example.invalid/h3fast/quality-v1 \
+  --output /tmp/formal-quality-set.candidate.json
+```
+
+private registryのschemaは[`schemas/private-quality-registry.schema.json`](schemas/private-quality-registry.schema.json)です。registry、prompt、reference asset、生成したcandidate recordをrights/quality approval前にcommitまたはuploadしてはなりません。
 
 `benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。
 

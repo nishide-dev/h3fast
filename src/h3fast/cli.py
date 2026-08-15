@@ -15,6 +15,7 @@ from h3fast.benchmarks import (
     build_singularity_launch,
     check_formal_quality_set,
     check_quality,
+    compile_quality_registry,
     load_runtime_settings,
     run_case,
     run_preflight,
@@ -272,6 +273,17 @@ def _benchmark_check_quality_set(args: argparse.Namespace) -> int:
     return 0 if report.ready else 1
 
 
+def _benchmark_compile_quality_registry(args: argparse.Namespace) -> int:
+    report = compile_quality_registry(
+        Path(args.registry),
+        Path(args.template),
+        Path(args.output),
+        registry_uri=args.registry_uri,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -467,6 +479,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     quality_set_check.add_argument("--record", required=True)
     quality_set_check.set_defaults(handler=_benchmark_check_quality_set)
+
+    quality_registry_compile = benchmark_subparsers.add_parser(
+        "compile-quality-registry",
+        help="Compile a private registry into redacted formal quality metadata",
+    )
+    quality_registry_compile.add_argument("--registry", required=True)
+    quality_registry_compile.add_argument(
+        "--template",
+        default="benchmarks/quality/formal-quality-set.json",
+    )
+    quality_registry_compile.add_argument("--registry-uri", required=True)
+    quality_registry_compile.add_argument("--output", required=True)
+    quality_registry_compile.set_defaults(handler=_benchmark_compile_quality_registry)
     return parser
 
 

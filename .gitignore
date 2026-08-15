@@ -63,6 +63,7 @@ Thumbs.db
 /model-cache/
 /outputs/
 /benchmark-results/
+/benchmarks/quality/private/
 /runtime-cache/
 /triton-cache/
 *.safetensors
@@ -74,6 +75,7 @@ Thumbs.db
 *.webm
 *.wav
 *.flac
+*.private-quality-registry.json
 
 # Local credentials and environment files
 .env
