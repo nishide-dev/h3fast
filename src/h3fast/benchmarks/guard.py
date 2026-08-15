@@ -244,6 +244,73 @@ def find_foreign_gpu_processes_pmon(
     return tuple(foreign)
 
 
+def _device_holder_pids(
+    selected_gpus: tuple[int, ...], proc_root: Path = Path("/proc")
+) -> dict[int, set[int]]:
+    targets = {f"/dev/nvidia{index}": index for index in selected_gpus}
+    holders = {index: set() for index in selected_gpus}
+    try:
+        processes = tuple(proc_root.iterdir())
+    except OSError as error:
+        message = f"could not scan GPU device holders: {error}"
+        raise ValidationError(message) from error
+    for process_path in processes:
+        if not process_path.name.isdigit():
+            continue
+        try:
+            descriptors = tuple((process_path / "fd").iterdir())
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                target = str(descriptor.readlink())
+            except OSError:
+                continue
+            gpu_index = targets.get(target)
+            if gpu_index is not None:
+                holders[gpu_index].add(int(process_path.name))
+    return holders
+
+
+def find_foreign_gpu_device_holders(
+    selected_gpus: tuple[int, ...],
+    *,
+    allowed_root_pid: int,
+    baseline_holders: dict[int, set[int]],
+    gpu_uuids: dict[int, str],
+    proc_root: Path = Path("/proc"),
+) -> tuple[ForeignGpuProcess, ...]:
+    """Use GPU device holders when the driver process query is unavailable."""
+    selected = set(selected_gpus)
+    if set(baseline_holders) != selected or set(gpu_uuids) != selected:
+        message = "GPU device holder guard does not match the selected GPUs"
+        raise ValidationError(message)
+    holders = _device_holder_pids(selected_gpus, proc_root)
+    foreign: list[ForeignGpuProcess] = []
+    for gpu_index, pids in holders.items():
+        for pid in sorted(pids - baseline_holders[gpu_index]):
+            if _is_descendant(pid, allowed_root_pid, proc_root):
+                continue
+            try:
+                process_name = (
+                    (proc_root / str(pid) / "comm")
+                    .read_text(encoding="utf-8", errors="replace")
+                    .strip()
+                )
+            except OSError:
+                process_name = "unknown"
+            foreign.append(
+                ForeignGpuProcess(
+                    gpu_index=gpu_index,
+                    gpu_uuid=gpu_uuids[gpu_index],
+                    pid=pid,
+                    process_name=process_name or "unknown",
+                    used_memory_mib=0,
+                )
+            )
+    return tuple(foreign)
+
+
 def _health_ready(endpoint: str, timeout: float) -> bool:
     request = urllib.request.Request(  # noqa: S310
         f"{endpoint.rstrip('/')}/health", method="GET"
@@ -379,15 +446,26 @@ def serve_guarded(
     if lifecycle_path is not None:
         lifecycle_path.unlink(missing_ok=True)
     gpu_uuids: dict[int, str] = {}
+    baseline_holders = (
+        _device_holder_pids(plan.selected_gpus) if foreign_process_query is None else {}
+    )
 
     def default_query(
         gpus: tuple[int, ...], root_pid: int
     ) -> tuple[ForeignGpuProcess, ...]:
         if not gpu_uuids:
             gpu_uuids.update(_query_gpu_uuids(gpus))
-        return find_foreign_gpu_processes_pmon(
-            gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
-        )
+        try:
+            return find_foreign_gpu_processes_pmon(
+                gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
+            )
+        except subprocess.TimeoutExpired:
+            return find_foreign_gpu_device_holders(
+                gpus,
+                allowed_root_pid=root_pid,
+                baseline_holders=baseline_holders,
+                gpu_uuids=gpu_uuids,
+            )
 
     query = foreign_process_query or default_query
     started_at = datetime.now(UTC)

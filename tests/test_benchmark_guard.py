@@ -15,6 +15,7 @@ from h3fast.benchmarks.guard import (
     _query_pmon,
     _query_with_timeout_retry,
     _signal_and_wait,
+    find_foreign_gpu_device_holders,
     find_foreign_gpu_processes,
     find_foreign_gpu_processes_pmon,
     serve_guarded,
@@ -193,6 +194,32 @@ def test_gpu_uuid_query_rejects_invalid_results(
 
     with pytest.raises(ValidationError, match=match):
         _query_gpu_uuids((1, 2))
+
+
+def test_device_holder_fallback_detects_only_new_foreign_processes(
+    tmp_path: Path,
+) -> None:
+    _status(tmp_path, 100, 1)
+    _status(tmp_path, 200, 100)
+    _status(tmp_path, 300, 1)
+    _status(tmp_path, 400, 1)
+    for pid, gpu in ((200, 1), (300, 1), (400, 1)):
+        descriptors = tmp_path / str(pid) / "fd"
+        descriptors.mkdir()
+        (descriptors / "5").symlink_to(f"/dev/nvidia{gpu}")
+    (tmp_path / "300" / "comm").write_text("foreign\n", encoding="utf-8")
+
+    result = find_foreign_gpu_device_holders(
+        (1,),
+        allowed_root_pid=100,
+        baseline_holders={1: {400}},
+        gpu_uuids={1: "gpu-1"},
+        proc_root=tmp_path,
+    )
+
+    assert [process.pid for process in result] == [300]
+    assert result[0].process_name == "foreign"
+    assert result[0].used_memory_mib == 0
 
 
 class _Process:
