@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "protocol_id": "h3fast-phase1a-baseline-v1",
+  "status": "draft",
+  "unresolved": [
+    "immutable base model revision",
+    "H3 execution and license approval for the selected environment",
+    "quality reference set"
+  ],
+  "base_model": {
+    "repository": "MiniMaxAI/MiniMax-H3",
+    "revision": null,
+    "task_family": "fl2va",
+    "task": "t2va"
+  },
+  "environment": {
+    "accelerator": {
+      "vendor": "nvidia",
+      "model": "RTX 6000 Ada Generation",
+      "architecture": "sm89",
+      "memory_gib": 48,
+      "count": 4
+    },
+    "software": {
+      "python": "3.12",
+      "h3fast": "0.1.0",
+      "sglang": "0.5.15.post1",
+      "pytorch": null,
+      "triton": null,
+      "cuda": null,
+      "driver": "555.58.02"
+    }
+  },
+  "measurement": {
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "separate_cold_start": true,
+    "statistics": ["min", "p50", "p95", "max"],
+    "stages": [
+      "input",
+      "context_encode",
+      "denoise",
+      "visual_vae",
+      "audio_vae",
+      "mux",
+      "end_to_end"
+    ]
+  },
+  "cases": [
+    {
+      "id": "smoke-001",
+      "prompt": "A quiet street at dawn with natural synchronized ambience.",
+      "seed": 1101,
+      "conditions": [],
+      "short_edge": 768,
+      "aspect_ratio": "16:9",
+      "duration_seconds": 5.0,
+      "sigma_points": 50,
+      "flow_shift": 12.0,
+      "audio_flow_shift": 3.0
+    }
+  ]
+}

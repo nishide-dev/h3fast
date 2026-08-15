@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# uv
+.uv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Nix
+result
+result-*
+
+# direnv - ignore in template repo to avoid "blocked" messages
+.envrc
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Copier
+.copier-answers.yml
+
+# H3 and generated artifacts
+/models/
+/model-cache/
+/outputs/
+/benchmark-results/
+/triton-cache/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.mp4
+*.mov
+*.webm
+*.wav
+*.flac
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example

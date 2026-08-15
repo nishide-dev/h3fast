@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/h3fast-manifest.schema.json",
+  "title": "H3Fast model artifact manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "artifact_type",
+    "base_model",
+    "base_revision",
+    "task_family",
+    "runtime",
+    "components",
+    "license",
+    "build"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "artifact_id": { "type": "string", "minLength": 1 },
+    "artifact_type": { "const": "model_derivative" },
+    "base_model": { "const": "MiniMaxAI/MiniMax-H3" },
+    "base_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "task_family": { "enum": ["fl2va", "ref2va"] },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "requires", "tested_versions"],
+      "properties": {
+        "name": { "const": "h3fast" },
+        "requires": { "type": "string", "minLength": 1 },
+        "tested_versions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "format", "dtype", "index"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "format": { "const": "safetensors" },
+          "dtype": { "type": "string", "minLength": 1 },
+          "index": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "license": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "build": {
+      "type": "object",
+      "minProperties": 1
+    }
+  }
+}

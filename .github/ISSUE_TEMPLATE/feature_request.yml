@@ -1,0 +1,30 @@
+name: Feature request
+description: 新機能または改善を提案します。
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Issueタイトルは英語、以下の内容は日本語で記載してください。
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景と目的
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 対象範囲と対象外
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 技術的・法的制約と検証環境
