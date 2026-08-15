@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from h3fast.benchmarks import (
     apply_quality_registry_review,
@@ -279,6 +280,12 @@ def test_prepare_review_binds_registry_without_copying_private_inputs(
 
     review = json.loads(output.read_text(encoding="utf-8"))
     serialized = output.read_text(encoding="utf-8")
+    schema = json.loads(
+        Path("schemas/private-quality-review.schema.json").read_text(encoding="utf-8")
+    )
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(review)
     assert report.source_registry_sha256 == hashlib.sha256(raw).hexdigest()
     assert report.total_cases == 1
     assert report.pending_cases == 1
@@ -364,3 +371,42 @@ def test_apply_review_fails_closed_for_pending_or_stale_review(tmp_path: Path) -
     _write_registry(registry_path, _registry([case]))
     with pytest.raises(ValidationError, match="source registry digest is stale"):
         apply_quality_registry_review(registry_path, review_path, output)
+
+
+def test_apply_review_validates_partial_before_publishing_output(
+    tmp_path: Path,
+) -> None:
+    asset = tmp_path / "private-reference.bin"
+    asset.write_bytes(b"private reference bytes")
+    case = _case(
+        "smoke-001",
+        split="smoke",
+        task="fl2va",
+        references=[{"path": asset.name, "modality": "image"}],
+    )
+    case["rights_status"] = "unreviewed"
+    case["rights_evidence"] = []
+    registry_path = tmp_path / "quality.private-quality-registry.json"
+    _write_registry(registry_path, _registry([case]))
+    review_path = tmp_path / "quality.private-quality-review.json"
+    prepare_quality_registry_review(
+        registry_path,
+        review_path,
+        reviewer="test-reviewer",
+    )
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    review["reviewed_at"] = "2026-08-16T12:00:00Z"
+    review["selection"]["method_decision"] = "approved"
+    review["selection"]["exclusions_decision"] = "approved"
+    review["selection"]["known_failures_decision"] = "approved"
+    review["cases"][0]["rights_decision"] = "approved"
+    review["cases"][0]["selection_decision"] = "approved"
+    review["cases"][0]["rights_evidence"] = ["https://example.test/reviews/quality-v1"]
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    output = tmp_path / "other" / "reviewed.private-quality-registry.json"
+
+    with pytest.raises(ValidationError, match="reference at index 0 is missing"):
+        apply_quality_registry_review(registry_path, review_path, output)
+
+    assert not output.exists()
+    assert not output.with_suffix(".json.partial").exists()

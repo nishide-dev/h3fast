@@ -532,6 +532,31 @@ def _write_atomic_new(output_path: Path, value: dict[str, object], name: str) ->
         temporary.unlink(missing_ok=True)
 
 
+def _write_reviewed_registry_atomic(
+    output_path: Path, value: dict[str, object]
+) -> _ParsedPrivateRegistry:
+    if output_path.exists():
+        message = "reviewed registry output already exists"
+        raise ValidationError(message)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_path.with_suffix(output_path.suffix + ".partial")
+    if temporary.exists():
+        message = "reviewed registry partial output already exists"
+        raise ValidationError(message)
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    try:
+        reviewed = _parse_private_registry(temporary)
+        if output_path.exists():
+            message = "reviewed registry output appeared during validation"
+            raise ValidationError(message)
+        temporary.replace(output_path)
+        return reviewed
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _reset_set_approvals(template: dict[str, object]) -> None:
     approvals = template["approvals"]
     if not isinstance(approvals, dict):  # pragma: no cover - template is prevalidated
@@ -864,12 +889,7 @@ def apply_quality_registry_review(
             case["rights_status"] = "approved"
             case["rights_evidence"] = list(evidence)
         reviewed_registry["updated_at"] = reviewed_at.date().isoformat()
-        _write_atomic_new(output_path, reviewed_registry, "reviewed registry")
-        try:
-            reviewed = _parse_private_registry(output_path)
-        except ValidationError:
-            output_path.unlink(missing_ok=True)
-            raise
+        reviewed = _write_reviewed_registry_atomic(output_path, reviewed_registry)
         output_registry_sha256 = _registry_sha256(reviewed)
 
     return QualityRegistryReviewReport(
