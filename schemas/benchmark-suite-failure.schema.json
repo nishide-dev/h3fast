@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/benchmark-suite-failure.schema.json",
+  "title": "H3Fast measured benchmark suite failure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "case_id",
+    "status",
+    "started_at",
+    "completed_at",
+    "warmup_runs",
+    "measured_runs",
+    "server_lifecycle",
+    "error_type",
+    "error",
+    "runs"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "protocol_id": { "type": "string", "minLength": 1 },
+    "case_id": { "type": "string", "minLength": 1 },
+    "status": { "const": "failed" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "warmup_runs": { "type": "integer", "minimum": 0 },
+    "measured_runs": { "type": "integer", "minimum": 1 },
+    "server_lifecycle": { "type": "object" },
+    "error_type": { "type": "string", "minLength": 1 },
+    "error": { "type": "string", "minLength": 1 },
+    "guard": { "type": "object" },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "object" }
+    }
+  }
+}

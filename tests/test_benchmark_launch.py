@@ -51,6 +51,8 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
 
     assert plan.sglang_revision == REFERENCE_SGLANG_COMMIT
     assert "CUDA_VISIBLE_DEVICES=1,2" in plan.argv
+    assert f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}" in plan.argv
+    assert "SGLANG_USE_RUNAI_MODEL_STREAMER=false" in plan.argv
     assert "--enable-torch-compile" in plan.argv
     assert "false" in plan.argv
     assert any("/usr/local/bin/ffprobe:ro" in value for value in plan.argv)

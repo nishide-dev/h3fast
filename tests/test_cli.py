@@ -282,3 +282,32 @@ def test_benchmark_run_case_records_failure(tmp_path, monkeypatch, capsys) -> No
     assert failure["status"] == "failed"
     assert failure["error"] == "server failed"
     assert "server failed" in capsys.readouterr().err
+
+
+def test_benchmark_run_suite_command(tmp_path, monkeypatch, capsys) -> None:
+    class Value:
+        @staticmethod
+        def to_dict() -> dict[str, object]:
+            return {"status": "completed"}
+
+    monkeypatch.setattr("h3fast.cli.run_suite", lambda *_args, **_kwargs: Value())
+
+    status = main(
+        [
+            "benchmark",
+            "run-suite",
+            "--case-id",
+            "smoke-001",
+            "--output-dir",
+            str(tmp_path / "suite"),
+            "--server-output",
+            str(tmp_path / "server"),
+            "--server-lifecycle-report",
+            str(tmp_path / "lifecycle.json"),
+            "--server-guard-report",
+            str(tmp_path / "guard.json"),
+        ]
+    )
+
+    assert status == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"

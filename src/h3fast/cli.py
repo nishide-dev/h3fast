@@ -14,6 +14,7 @@ from h3fast.benchmarks import (
     build_singularity_launch,
     run_case,
     run_preflight,
+    run_suite,
     serve_guarded,
     validate_protocol,
 )
@@ -159,6 +160,9 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         plan,
         endpoint=f"http://127.0.0.1:{args.port}",
         report_path=Path(args.guard_report),
+        lifecycle_path=(
+            Path(args.lifecycle_report) if args.lifecycle_report is not None else None
+        ),
         startup_timeout=args.startup_timeout,
         poll_interval=args.poll_interval,
     )
@@ -195,6 +199,22 @@ def _benchmark_run_case(args: argparse.Namespace) -> int:
         raise
     (output_dir / f"{args.case_id}-failure.json").unlink(missing_ok=True)
     _write_json(result.to_dict())
+    return 0
+
+
+def _benchmark_run_suite(args: argparse.Namespace) -> int:
+    suite = run_suite(
+        Path(args.protocol),
+        case_id=args.case_id,
+        endpoint=args.endpoint,
+        output_dir=Path(args.output_dir),
+        server_output_dir=Path(args.server_output),
+        server_lifecycle_path=Path(args.server_lifecycle_report),
+        server_guard_report_path=Path(args.server_guard_report),
+        poll_interval=args.poll_interval,
+        timeout=args.timeout,
+    )
+    _write_json(suite.to_dict())
     return 0
 
 
@@ -295,6 +315,10 @@ def build_parser() -> argparse.ArgumentParser:
     guarded.add_argument("--server-output", required=True)
     guarded.add_argument("--preflight-output", required=True)
     guarded.add_argument("--guard-report", required=True)
+    guarded.add_argument(
+        "--lifecycle-report",
+        help="Write model-load-to-ready lifecycle metadata to this JSON path",
+    )
     guarded.add_argument("--port", type=int, default=30010)
     guarded.add_argument("--startup-timeout", type=float, default=3600.0)
     guarded.add_argument("--poll-interval", type=float, default=2.0)
@@ -311,6 +335,25 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--poll-interval", type=float, default=1.0)
     run.add_argument("--timeout", type=float, default=7200.0)
     run.set_defaults(handler=_benchmark_run_case)
+
+    suite = benchmark_subparsers.add_parser(
+        "run-suite",
+        help="Run and aggregate the protocol warmup and measured cases",
+    )
+    suite.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    suite.add_argument("--case-id", required=True)
+    suite.add_argument("--endpoint", default="http://127.0.0.1:30010")
+    suite.add_argument("--output-dir", required=True)
+    suite.add_argument(
+        "--server-output",
+        required=True,
+        help="Host directory mounted by serve-guarded at /outputs",
+    )
+    suite.add_argument("--server-lifecycle-report", required=True)
+    suite.add_argument("--server-guard-report", required=True)
+    suite.add_argument("--poll-interval", type=float, default=1.0)
+    suite.add_argument("--timeout", type=float, default=7200.0)
+    suite.set_defaults(handler=_benchmark_run_suite)
     return parser
 
 

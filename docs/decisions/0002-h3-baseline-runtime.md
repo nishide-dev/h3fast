@@ -16,6 +16,7 @@ hostには4基のRTX 6000 Ada Generation 48GBがありますが、GPU 0は別pro
 - 参照backend sourceをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定する。
 - CUDA user-spaceは公式amd64 image `lmsysorg/sglang@sha256:29f0f645122be1799a594c15907d81da326dbbe6ccd6395710a07a4292125a5f`をSingularity SIFへ変換して使用する。
 - image内のrelease sourceは使用せず、固定SGLang checkoutの`python/`をread-only bindし、`PYTHONPATH`で優先する。
+- RunAI model streamerは固定hostで長時間進捗が止まる試行が再現したため、`SGLANG_USE_RUNAI_MODEL_STREAMER=false`を明示し、通常safetensors loaderへ固定する。
 - imageに欠けている`ffprobe` CLIは、image内のPyAVで必要なmedia metadataだけを返すH3Fast管理の互換adapterをread-only bindし、そのSHA-256をpreflightとlaunch planへ記録する。
 - 2×RTX 5090向け公式構成を基に、TP2、Ulysses1、memory mode、DiT resident 20 layers、text encoder・DiT・VAE layerwise offload、`torch.compile`無効で開始する。
 - preflightは選択GPU上のcompute process、45,000 MiB未満の空きVRAM、384 GiB未満のRAM、driver、snapshot容量、source revision、runtime imageをfail-closedで拒否する。
@@ -31,3 +32,5 @@ release tagとsource commitを組み合わせるため、依存ABIの不一致�
 最初の実機試行はDiT staging中に別workloadが選択GPUへ入ったため中断しました。互換性検査とtext encoder loadは成功しましたが、E2E完走とはみなしません。詳細は[`docs/experiments/0001-rtx6000-ada-baseline-smoke.md`](../experiments/0001-rtx6000-ada-baseline-smoke.md)に記録します。
 
 次のガード付き試行では固定T2VA caseをAPI送信からMP4取得まで完走しました。固定imageに欠けていた`ffprobe` CLIは、image内PyAVを使う固定adapterで補い、hostの独立`ffprobe`でもmedia contractを再検証しました。詳細は[`docs/experiments/0002-rtx6000-ada-baseline-smoke.md`](../experiments/0002-rtx6000-ada-baseline-smoke.md)に記録します。
+
+その後、RunAI model streamerを明示的に無効化した通常loaderでwarmup 1回と測定3回を完走した。規定回数のlocal BF16 baselineと支配stageは[`docs/experiments/0003-rtx6000-ada-measured-baseline.md`](../experiments/0003-rtx6000-ada-measured-baseline.md)、次の単一最適化判断は[`docs/decisions/0003-first-optimization-target.md`](0003-first-optimization-target.md)に記録する。

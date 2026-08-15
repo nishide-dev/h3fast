@@ -37,6 +37,55 @@
         "size": { "type": "integer", "minimum": 1 },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inference_time_seconds": { "type": "number", "minimum": 0 },
+        "peak_memory_mib": { "type": "number", "minimum": 0 },
+        "media_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["size", "seconds"],
+          "properties": {
+            "size": { "type": "string", "pattern": "^[1-9][0-9]*x[1-9][0-9]*$" },
+            "seconds": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$" }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sglang_commit",
+            "pipeline_total_seconds",
+            "stages",
+            "denoise_steps_seconds"
+          ],
+          "properties": {
+            "sglang_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "pipeline_total_seconds": { "type": "number", "minimum": 0 },
+            "stages": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "seconds"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "seconds": { "type": "number", "minimum": 0 }
+                }
+              }
+            },
+            "denoise_steps_seconds": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
     }
   }
 }

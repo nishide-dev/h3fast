@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/benchmark-server-lifecycle.schema.json",
+  "title": "H3Fast benchmark server lifecycle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "started_at",
+    "ready_at",
+    "startup_seconds",
+    "selected_gpus",
+    "server_pid",
+    "endpoint"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "status": { "const": "ready" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ready_at": { "type": "string", "format": "date-time" },
+    "startup_seconds": { "type": "number", "minimum": 0 },
+    "selected_gpus": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "integer", "minimum": 0 },
+      "uniqueItems": true
+    },
+    "server_pid": { "type": "integer", "minimum": 1 },
+    "endpoint": { "type": "string", "minLength": 1 }
+  }
+}

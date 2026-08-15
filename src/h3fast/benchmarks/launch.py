@@ -52,7 +52,7 @@ def build_singularity_launch(
     selected_gpus: tuple[int, ...],
     port: int = 30010,
 ) -> LaunchPlan:
-    """Build the pinned two-GPU lossless baseline launch command."""
+    """Build the pinned two-GPU reference baseline launch command."""
     executable = shutil.which("singularity")
     if executable is None:
         message = "singularity is required for the pinned baseline runtime"
@@ -93,6 +93,10 @@ def build_singularity_launch(
         f"CUDA_VISIBLE_DEVICES={visible_devices}",
         "--env",
         "PYTHONPATH=/opt/h3fast/sglang/python",
+        "--env",
+        f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}",
+        "--env",
+        "SGLANG_USE_RUNAI_MODEL_STREAMER=false",
         "--bind",
         f"{snapshot}:/models/MiniMax-H3:ro",
         "--bind",
