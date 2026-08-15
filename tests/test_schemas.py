@@ -13,6 +13,9 @@ COMPLIANCE_RECORDS = (
 )
 FORMAL_QUALITY_SET = Path("benchmarks/quality/formal-quality-set.json")
 QUALITY_METRIC_PLAN = Path("benchmarks/quality/formal-quality-metric-plan.json")
+QUALITY_METRIC_SELECTION = Path(
+    "benchmarks/quality/formal-quality-metric-selection.json"
+)
 QUALITY_REGISTRY_ATTESTATION = Path(
     "benchmarks/quality/formal-quality-registry-attestation.json"
 )
@@ -105,6 +108,39 @@ def test_committed_quality_metric_plan_matches_schema() -> None:
     Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
     ).validate(plan)
+
+
+def test_committed_quality_metric_selection_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/quality-metric-selection.schema.json").read_text(encoding="utf-8")
+    )
+    selection = json.loads(QUALITY_METRIC_SELECTION.read_text(encoding="utf-8"))
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(selection)
+
+
+def test_quality_metric_selection_covers_each_family_once() -> None:
+    selection = json.loads(QUALITY_METRIC_SELECTION.read_text(encoding="utf-8"))
+    schema = json.loads(
+        Path("schemas/quality-metric-selection.schema.json").read_text(encoding="utf-8")
+    )
+    metrics = selection["metrics"]
+    families = [metric["family"] for metric in metrics]
+
+    assert sorted(families) == [
+        "audio-quality",
+        "av-sync",
+        "human-pairwise",
+        "perceptual-video",
+        "prompt-adherence",
+        "temporal-consistency",
+    ]
+    assert all(metric["blockers"] for metric in metrics)
+
+    metrics[1]["family"] = metrics[0]["family"]
+    assert not Draft202012Validator(schema).is_valid(selection)
 
 
 def test_committed_quality_registry_attestation_matches_schema() -> None:

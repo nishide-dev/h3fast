@@ -1,0 +1,225 @@
+{
+  "schema_version": "1.0",
+  "assessment_id": "h3fast-phase0-formal-quality-metric-selection-v1",
+  "status": "candidate-review",
+  "updated_at": "2026-08-16",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "metrics": [
+    {
+      "family": "prompt-adherence",
+      "disposition": "candidate",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Encode the prompt and uniformly sampled candidate frames with SigLIP2, then aggregate per-frame cosine similarity without substituting this score for the other metric families.",
+      "external_components": [
+        {
+          "name": "google/siglip2-base-patch16-256",
+          "kind": "model",
+          "version": "2026-08-16-snapshot",
+          "revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+          "source": "https://huggingface.co/google/siglip2-base-patch16-256/tree/3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+          "license": "Apache-2.0",
+          "license_scope": "Model repository metadata and files at the pinned revision"
+        },
+        {
+          "name": "transformers",
+          "kind": "source",
+          "version": "5.14.1",
+          "revision": "a08ace4bbd97e721c98751deec37d87b026acadc",
+          "source": "https://github.com/huggingface/transformers/tree/a08ace4bbd97e721c98751deec37d87b026acadc",
+          "license": "Apache-2.0",
+          "license_scope": "Source code at the pinned release tag"
+        }
+      ],
+      "inputs": ["prompt", "candidate-video"],
+      "score_direction": "higher-is-better",
+      "adoption_requirements": [
+        "Implement an H3Fast adapter with fixed frame sampling, RGB conversion, text preprocessing, and aggregation semantics.",
+        "Verify Python 3.12, pinned PyTorch, GPU memory, offline snapshot loading, and clean-wheel behavior.",
+        "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
+      ],
+      "blockers": [
+        "No H3Fast metric entrypoint or correctness test exists.",
+        "The pinned model and Transformers release have not been exercised in the fixed H3 runtime.",
+        "No baseline self-variation or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://huggingface.co/google/siglip2-base-patch16-256/tree/3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+        "https://huggingface.co/docs/transformers/model_doc/siglip2",
+        "https://github.com/huggingface/transformers/tree/a08ace4bbd97e721c98751deec37d87b026acadc"
+      ]
+    },
+    {
+      "family": "perceptual-video",
+      "disposition": "candidate",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Compute LPIPS on corresponding decoded RGB frames for each baseline/candidate pairing and aggregate per-case distances without temporal resampling.",
+      "external_components": [
+        {
+          "name": "LPIPS",
+          "kind": "source",
+          "version": "0.1.4",
+          "revision": "082bb24f84c091ea94de2867d34c4544f68e0963",
+          "source": "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
+          "license": "BSD-2-Clause",
+          "license_scope": "Source code and bundled network weights in the pinned repository"
+        }
+      ],
+      "inputs": ["baseline-video", "candidate-video"],
+      "score_direction": "lower-is-better",
+      "adoption_requirements": [
+        "Implement deterministic matching of decoded frame count, timestamps, color conversion, and LPIPS input normalization.",
+        "Verify bundled network-weight provenance and compatibility with the pinned PyTorch runtime.",
+        "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
+      ],
+      "blockers": [
+        "No H3Fast metric entrypoint or correctness test exists.",
+        "The pinned implementation has not been exercised with the formal media contract or fixed H3 runtime.",
+        "No baseline self-variation or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
+        "https://pypi.org/project/lpips/0.1.4/"
+      ]
+    },
+    {
+      "family": "temporal-consistency",
+      "disposition": "candidate",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Use an H3Fast-owned adapter to compare adjacent-frame LPIPS trajectories between baseline and candidate videos while retaining a separate perceptual-video result.",
+      "external_components": [
+        {
+          "name": "LPIPS",
+          "kind": "source",
+          "version": "0.1.4",
+          "revision": "082bb24f84c091ea94de2867d34c4544f68e0963",
+          "source": "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
+          "license": "BSD-2-Clause",
+          "license_scope": "Source code and bundled network weights in the pinned repository"
+        }
+      ],
+      "inputs": ["baseline-video", "candidate-video"],
+      "score_direction": "lower-is-better",
+      "adoption_requirements": [
+        "Specify the adjacent-frame trajectory distance, timestamp alignment, scene-cut handling, and zero-motion boundary behavior.",
+        "Add tests for static scenes, abrupt cuts, frame-count mismatch, non-finite values, and decode failure.",
+        "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
+      ],
+      "blockers": [
+        "The project-owned trajectory algorithm and metric entrypoint are not implemented.",
+        "LPIPS compatibility and bundled network-weight provenance remain unverified in the fixed runtime.",
+        "No baseline self-variation or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
+        "https://pypi.org/project/lpips/0.1.4/"
+      ]
+    },
+    {
+      "family": "audio-quality",
+      "disposition": "blocked",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Compare each candidate audio track with its paired baseline by using ViSQOL in full-reference audio mode with an explicit 48 kHz decode and channel policy.",
+      "external_components": [
+        {
+          "name": "ViSQOL",
+          "kind": "source",
+          "version": "2026-08-16-revision",
+          "revision": "38d0b0163e441047d4429bf07ad09e5b9031d02c",
+          "source": "https://github.com/google/visqol/tree/38d0b0163e441047d4429bf07ad09e5b9031d02c",
+          "license": "Apache-2.0",
+          "license_scope": "Source code at the pinned revision"
+        }
+      ],
+      "inputs": ["baseline-audio", "candidate-audio"],
+      "score_direction": "higher-is-better",
+      "adoption_requirements": [
+        "Build and smoke-test the pinned ViSQOL revision in the Python 3.12 fixed runtime.",
+        "Fix sample-rate, channel, duration alignment, silence, and missing-audio semantics in an H3Fast adapter.",
+        "Measure fixed-baseline self-variation on all applicable formal cases and define fail-closed handling for silent cases."
+      ],
+      "blockers": [
+        "The Bazel/native build and Python 3.12 integration have not been verified in the fixed H3 runtime.",
+        "No H3Fast metric entrypoint, media adapter, or correctness test exists.",
+        "No baseline self-variation or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://github.com/google/visqol/tree/38d0b0163e441047d4429bf07ad09e5b9031d02c",
+        "https://github.com/google/visqol/blob/38d0b0163e441047d4429bf07ad09e5b9031d02c/README.md"
+      ]
+    },
+    {
+      "family": "av-sync",
+      "disposition": "blocked",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Estimate temporal audio/video offset independently for baseline and candidate media with Synchformer, then compare offset error without treating visual quality as a substitute.",
+      "external_components": [
+        {
+          "name": "Synchformer",
+          "kind": "source",
+          "version": "2026-08-16-revision",
+          "revision": "b66668a1521d7567cc760e5544b2b5b53179b687",
+          "source": "https://github.com/v-iashin/Synchformer/tree/b66668a1521d7567cc760e5544b2b5b53179b687",
+          "license": "MIT",
+          "license_scope": "Source code at the pinned revision; pretrained checkpoint terms are not established by this entry"
+        }
+      ],
+      "inputs": [
+        "baseline-video",
+        "baseline-audio",
+        "candidate-video",
+        "candidate-audio"
+      ],
+      "score_direction": "lower-is-better",
+      "adoption_requirements": [
+        "Identify a specific pretrained checkpoint by immutable digest and record its license and provenance.",
+        "Verify the older PyAV and accelerator dependency graph against the fixed H3 runtime or isolate it in a reproducible target.",
+        "Define event-sync behavior for non-speech cases and measure fixed-baseline self-variation before assigning a budget."
+      ],
+      "blockers": [
+        "The candidate checkpoint does not yet have an approved immutable identity, license record, and local provenance check.",
+        "The published dependency stack has not been shown compatible with the fixed H3 runtime.",
+        "No H3Fast metric entrypoint, baseline self-variation, or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://github.com/v-iashin/Synchformer/tree/b66668a1521d7567cc760e5544b2b5b53179b687",
+        "https://github.com/v-iashin/Synchformer/blob/b66668a1521d7567cc760e5544b2b5b53179b687/README.md"
+      ]
+    },
+    {
+      "family": "human-pairwise",
+      "disposition": "candidate",
+      "research_owner": "nishide-dev",
+      "proposed_method": "Use a project-owned blind randomized paired ballot that shows baseline and candidate media as A/B, records per-family preference and ties, and keeps case identity separate from presentation order.",
+      "external_components": [],
+      "inputs": [
+        "prompt",
+        "baseline-video",
+        "baseline-audio",
+        "candidate-video",
+        "candidate-audio",
+        "human-ballot"
+      ],
+      "score_direction": "two-sided",
+      "adoption_requirements": [
+        "Define and schema-validate the blind ballot, randomization seed, reviewer identity, tie, abstention, and missing-observation semantics.",
+        "Implement an offline runner that does not upload prompts, media, ballots, or generated outputs.",
+        "Pilot the protocol, review reviewer burden and bias controls, and approve the final aggregation before formal scoring."
+      ],
+      "blockers": [
+        "No ballot schema, offline runner, aggregation implementation, or correctness test exists.",
+        "Reviewer count, conflict handling, and tie/abstention policy are not approved.",
+        "No pilot evidence or quality-owner approval evidence exists."
+      ],
+      "sources": [
+        "https://github.com/nishide-dev/h3fast/issues/16",
+        "https://github.com/nishide-dev/h3fast/blob/main/docs/spec.md"
+      ]
+    }
+  ],
+  "limitations": [
+    "This assessment records research candidates and blockers; it does not create runnable metric implementations or change formal metric-plan state.",
+    "Source-code licenses do not automatically establish pretrained-checkpoint, generated-output, or input-media rights.",
+    "No metric is approved until its adapter, exact dependencies, runtime compatibility, baseline self-variation, budget, and immutable evidence pass review.",
+    "Candidate selection does not approve the formal quality set, a Support Tier, or a public runtime release."
+  ]
+}

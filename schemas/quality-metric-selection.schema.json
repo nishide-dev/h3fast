@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/quality-metric-selection.schema.json",
+  "title": "H3Fast formal quality metric candidate assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "status",
+    "updated_at",
+    "source_issue",
+    "metrics",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "assessment_id": { "const": "h3fast-phase0-formal-quality-metric-selection-v1" },
+    "status": { "const": "candidate-review" },
+    "updated_at": { "type": "string", "format": "date" },
+    "source_issue": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "metrics": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/metric" },
+      "allOf": [
+        { "contains": { "properties": { "family": { "const": "audio-quality" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "family": { "const": "av-sync" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "family": { "const": "human-pairwise" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "family": { "const": "perceptual-video" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "family": { "const": "prompt-adherence" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "family": { "const": "temporal-consistency" } }, "required": ["family"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "limitations": { "$ref": "#/$defs/nonemptyUniqueStrings" }
+  },
+  "$defs": {
+    "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$" },
+    "nonemptyUniqueStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "httpsUrls": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "format": "uri", "pattern": "^https://" }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "version",
+        "revision",
+        "source",
+        "license",
+        "license_scope"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["model", "source"] },
+        "version": { "type": "string", "minLength": 1 },
+        "revision": { "$ref": "#/$defs/revision" },
+        "source": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "license": { "type": "string", "minLength": 1 },
+        "license_scope": { "type": "string", "minLength": 1 }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "disposition",
+        "research_owner",
+        "proposed_method",
+        "external_components",
+        "inputs",
+        "score_direction",
+        "adoption_requirements",
+        "blockers",
+        "sources"
+      ],
+      "properties": {
+        "family": {
+          "enum": [
+            "audio-quality",
+            "av-sync",
+            "human-pairwise",
+            "perceptual-video",
+            "prompt-adherence",
+            "temporal-consistency"
+          ]
+        },
+        "disposition": { "enum": ["candidate", "blocked"] },
+        "research_owner": { "type": "string", "minLength": 1 },
+        "proposed_method": { "type": "string", "minLength": 1 },
+        "external_components": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/component" }
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "prompt",
+              "baseline-video",
+              "baseline-audio",
+              "candidate-video",
+              "candidate-audio",
+              "human-ballot"
+            ]
+          }
+        },
+        "score_direction": { "enum": ["higher-is-better", "lower-is-better", "two-sided"] },
+        "adoption_requirements": { "$ref": "#/$defs/nonemptyUniqueStrings" },
+        "blockers": { "$ref": "#/$defs/nonemptyUniqueStrings" },
+        "sources": { "$ref": "#/$defs/httpsUrls" }
+      }
+    }
+  }
+}
