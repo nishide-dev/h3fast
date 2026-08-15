@@ -11,23 +11,20 @@ from urllib.parse import urlparse
 from h3fast.benchmarks.quality_sets import check_formal_quality_set
 from h3fast.exceptions import ValidationError
 
-REQUIRED_APPROVAL_ROLES = frozenset(
-    {"legal_reviewer", "release_approver", "schema_owner"}
-)
+REQUIRED_APPROVAL_ROLES = frozenset({"release_approver", "schema_owner"})
 INITIAL_RUNTIME_REQUIRED_CHECKS = frozenset(
     {
         "artifact-notices",
         "byow-converter",
         "clean-machine-reproduction",
+        "code-boundary-classification",
         "code-boundary-engineering",
-        "code-boundary-legal",
         "formal-quality-set",
         "gpu-e2e",
         "license-evidence",
         "public-benchmark",
         "supply-chain",
         "support-target",
-        "territory-approval",
     }
 )
 _TOP_LEVEL_FIELDS = frozenset(
@@ -60,7 +57,7 @@ class ReleaseGateReport:
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable release readiness data."""
         return {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "release_id": self.release_id,
             "status": self.status,
             "ready": self.ready,
@@ -222,8 +219,8 @@ def check_release_gate(path: Path) -> ReleaseGateReport:
     """Validate a release record and fail closed until every gate is approved."""
     record = _load_record(path)
     _fields(record, _TOP_LEVEL_FIELDS, "release gate record")
-    if record["schema_version"] != "1.0":
-        message = "unsupported release gate schema_version; expected '1.0'"
+    if record["schema_version"] != "1.1":
+        message = "unsupported release gate schema_version; expected '1.1'"
         raise ValidationError(message)
     release_id = _string(record["release_id"], "release_id")
     if release_id != "initial-runtime":

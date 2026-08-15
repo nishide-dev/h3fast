@@ -14,7 +14,7 @@
     "checks"
   ],
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "release_id": { "const": "initial-runtime" },
     "status": { "enum": ["blocked", "approved"] },
     "updated_at": { "type": "string", "format": "date" },
@@ -26,17 +26,16 @@
     "approvals": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["legal_reviewer", "release_approver", "schema_owner"],
+      "required": ["release_approver", "schema_owner"],
       "properties": {
-        "legal_reviewer": { "$ref": "#/$defs/approval" },
         "release_approver": { "$ref": "#/$defs/approval" },
         "schema_owner": { "$ref": "#/$defs/approval" }
       }
     },
     "checks": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 11,
+      "maxItems": 11,
       "items": { "$ref": "#/$defs/check" }
     }
   },

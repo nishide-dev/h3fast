@@ -68,7 +68,7 @@ _COUNTRY_CODE_PATTERN = re.compile(r"[A-Z]{2}")
 
 @dataclass(frozen=True, slots=True)
 class TerritoryInventoryReport:
-    """Validated territory inventory readiness result."""
+    """Validated H3-use territory inventory readiness result."""
 
     inventory_id: str
     status: str
@@ -265,9 +265,6 @@ def _validate_flow(value: object, index: int) -> tuple[str, tuple[str, ...]]:
         f"territory flow {flow_id!r} territory_assessment",
         {"unknown", "within-applicable", "includes-excluded", "not-applicable"},
     )
-    if location_scope == "global" and assessment != "includes-excluded":
-        message = f"global territory flow {flow_id!r} must include excluded territories"
-        raise ValidationError(message)
     h3_relation = _choice(
         value["h3_relation"],
         f"territory flow {flow_id!r} h3_relation",
@@ -283,6 +280,13 @@ def _validate_flow(value: object, index: int) -> tuple[str, tuple[str, ...]]:
             "not-applicable",
         },
     )
+    if (
+        location_scope == "global"
+        and decision != "not-applicable"
+        and assessment != "includes-excluded"
+    ):
+        message = f"global territory flow {flow_id!r} must include excluded territories"
+        raise ValidationError(message)
     written_license = _nullable_string(
         value["written_license"], f"territory flow {flow_id!r} written_license"
     )
@@ -308,9 +312,19 @@ def _validate_flow(value: object, index: int) -> tuple[str, tuple[str, ...]]:
             "within-applicable assessment"
         )
         raise ValidationError(message)
-    if decision == "not-applicable" and h3_relation != "none":
-        message = f"territory flow {flow_id!r} not-applicable decision requires no H3 relation"
-        raise ValidationError(message)
+    if decision == "not-applicable":
+        if h3_relation != "none":
+            message = (
+                f"territory flow {flow_id!r} not-applicable decision requires "
+                "no H3 relation"
+            )
+            raise ValidationError(message)
+        if assessment != "not-applicable":
+            message = (
+                f"territory flow {flow_id!r} not-applicable decision requires "
+                "not-applicable assessment"
+            )
+            raise ValidationError(message)
 
     operator = _nullable_string(
         value["operator"], f"territory flow {flow_id!r} operator"
@@ -324,7 +338,7 @@ def _validate_flow(value: object, index: int) -> tuple[str, tuple[str, ...]]:
         raise ValidationError(message)
 
     blockers: list[str] = []
-    if location_scope == "unknown":
+    if location_scope == "unknown" and decision != "not-applicable":
         blockers.append(f"flow:{flow_id}:location-unknown")
     if assessment == "unknown":
         blockers.append(f"flow:{flow_id}:territory-assessment-unknown")
@@ -340,7 +354,7 @@ def _validate_flow(value: object, index: int) -> tuple[str, tuple[str, ...]]:
 
 
 def check_territory_inventory(path: Path) -> TerritoryInventoryReport:
-    """Validate territory evidence and report every unresolved release blocker."""
+    """Validate territory evidence and report unresolved H3-use blockers."""
     inventory = _load(path)
     _fields(inventory, _TOP_LEVEL_FIELDS, "territory inventory")
     if inventory["schema_version"] != "1.0":

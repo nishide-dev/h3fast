@@ -6,13 +6,13 @@
 
 | 成果物 | 出所 | H3との関係 | License | 配布範囲 | 状態 |
 |---|---|---|---|---|---|
-| H3Fast source | 独自実装 | H3専用tooling。MiniMax Materialsのsource fileは未収録 | Apache-2.0 | Public候補 | engineering boundary inventory済み、H3 Works非該当の法務承認待ち |
-| `h3fast` wheel/sdist | H3Fast sourceからbuild | H3重み・cache・MiniMax source fileを含まない | Apache-2.0 | Public候補 | clean install済み、法務・release gate待ち |
+| H3Fast source | 独自実装 | H3専用tooling。MiniMax Materialsのsource fileは未収録 | Apache-2.0 | Public | engineering inventoryとproject classification済み |
+| `h3fast` wheel/sdist | H3Fast sourceからbuild | H3重み・cache・MiniMax source fileを含まない | Apache-2.0 | Public候補 | clean install済み。territory approval対象外、他のrelease gate待ち |
 | CPU CI artifacts | H3Fast sourceとtest fixture | 合成fixtureのみ。H3 Materialsを扱わない | Apache-2.0 | CI内部 | 利用可 |
-| Initial Runtime release gate | H3Fast独自metadata | owner、期限、evidenceと全required checkを記録。H3 Materialsなし | Apache-2.0 | Public候補 | `blocked`。legal/release/schema owner未指名、公開不可 |
-| Initial Runtime territory inventory | H3Fast独自metadata | 開発・GPU・CI・storage・配布・実行・Output利用のregion evidenceを記録。H3 Materials/Output本体なし | Apache-2.0 | Public候補 | `incomplete`。legal owner、物理所在地、利用地域未確認 |
+| Initial Runtime release gate | H3Fast独自metadata | owner、期限、evidenceとcode-only release checkを記録。H3 Materialsなし | Apache-2.0 | Public候補 | `blocked`。release/schema ownerと品質・再現性・supply-chain等が未完了 |
+| Initial Runtime territory inventory | H3Fast独自metadata | H3 access、GPU、Output、実行のregion evidenceを記録。H3 Materials/Output本体なし | Apache-2.0 | Public候補 | `incomplete`。source/CPU CI/package accessは対象外、H3-related flowは未確認 |
 | Formal quality-set record | H3Fast独自metadata | 10/50件のcase identity、coverage、rights/metric approval契約。prompt本文、reference media、生成物なし | Apache-2.0 | Public候補 | `incomplete`。case registry、rights review、quality owner、metrics未登録 |
-| SGLang adapter metadata | 独自実装 | SGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`との互換性とmedia probeを記録。コードcopyなし | Apache-2.0 | Public候補 | 20層baselineと40層candidateをlocal実測済み。単一case exact gate合格、support未付与 |
+| SGLang adapter metadata | 独自実装 | SGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`との互換性とmedia probeを記録。コードcopyなし | Apache-2.0 | Public | 20層baselineと40層candidateをlocal実測済み。単一case exact gate合格、support未付与 |
 | SGLang source checkout | sgl-project/sglang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e` | H3 pipelineを含む外部runtime source。repositoryには未収録 | Apache-2.0ほか依存license | ローカル実験限定・再配布なし | 固定checkoutでE2E実機検証済み。依存license review未完了 |
 | SGLang CUDA 12.9 SIF | `lmsysorg/sglang` amd64 manifest `sha256:29f0f645122be1799a594c15907d81da326dbbe6ccd6395710a07a4292125a5f` | H3重みを含まない外部runtime image | image内licenseに従う | ローカル実験限定・再配布なし | 固定digestのSIFでE2E実機検証済み。再配布・SBOM・license review未完了 |
 | MiniMax H3 FL2VA snapshot | `MiniMaxAI/MiniMax-H3` commit `42ed227ee7df40d41602854ae760620d6eb651fe` | MiniMax H3 Works | MiniMax H3 Community License | 配布禁止 | 84 files / `144051241571` bytesをlocal検証済み。権利・地域review未完了 |
@@ -28,3 +28,4 @@
 - 初期CIはH3をdownload・import・実行しない。
 - SGLangはruntime dependencyにせず、version検出とadapter契約だけを実装する。
 - H3を用いるGPU CI、benchmark、変換は、Applicable Territoryと対象環境のreview完了後に別途追加する。
+- 独立codeのsource storage、CPU CI、global配布にはH3 territory gateを適用しない。境界変更時は[ADR 0006](../decisions/0006-independent-code-license-boundary.md)に従って再分類する。
