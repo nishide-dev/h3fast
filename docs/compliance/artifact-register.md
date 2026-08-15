@@ -10,7 +10,7 @@
 | `h3fast` wheel/sdist | H3Fast sourceからbuild | H3重み・cache・MiniMax source fileを含まない | Apache-2.0 | Public候補 | clean install済み。territory approval対象外、他のrelease gate待ち |
 | CPU CI artifacts | H3Fast sourceとtest fixture | 合成fixtureのみ。H3 Materialsを扱わない | Apache-2.0 | CI内部 | 利用可 |
 | Initial Runtime release gate | H3Fast独自metadata | owner、期限、evidenceとcode-only release checkを記録。H3 Materialsなし | Apache-2.0 | Public候補 | `blocked`。release/schema ownerと品質・再現性・supply-chain等が未完了 |
-| Initial Runtime territory inventory | H3Fast独自metadata | H3 access、GPU、Output、実行のregion evidenceを記録。H3 Materials/Output本体なし | Apache-2.0 | Public候補 | `incomplete`。source/CPU CI/package accessは対象外、H3-related flowは未確認 |
+| Initial Runtime territory inventory | H3Fast独自metadata | H3 access、GPU、Output、実行のregion evidenceを記録。H3 Materials/Output本体なし | Apache-2.0 | Public候補 | Japan-local single-operator research scopeをself-attestationで承認。第三者提供・service・Japan外利用は再review必須 |
 | Formal quality-set record | H3Fast独自metadata | 10/50件のcase identity、coverage、rights/metric approval契約。prompt本文、reference media、生成物なし | Apache-2.0 | Public候補 | `incomplete`。case registry、rights review、quality owner、metrics未登録 |
 | Private quality registry | H3Fast所有または権利review対象のprompt/reference input | prompt本文、local asset path、rights evidenceを含み得る。H3 Materials/Outputは含めない | 入力ごとの権利に従う | repository外・access制御 | schema/compiler実装済み。実registryとassetは未登録、Git管理禁止 |
 | Compiled quality metadata candidate | private registry compilerのredacted出力 | prompt/referenceのSHA-256と公開可能metadataのみ。本文、path、mediaなし | Apache-2.0候補 | approval前はlocal、承認後Public候補 | atomic生成とsemantic validationを実装。正式recordへの採用はrights/quality approval後 |

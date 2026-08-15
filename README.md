@@ -20,7 +20,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 このrepositoryのsource、schema、CLIおよびH3 Materialsを含まないwheelは独立実装のApache-2.0成果物です。MiniMax公式プロジェクトまたは提携製品ではありません。一方、BYOWはH3の重みを再配布しない方式にすぎず、H3の取得・実行・変換・Outputに対するMiniMax H3 Community Licenseの地域・用途等の制限を免除しません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
-Initial Runtimeのpackage releaseは品質、再現性、supply-chain等が未完了のため現在承認されていません。これは独立sourceのApache-2.0公開可否とは別です。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、H3-related flowの未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、formal quality setは[`benchmarks/quality/formal-quality-set.json`](benchmarks/quality/formal-quality-set.json)、package release stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
+Initial Runtimeのpackage releaseは品質、再現性、supply-chain等が未完了のため現在承認されていません。これは独立sourceのApache-2.0公開可否とは別です。H3-use approvalはJapan内の宣言済みmachine/storageで`nishide-dev`が行うlocal researchだけに限定され、第三者提供、Hosted Service、Japan外利用には引き継がれません。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、限定scopeは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、formal quality setは[`benchmarks/quality/formal-quality-set.json`](benchmarks/quality/formal-quality-set.json)、package release stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
 
 ## Development setup
 
@@ -61,7 +61,7 @@ uv run h3fast release check \
   --record compliance/release-gates/initial-runtime.json
 ```
 
-H3 snapshotへのaccess、GPU実行、H3 artifact storage、runtime execution、Output利用のterritory inventoryを検査します。このrecordは正式なlocation、owner、approvalがない間は終了code 1を返します。H3を扱わないsource storage、CPU CI、global source/package accessは`not-applicable`であり、このcommandは独立codeの配布可否を判定しません。
+H3 snapshotへのaccess、GPU実行、H3 artifact storage、runtime execution、Output利用のterritory inventoryを検査します。現在のrecordはJapan内の宣言済みmachine/storageで`nishide-dev`が行うsingle-operator local researchについて終了code 0を返します。H3を扱わないsource storage、CPU CI、global source/package accessは`not-applicable`です。このcommandは独立codeの配布、第三者提供、Hosted Service、Japan外利用または将来scopeの可否を判定しません。
 
 ```bash
 uv run h3fast compliance check-territories \

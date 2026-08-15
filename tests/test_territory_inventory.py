@@ -68,16 +68,24 @@ def _flow(inventory: dict[str, object], flow_id: str) -> dict[str, object]:
     raise AssertionError(message)
 
 
-def test_committed_territory_inventory_is_explicitly_incomplete() -> None:
+def test_committed_territory_inventory_approves_declared_japan_scope() -> None:
     report = check_territory_inventory(INVENTORY_PATH)
 
-    assert report.status == "incomplete"
-    assert report.ready is False
-    assert "legal-approval:unassigned" in report.blockers
-    assert "flow:development-host:location-unknown" in report.blockers
-    assert "flow:development-host:operator-unassigned" in report.blockers
-    assert "flow:source-storage:h3-relation-undetermined" not in report.blockers
-    assert "flow:public-source-distribution:decision-unknown" not in report.blockers
+    assert report.status == "approved"
+    assert report.ready is True
+    assert report.blockers == ()
+    inventory = _inventory()
+    for flow_id in (
+        "benchmark-output-storage",
+        "development-host",
+        "gpu-benchmark-host",
+        "output-use",
+        "runtime-execution",
+    ):
+        flow = _flow(inventory, flow_id)
+        assert flow["country_codes"] == ["JP"]
+        assert flow["operator"] == "nishide-dev"
+        assert flow["decision"] == "approved-under-community-license"
 
 
 def test_fully_approved_territory_inventory_is_ready(tmp_path: Path) -> None:
@@ -135,6 +143,7 @@ def test_country_scope_requires_codes_and_rejects_duplicates(tmp_path: Path) -> 
 def test_unknown_scope_rejects_country_codes(tmp_path: Path) -> None:
     inventory = _inventory()
     flow = _flow(inventory, "development-host")
+    flow["location_scope"] = "unknown"
     flow["country_codes"] = ["JP"]
 
     with pytest.raises(ValidationError, match="require location_scope countries"):
@@ -172,6 +181,7 @@ def test_community_license_decision_requires_applicable_assessment(
     inventory = _inventory()
     flow = _flow(inventory, "development-host")
     flow["decision"] = "approved-under-community-license"
+    flow["territory_assessment"] = "unknown"
     flow["owner"] = "legal-owner"
 
     with pytest.raises(ValidationError, match="requires within-applicable"):
@@ -330,7 +340,14 @@ def test_inventory_rejects_inconsistent_legal_approval(tmp_path: Path) -> None:
     inventory = _inventory()
     approval = inventory["legal_approval"]
     assert isinstance(approval, dict)
-    approval["owner"] = "legal-owner"
+    approval.update(
+        {
+            "state": "unassigned",
+            "owner": "legal-owner",
+            "approved_at": None,
+            "evidence": [],
+        }
+    )
     with pytest.raises(ValidationError, match="unassigned legal_approval"):
         check_territory_inventory(_write_inventory(tmp_path, inventory))
 
