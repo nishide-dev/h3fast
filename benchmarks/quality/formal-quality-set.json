@@ -3,7 +3,7 @@
   "set_id": "h3fast-phase0-formal-quality-v1",
   "status": "incomplete",
   "updated_at": "2026-08-16",
-  "source_issue": "https://github.com/nishide-dev/h3fast/issues/14",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
   "requirements": {
     "smoke_min_cases": 10,
     "regression_min_cases": 50,

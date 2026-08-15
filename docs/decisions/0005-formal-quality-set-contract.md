@@ -2,7 +2,7 @@
 
 - **Status:** Accepted for contract implementation; dataset approval pending
 - **Date:** 2026-08-16
-- **Related:** [Issue #14](https://github.com/nishide-dev/h3fast/issues/14), [Issue #11](https://github.com/nishide-dev/h3fast/issues/11)
+- **Related:** [Issue #16](https://github.com/nishide-dev/h3fast/issues/16) (population/evaluation), [Issue #14](https://github.com/nishide-dev/h3fast/issues/14) (contract), [Issue #11](https://github.com/nishide-dev/h3fast/issues/11) (legal)
 
 ## Context
 

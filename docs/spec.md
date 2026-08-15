@@ -2129,7 +2129,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBloc
 
 1. **Blocker / tracked in #11:** 開発・GPU・CI・storage・配布・実行・Output利用の10 flowをterritory inventoryへ列挙した。GitHub.comの既定US storageとglobal source accessを含み、未確認location、H3関係、owner、legal decisionが残る。満たさない場合に個別licenseを取得するか。timezone、IP判定、HF gateだけを適合証拠にしない。
 2. **Blocker / engineering inventory complete:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、要約documentationがH3 Worksに該当しないか、および将来BYOW converterへ公式codeをどこまで含められるかはlegal reviewerの承認待ちとする。
-3. **Partially resolved / tracked in #14:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema、validator、空の`incomplete` recordは実装した。Tier、CI予算、case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Issue #14でformal quality-set schema、validator、空の`incomplete` recordを実装した。Tier、CI予算、case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
@@ -2147,4 +2147,4 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBloc
 18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
 19. **Partially resolved:** coordination ownerは`nishide-dev`、暫定target dateは2026-08-31とした。legal reviewer、release approver、schema ownerと正式deadlineはIssue #11で未決定。
 
-次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) Issue #14のrecordへ項目11を含む権利review済み10/50 caseとmetric planを登録して実測、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。
+次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) Issue #16でrecordへ項目11を含む権利review済み10/50 caseとmetric planを登録して実測、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。
