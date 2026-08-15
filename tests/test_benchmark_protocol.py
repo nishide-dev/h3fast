@@ -33,8 +33,10 @@ def test_repository_protocol_pins_exact_quality_gate() -> None:
         "video_decode_format": "rgb24",
         "audio_decode_format": "pcm_s16le",
         "scope": "single-case placement-only regression gate",
+        "formal_quality_set_path": "benchmarks/quality/formal-quality-set.json",
         "formal_quality_set_ready": False,
     }
+    assert Path(protocol["quality"]["formal_quality_set_path"]).is_file()
 
 
 def test_repository_protocols_change_only_dit_residency() -> None:
@@ -224,12 +226,32 @@ def test_protocol_rejects_invalid_quality_gate(
         "video_decode_format": "rgb24",
         "audio_decode_format": "pcm_s16le",
         "scope": "test",
+        "formal_quality_set_path": "formal-quality-set.json",
         "formal_quality_set_ready": False,
     }
     quality[field] = value
     protocol["quality"] = quality
 
     with pytest.raises(ValidationError, match=message):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
+def test_protocol_rejects_ready_flag_for_incomplete_formal_set(tmp_path: Path) -> None:
+    protocol = _ready_protocol()
+    protocol["quality"] = {
+        "reference_id": "reference-v1",
+        "reference_path": "reference.json",
+        "method": "exact-decoded-artifact-v1",
+        "profile": "exact",
+        "baseline_measured_runs": 3,
+        "video_decode_format": "rgb24",
+        "audio_decode_format": "pcm_s16le",
+        "scope": "test",
+        "formal_quality_set_path": "benchmarks/quality/formal-quality-set.json",
+        "formal_quality_set_ready": True,
+    }
+
+    with pytest.raises(ValidationError, match="requires an approved formal"):
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 

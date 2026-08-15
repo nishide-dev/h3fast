@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.10（Phase 0 territory inventoryとfail-closed release gateを実装、公開release blockerあり）
+- **状態:** Draft v0.11（Phase 0 formal quality-set contractを実装、dataset/rights/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -44,7 +44,7 @@ H3高速版は「Hugging Faceへ重みを置くプロジェクト」ではない
 初期公開候補は、次の方式に限定する。
 
 > **推奨MVP: Public Runtime + Bring Your Own Weights (BYOW)**
-> 利用者が公式H3を自身の権限と責任で取得し、将来の`h3fast convert`でローカル変換する。`convert`はv0.10時点では未実装であり、派生重みの一般公開はMiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
+> 利用者が公式H3を自身の権限と責任で取得し、将来の`h3fast convert`でローカル変換する。`convert`はv0.11時点では未実装であり、派生重みの一般公開はMiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
 
 BYOWは重みの再配布を避ける配布方式であり、H3を利用・変換する権利を付与したり、地域制限やAUPを回避したりする仕組みではない。公式H3コード、設定、重みその他のMaterialsを`h3fast`へコピーする場合、公開ランタイム自体がMiniMax H3 Worksの配布に該当し得るため、コード境界を最初のリリース前に確定する。
 
@@ -68,6 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | 実装済み・incomplete | 開発・GPU・CI・storage・配布・実行・Output利用の10 flowについてregion、operator、H3関係をrecord化。unknown/未承認があれば終了code 1 |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
+| Formal quality set | 契約実装済み・incomplete | 10/50件、層化coverage、rights、metric、approvalをrecord化。prompt/mediaは未収録、未承認なら終了code 1 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -635,7 +636,7 @@ explicit = true
 
 ### 5.8 build backend方針
 
-- v0.10の単一`h3fast` distributionはHatchling `>=1.27,<2`を使用し、wheel/sdistとclean installを検証する。backend変更だけを目的に移行しない。
+- v0.11の単一`h3fast` distributionはHatchling `>=1.27,<2`を使用し、wheel/sdistとclean installを検証する。backend変更だけを目的に移行しない。
 - workspace分割後のpure Python `h3fast-core`、`h3fast-kernels`、`h3fast`には`uv_build`をSHOULD検討する。
 - `uv_build`のversionには互換上限をMUST設ける。
 - CUDA/C++/Rust extensionを含むpackageには、extension対応PEP 517 backendをMUST使用する。
@@ -654,6 +655,8 @@ uv run h3fast --help
 uv run h3fast release check --record compliance/release-gates/initial-runtime.json
 # `incomplete` recordでは終了code 1が正常。territory approval前にcode 0を要求しない。
 uv run h3fast compliance check-territories --record compliance/territories/initial-runtime.json
+# `incomplete` recordでは終了code 1が正常。case/rights/metric approval前にcode 0を要求しない。
+uv run h3fast benchmark check-quality-set --record benchmarks/quality/formal-quality-set.json
 uv run pytest --cov=h3fast
 uv run ruff format --check .
 uv run ruff check .
@@ -731,7 +734,7 @@ production GPU imageでは、上記のmain workspace lockではなく、該当�
 
 ### 5.11 CI/CDとuv
 
-v0.10は`.github/workflows/ci.yml`でMain project CPU CIとClean-wheel CIを実装済みである。Target GPU CIとRelease CIは未実装であり、対象targetまたは公開releaseを追加する変更で導入する。
+v0.11は`.github/workflows/ci.yml`でMain project CPU CIとClean-wheel CIを実装済みである。Target GPU CIとRelease CIは未実装であり、対象targetまたは公開releaseを追加する変更で導入する。
 
 完成時のCIは次の層に分ける。
 
@@ -981,7 +984,7 @@ uv run h3fast --help
 uv build --no-sources
 ```
 
-Public Runtime release後は`uv add h3fast`または`pip install h3fast`を想定するが、v0.10時点ではPyPI公開済みコマンドではない。公開前に別名packageを誤って取得しないよう、現行setup手順として提示してはならない。
+Public Runtime release後は`uv add h3fast`または`pip install h3fast`を想定するが、v0.11時点ではPyPI公開済みコマンドではない。公開前に別名packageを誤って取得しないよう、現行setup手順として提示してはならない。
 
 将来の開発・サーバー用途では、検証済みtarget projectまたは公式OCI imageを優先する。GPUスタックを任意のextraだけで完全に再現できると表現してはならない。次はtarget作成後に検証する構想例であり、現在は実行できない。
 
@@ -999,7 +1002,7 @@ uv run h3fast doctor
 
 ### 7.2 変換CLI
 
-この節はInitial Runtime releaseへ向けた将来契約である。v0.10に`convert` commandは存在せず、次の例は実行不可である。
+この節はInitial Runtime releaseへ向けた将来契約である。v0.11に`convert` commandは存在せず、次の例は実行不可である。
 
 ```bash
 h3fast convert \
@@ -1036,7 +1039,7 @@ h3fast verify-model /models/H3-Fast-FL2VA-FP8
 h3fast doctor
 ```
 
-`verify-image`とmodel-aware `doctor`は将来契約であり、v0.10では実行できない。
+`verify-image`とmodel-aware `doctor`は将来契約であり、v0.11では実行できない。
 
 ```bash
 h3fast verify-image ghcr.io/org/h3fast@sha256:<digest>
@@ -1179,7 +1182,7 @@ ghcr.io/org/h3fast:1.0.0-rocm-cdna
 
 ### 9.2 起動例
 
-次はOCI distribution実装後の構想例である。v0.10ではH3Fast OCI imageと`h3fast serve`は未実装・未検証であり、digestのplaceholderを実行値として使用してはならない。
+次はOCI distribution実装後の構想例である。v0.11ではH3Fast OCI imageと`h3fast serve`は未実装・未検証であり、digestのplaceholderを実行値として使用してはならない。
 
 ```bash
 docker run --rm --gpus all \
@@ -1235,7 +1238,7 @@ Sidecar or platform service
 
 ### 10.1 BYOW
 
-次はconverter実装後に利用者が明示的に取得・変換する構想例である。v0.10はmodelを自動downloadせず、`h3fast convert`も未実装である。H3の取得前に利用権とApplicable Territoryを確認する。
+次はconverter実装後に利用者が明示的に取得・変換する構想例である。v0.11はmodelを自動downloadせず、`h3fast convert`も未実装である。H3の取得前に利用権とApplicable Territoryを確認する。
 
 ```bash
 hf download MiniMaxAI/MiniMax-H3 \
@@ -1497,6 +1500,8 @@ BF16 50-step reference
 
 正式な品質主張とPhase 2以降では最低200ケースを推奨し、次を含める。Phase 0では公開可能な10件以上のsmoke setと、代表条件を層化した50件以上のregression setから開始してよい。ただし件数、選定方法、除外、失敗例を結果と共に公開する。
 
+Phase 0 formal setのmachine-readable契約は[`benchmarks/quality/formal-quality-set.json`](../benchmarks/quality/formal-quality-set.json)と[`schemas/formal-quality-set.schema.json`](../schemas/formal-quality-set.schema.json)で固定する。prompt本文、reference media、生成物、local pathはこのrecordへ含めない。case registryのURI/digest、caseごとのprompt/reference digest、rights evidence、selection method、exclusions、known failures、metric plan、rights reviewer、quality ownerが揃い、次のcoverageをaggregateで満たした場合だけ`approved`にできる。
+
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
 - 横長、正方形、縦長
@@ -1520,6 +1525,8 @@ BF16 50-step reference
 
 このgateは[`benchmarks/quality/exact-smoke-001-reference.json`](../benchmarks/quality/exact-smoke-001-reference.json)の単一caseに限定する。10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標を代替せず、一般的なlossless性または品質同等性の根拠にしてはならない。設計判断は[`docs/decisions/0004-exact-quality-gate.md`](decisions/0004-exact-quality-gate.md)に記録する。
 
+formal set contractは[`docs/decisions/0005-formal-quality-set-contract.md`](decisions/0005-formal-quality-set-contract.md)に記録する。`h3fast benchmark check-quality-set --record benchmarks/quality/formal-quality-set.json`は、60件以上のmetadata、全coverage、per-case rights evidence、versioned metric/budget、rights/quality approvalが揃った場合だけ終了code 0を返す。recordの存在やschema validation成功だけを品質承認として扱わない。
+
 ### 14.7 Phase 0 baseline protocol
 
 実装開始前にbenchmark protocolとschemaを作り、少なくとも次を固定する。
@@ -1533,7 +1540,7 @@ BF16 50-step reference
 - 出力artifact、stdout/stderr、metrics、失敗を保存する規則
 - 品質比較のreference生成方法と許容差のversion
 
-固定20層baselineは`benchmarks/protocol-baseline20.yaml`、実測後に採用した40層設定は`benchmarks/protocol.yaml`へ記録する。両protocolはquality method `exact-decoded-artifact-v1`、reference ID、RGB24/PCM decode format、baseline measured run数を共有し、正式なquality setが未完成であることも機械可読な`formal_quality_set_ready: false`として維持する。
+固定20層baselineは`benchmarks/protocol-baseline20.yaml`、実測後に採用した40層設定は`benchmarks/protocol.yaml`へ記録する。両protocolはquality method `exact-decoded-artifact-v1`、reference ID、RGB24/PCM decode format、baseline measured run数、`formal_quality_set_path`を共有し、正式なquality setが未完成であることも機械可読な`formal_quality_set_ready: false`として維持する。このbooleanはformal quality-set validatorが成功した後だけ`true`へ変更する。
 
 性能に影響するruntime設定はprotocolが所有する。launch plan、server lifecycle、suite bundleは同じ実効値を記録し、protocolと起動済みserverの値が一致しないsuiteを開始してはならない。fallbackでresident layer数を黙って下げず、20層rollbackはbaseline protocolを明示的に選択する。
 
@@ -1585,14 +1592,14 @@ NVIDIA SANA TeamのSol Engine H3ページは、stock checkpointに対し、kerne
 
 ### 16.1 Pull Request CI
 
-v0.10のCPU-only Pull Request CIは次を実装済みとする。
+v0.11のCPU-only Pull Request CIは次を実装済みとする。
 
 - pinned uv versionで`uv sync --locked`が成功
 - build済みwheelだけを用いたclean install test
 - Ruff format/lintと`ty` type check
 - coverage閾値付きunit test
 - 全JSON schemaのmeta-schema検証と、commit済みprotocol/reference/release gateのinstance検証
-- Initial Runtime release/territory recordのsemantic validationとfail-closed CLI test
+- Initial Runtime release/territory/formal-quality recordのsemantic validationとfail-closed CLI test
 - repository外の一時環境でCPU import
 
 Public Runtime release前には次を追加し、完了するまでこのrepositoryのCIをrelease gate済みと扱わない。
@@ -1846,7 +1853,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 | Phase | 2026-08-16時点の状態 | 次のgate |
 |---|---|---|
-| Phase 0 | Release blockerあり | license/territory/code boundary、formal 10/50 quality set、owner/deadline |
+| Phase 0 | Release blockerあり、quality contract実装済み | license/territory/code boundary、formal 10/50 case population/rights、owner/deadline |
 | Phase 1A | 内部technical path実装済み | clean machineでGPU baseline再現、公開可否確認 |
 | Phase 1B | 最初のplacement最適化を実測・採用済み | clean machine再現、formal quality、release supply chain |
 | Phase 2以降 | 未着手 | Phase 0とInitial Runtime release gateの完了 |
@@ -1871,7 +1878,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
 
-2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。clean machineでの再現、10/50件の正式quality set、公開可否の確認は完了条件として残る。
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約を追加したが、case registry、rights review、metric planとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2122,7 +2129,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBloc
 
 1. **Blocker / tracked in #11:** 開発・GPU・CI・storage・配布・実行・Output利用の10 flowをterritory inventoryへ列挙した。GitHub.comの既定US storageとglobal source accessを含み、未確認location、H3関係、owner、legal decisionが残る。満たさない場合に個別licenseを取得するか。timezone、IP判定、HF gateだけを適合証拠にしない。
 2. **Blocker / engineering inventory complete:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、要約documentationがH3 Worksに該当しないか、および将来BYOW converterへ公式codeをどこまで含められるかはlegal reviewerの承認待ちとする。
-3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved / tracked in #14:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema、validator、空の`incomplete` recordは実装した。Tier、CI予算、case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
@@ -2140,4 +2147,4 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBloc
 18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
 19. **Partially resolved:** coordination ownerは`nishide-dev`、暫定target dateは2026-08-31とした。legal reviewer、release approver、schema ownerと正式deadlineはIssue #11で未決定。
 
-次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) 項目11を含む権利review済み10/50 quality set、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。
+次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) Issue #14のrecordへ項目11を含む権利review済み10/50 caseとmetric planを登録して実測、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。

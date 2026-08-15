@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/formal-quality-set.schema.json",
+  "title": "H3Fast formal quality-set metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "set_id",
+    "status",
+    "updated_at",
+    "source_issue",
+    "requirements",
+    "selection",
+    "approvals",
+    "metrics",
+    "cases",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "set_id": { "const": "h3fast-phase0-formal-quality-v1" },
+    "status": { "enum": ["incomplete", "approved"] },
+    "updated_at": { "type": "string", "format": "date" },
+    "source_issue": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "smoke_min_cases",
+        "regression_min_cases",
+        "minimum_distinct_languages",
+        "required_tasks",
+        "required_durations_seconds",
+        "required_aspect_ratios",
+        "required_languages",
+        "required_subject_tags",
+        "required_motion_tags",
+        "required_audio_tags",
+        "required_reference_modalities",
+        "required_metric_families"
+      ],
+      "properties": {
+        "smoke_min_cases": { "const": 10 },
+        "regression_min_cases": { "const": 50 },
+        "minimum_distinct_languages": { "const": 2 },
+        "required_tasks": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_durations_seconds": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "enum": [4, 5, 10, 15] }
+        },
+        "required_aspect_ratios": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_languages": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_subject_tags": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_motion_tags": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_audio_tags": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_reference_modalities": { "$ref": "#/$defs/nonempty_unique_strings" },
+        "required_metric_families": { "$ref": "#/$defs/nonempty_unique_strings" }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "registry_uri",
+        "registry_sha256",
+        "exclusions_reviewed",
+        "exclusions",
+        "known_failures_reviewed",
+        "known_failures"
+      ],
+      "properties": {
+        "method": { "type": ["string", "null"], "minLength": 1 },
+        "registry_uri": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "registry_sha256": { "$ref": "#/$defs/nullable_sha256" },
+        "exclusions_reviewed": { "type": "boolean" },
+        "exclusions": { "$ref": "#/$defs/unique_strings" },
+        "known_failures_reviewed": { "type": "boolean" },
+        "known_failures": { "$ref": "#/$defs/unique_strings" }
+      }
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quality_owner", "rights_reviewer"],
+      "properties": {
+        "quality_owner": { "$ref": "#/$defs/approval" },
+        "rights_reviewer": { "$ref": "#/$defs/approval" }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/metric" }
+    },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/case" }
+    },
+    "limitations": { "$ref": "#/$defs/nonempty_unique_strings" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nullable_sha256": {
+      "oneOf": [
+        { "$ref": "#/$defs/sha256" },
+        { "type": "null" }
+      ]
+    },
+    "unique_strings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "nonempty_unique_strings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "owner", "deadline", "approved_at", "evidence"],
+      "properties": {
+        "state": { "enum": ["unassigned", "pending", "approved"] },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "deadline": { "type": "string", "format": "date" },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "evidence": { "$ref": "#/$defs/unique_strings" }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "state",
+        "owner",
+        "implementation",
+        "version",
+        "budget",
+        "evidence"
+      ],
+      "properties": {
+        "family": {
+          "enum": [
+            "audio-quality",
+            "av-sync",
+            "human-pairwise",
+            "perceptual-video",
+            "prompt-adherence",
+            "temporal-consistency"
+          ]
+        },
+        "state": { "enum": ["unassigned", "planned", "approved"] },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "implementation": { "type": ["string", "null"], "minLength": 1 },
+        "version": { "type": ["string", "null"], "minLength": 1 },
+        "budget": { "type": ["string", "null"], "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/unique_strings" }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "split",
+        "prompt_sha256",
+        "seed",
+        "task",
+        "duration_seconds",
+        "aspect_ratio",
+        "languages",
+        "subject_tags",
+        "motion_tags",
+        "audio_tags",
+        "reference_modalities",
+        "reference_asset_sha256s",
+        "rights_status",
+        "rights_evidence",
+        "notes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(smoke|regression)-[0-9]{3}$" },
+        "split": { "enum": ["smoke", "regression"] },
+        "prompt_sha256": { "$ref": "#/$defs/nullable_sha256" },
+        "seed": { "type": "integer", "minimum": 0 },
+        "task": { "enum": ["t2va", "fl2va", "ref2va"] },
+        "duration_seconds": { "enum": [4, 5, 10, 15] },
+        "aspect_ratio": { "enum": ["landscape", "square", "portrait"] },
+        "languages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2})?$"
+          }
+        },
+        "subject_tags": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["face", "hands", "text", "product", "multiple-people"] }
+        },
+        "motion_tags": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["dynamic", "static", "camera-movement"] }
+        },
+        "audio_tags": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["dialogue", "environment", "music", "near-silent"] }
+        },
+        "reference_modalities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["none", "image", "video", "audio", "mixed"] }
+        },
+        "reference_asset_sha256s": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "rights_status": { "enum": ["unreviewed", "approved"] },
+        "rights_evidence": { "$ref": "#/$defs/unique_strings" },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

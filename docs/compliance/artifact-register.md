@@ -11,6 +11,7 @@
 | CPU CI artifacts | H3Fast sourceとtest fixture | 合成fixtureのみ。H3 Materialsを扱わない | Apache-2.0 | CI内部 | 利用可 |
 | Initial Runtime release gate | H3Fast独自metadata | owner、期限、evidenceと全required checkを記録。H3 Materialsなし | Apache-2.0 | Public候補 | `blocked`。legal/release/schema owner未指名、公開不可 |
 | Initial Runtime territory inventory | H3Fast独自metadata | 開発・GPU・CI・storage・配布・実行・Output利用のregion evidenceを記録。H3 Materials/Output本体なし | Apache-2.0 | Public候補 | `incomplete`。legal owner、物理所在地、利用地域未確認 |
+| Formal quality-set record | H3Fast独自metadata | 10/50件のcase identity、coverage、rights/metric approval契約。prompt本文、reference media、生成物なし | Apache-2.0 | Public候補 | `incomplete`。case registry、rights review、quality owner、metrics未登録 |
 | SGLang adapter metadata | 独自実装 | SGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`との互換性とmedia probeを記録。コードcopyなし | Apache-2.0 | Public候補 | 20層baselineと40層candidateをlocal実測済み。単一case exact gate合格、support未付与 |
 | SGLang source checkout | sgl-project/sglang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e` | H3 pipelineを含む外部runtime source。repositoryには未収録 | Apache-2.0ほか依存license | ローカル実験限定・再配布なし | 固定checkoutでE2E実機検証済み。依存license review未完了 |
 | SGLang CUDA 12.9 SIF | `lmsysorg/sglang` amd64 manifest `sha256:29f0f645122be1799a594c15907d81da326dbbe6ccd6395710a07a4292125a5f` | H3重みを含まない外部runtime image | image内licenseに従う | ローカル実験限定・再配布なし | 固定digestのSIFでE2E実機検証済み。再配布・SBOM・license review未完了 |

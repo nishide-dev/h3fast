@@ -59,6 +59,24 @@ def test_committed_initial_runtime_gate_is_explicitly_blocked() -> None:
     assert "check:territory-approval:owner-unassigned" in report.blockers
 
 
+def test_formal_quality_release_check_rejects_incomplete_record(
+    tmp_path: Path,
+) -> None:
+    record = _record()
+    checks = record["checks"]
+    assert isinstance(checks, list)
+    formal = next(
+        check
+        for check in checks
+        if isinstance(check, dict) and check.get("id") == "formal-quality-set"
+    )
+    assert isinstance(formal, dict)
+    formal["status"] = "passed"
+
+    with pytest.raises(ValidationError, match="committed record is incomplete"):
+        check_release_gate(_write_record(tmp_path, record))
+
+
 def test_fully_approved_release_gate_is_ready(tmp_path: Path) -> None:
     report = check_release_gate(_write_record(tmp_path, _approved_record()))
 

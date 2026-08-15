@@ -11,18 +11,24 @@ from h3fast.benchmarks.protocol import (
     validate_protocol,
 )
 from h3fast.benchmarks.quality import build_quality_reference, check_quality
+from h3fast.benchmarks.quality_sets import (
+    FormalQualitySetReport,
+    check_formal_quality_set,
+)
 from h3fast.benchmarks.suite import BenchmarkSuiteResult, run_suite
 
 __all__ = [
     "BenchmarkResult",
     "BenchmarkSuiteResult",
     "ForeignGpuProcess",
+    "FormalQualitySetReport",
     "LaunchPlan",
     "PreflightReport",
     "ProtocolReport",
     "RuntimeSettings",
     "build_quality_reference",
     "build_singularity_launch",
+    "check_formal_quality_set",
     "check_quality",
     "load_runtime_settings",
     "run_case",

@@ -86,6 +86,7 @@
     "video_decode_format": "rgb24",
     "audio_decode_format": "pcm_s16le",
     "scope": "single-case placement-only regression gate",
+    "formal_quality_set_path": "benchmarks/quality/formal-quality-set.json",
     "formal_quality_set_ready": false
   },
   "cases": [
