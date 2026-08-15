@@ -30,4 +30,4 @@ formal quality-set recordは6 metric familyごとにowner、implementation、ver
 
 metric実装を追加するPRは、moving versionや非固定dependency、平均値だけのbudget、missing observationの黙示除外、映像metricによるaudio/A/V sync失敗の相殺を導入できない。
 
-committed planは意図的に`draft`かつ全family `unassigned`である。今後、各methodのlicense・runtime互換性・入力契約を確認し、固定baselineの自己変動を実測してbudget evidenceを作成する必要がある。このADRはmetricの品質や適切性を承認せず、formal quality set、Support Tierまたはrelease gateを通過させない。
+committed planは意図的に`draft`かつ全family `unassigned`である。[ADR 0009](0009-formal-quality-metric-selection.md)で各familyのcandidateとblockerを固定したが、実在entrypoint、runtime互換性とbaseline自己変動が未確認のため`planned`へは進めない。今後、固定baselineの自己変動を実測してbudget evidenceを作成する必要がある。このADRはmetricの品質や適切性を承認せず、formal quality set、Support Tierまたはrelease gateを通過させない。
