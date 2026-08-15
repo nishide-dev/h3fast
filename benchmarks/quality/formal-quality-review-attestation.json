@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "attestation_id": "h3fast-phase0-formal-quality-review-v1",
+  "registry_id": "h3fast-phase0-formal-quality-v1",
+  "source_registry_sha256": "37a16b466969df19d0bba0f9954ab1af5e344b5cc9ec569e9ded78befd97aa64",
+  "registry_content_sha256": "6a0c3d05fe62f76da5a5f80dbf6a51224cb1e59059c307f6014b5730c1a1cc97",
+  "reviewed_at": "2026-08-16T05:03:06+09:00",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "reviewer": "nishide-dev",
+  "approval_source": "project-owner-self-attestation",
+  "roles": {
+    "rights_reviewer": "accepted",
+    "quality_owner": "accepted"
+  },
+  "selection": {
+    "method": "approved",
+    "exclusions": "approved",
+    "known_failures": "approved"
+  },
+  "cases": {
+    "total": 60,
+    "rights_approved": 60,
+    "selection_approved": 60,
+    "pending": 0,
+    "rejected": 0
+  },
+  "private_artifacts": {
+    "storage": "repository-external",
+    "committed": false,
+    "uploaded": false
+  },
+  "redaction": {
+    "prompt_text_present": false,
+    "reference_paths_present": false,
+    "media_present": false,
+    "per_case_digests_present": false
+  },
+  "limitations": [
+    "This is a project-owner self-attestation, not external legal advice.",
+    "The approval covers the reviewed registry content and case selection identified by the aggregate digests only.",
+    "Metric methods, budgets, formal set approval, GPU evaluation, support-tier readiness, and public release remain pending."
+  ]
+}

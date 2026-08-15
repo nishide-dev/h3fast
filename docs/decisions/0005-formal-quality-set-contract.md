@@ -1,6 +1,6 @@
 # ADR 0005: Formal quality-set contract
 
-- **Status:** Accepted for contract implementation; dataset approval pending
+- **Status:** Accepted; dataset rights and selection approved, metrics pending
 - **Date:** 2026-08-16
 - **Related:** [Issue #16](https://github.com/nishide-dev/h3fast/issues/16) (population/evaluation), [Issue #14](https://github.com/nishide-dev/h3fast/issues/14) (contract), [Issue #11](https://github.com/nishide-dev/h3fast/issues/11) (H3-use compliance)
 
@@ -34,4 +34,6 @@
 
 契約、private registry compiler、redactionと未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
 
-10件のsmoke / 50件のregression candidateはGit管理外に生成し、registry全体のdigestと件数だけを[`formal-quality-registry-attestation.json`](../../benchmarks/quality/formal-quality-registry-attestation.json)へ記録した。digest拘束されたprivate review workflowは実装済みだが、実際のper-case decision、metadataのcommit、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
+10件のsmoke / 50件のregression candidateはGit管理外に生成し、registry全体のdigestと件数だけを[`formal-quality-registry-attestation.json`](../../benchmarks/quality/formal-quality-registry-attestation.json)へ記録した。この初期attestationの作成時点ではper-case decision、metadataのcommit、rights review、GPU生成、metric実装とbudget決定が未完了であり、digest拘束されたprivate review workflowだけを実装済みとしていた。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
+
+2026-08-16に`nishide-dev`がRights reviewerとQuality ownerを受諾し、固定された60件すべてのrights/selection、selection method、exclusions、known failuresを承認した。aggregate evidenceは[`formal-quality-review-attestation.json`](../../benchmarks/quality/formal-quality-review-attestation.json)へ記録し、prompt、reference path/mediaまたはper-case digestを公開しない。metric method/budget、redacted formal metadata、formal set approval、GPU評価は未完了のため、`formal_quality_set_ready`は引き続き`false`とする。

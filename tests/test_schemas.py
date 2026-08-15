@@ -16,6 +16,9 @@ QUALITY_METRIC_PLAN = Path("benchmarks/quality/formal-quality-metric-plan.json")
 QUALITY_REGISTRY_ATTESTATION = Path(
     "benchmarks/quality/formal-quality-registry-attestation.json"
 )
+QUALITY_REGISTRY_REVIEW_ATTESTATION = Path(
+    "benchmarks/quality/formal-quality-review-attestation.json"
+)
 
 
 def _evidence_values(value: object) -> tuple[str, ...]:
@@ -115,6 +118,33 @@ def test_committed_quality_registry_attestation_matches_schema() -> None:
     Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
     ).validate(attestation)
+
+
+def test_committed_quality_registry_review_attestation_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/quality-registry-review-attestation.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    attestation = json.loads(
+        QUALITY_REGISTRY_REVIEW_ATTESTATION.read_text(encoding="utf-8")
+    )
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(attestation)
+
+
+def test_quality_registry_review_attestation_contains_only_aggregate_identity() -> None:
+    attestation = json.loads(
+        QUALITY_REGISTRY_REVIEW_ATTESTATION.read_text(encoding="utf-8")
+    )
+    serialized = json.dumps(attestation)
+
+    assert "prompt_sha256" not in serialized
+    assert "reference_asset_sha256" not in serialized
+    assert "local_path" not in serialized
+    assert "file://" not in serialized
 
 
 @pytest.mark.parametrize("record_path", COMPLIANCE_RECORDS, ids=lambda path: path.name)
