@@ -27,3 +27,18 @@ def test_committed_quality_reference_matches_schema() -> None:
     )
 
     Draft202012Validator(schema).validate(reference)
+
+
+def test_committed_release_gate_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/release-gate.schema.json").read_text(encoding="utf-8")
+    )
+    record = json.loads(
+        Path("compliance/release-gates/initial-runtime.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(record)

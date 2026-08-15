@@ -2,8 +2,8 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.8（Phase 1B完了状態を実装監査済み、公開release blockerあり）
-- **最終外部調査日:** 2026-08-15 (Asia/Tokyo)
+- **状態:** Draft v0.9（Phase 0 compliance evidenceとfail-closed release gateを実装、公開release blockerあり）
+- **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
@@ -44,7 +44,7 @@ H3高速版は「Hugging Faceへ重みを置くプロジェクト」ではない
 初期公開候補は、次の方式に限定する。
 
 > **推奨MVP: Public Runtime + Bring Your Own Weights (BYOW)**
-> 利用者が公式H3を自身の権限と責任で取得し、将来の`h3fast convert`でローカル変換する。`convert`はv0.8時点では未実装であり、派生重みの一般公開はMiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
+> 利用者が公式H3を自身の権限と責任で取得し、将来の`h3fast convert`でローカル変換する。`convert`はv0.9時点では未実装であり、派生重みの一般公開はMiniMaxおよび法務担当から配布条件の確認を得るまで行わない。
 
 BYOWは重みの再配布を避ける配布方式であり、H3を利用・変換する権利を付与したり、地域制限やAUPを回避したりする仕組みではない。公式H3コード、設定、重みその他のMaterialsを`h3fast`へコピーする場合、公開ランタイム自体がMiniMax H3 Worksの配布に該当し得るため、コード境界を最初のリリース前に確定する。
 
@@ -64,6 +64,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | BYOW入力検証 | 実装済み | 明示されたlocal snapshotのrevision・構造・任意の全file SHA-256検証。download/convertは行わない |
 | Manifest検証 | 実装済み | `h3fast_manifest.json`とper-file checksumのfail-closed検証 |
 | 診断 | 実装済み | Pythonとoptional SGLangの診断。GPU初期化やmodel downloadは行わない |
+| Release gate | 実装済み・blocked | Initial Runtimeのrequired checkとlegal/release/schema approvalをrecord化。全承認前は終了code 1 |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
@@ -189,7 +190,7 @@ Serving Layer
 
 ### 4.1 現行ライセンスから得られる重要な制約
 
-2026-08-15時点のMiniMax H3 Community Licenseでは、少なくとも次をリリース設計へ反映する必要がある。
+2026-08-16時点のMiniMax H3 Community Licenseでは、少なくとも次をリリース設計へ反映する必要がある。
 
 1. Applicable Territoryは世界からEU、英国、韓国、米国を除いた地域として定義されている。
 2. Model Derivativesの定義は広く、修正、蒸留、中間表現の転移、H3出力による合成データ学習などを含む。
@@ -205,10 +206,12 @@ Serving Layer
 
 H3 Works、Model Derivative、またはそれらを組み込んだ製品・サービスを第三者へ提供する前に、該当する以下の項目をすべて満たすこと。独立実装の公開runtimeについても、H3 Worksに該当しないという判断を記録するまでこのgateを省略してはならない。
 
-- [ ] 利用するH3ライセンス版のURL、取得日、SHA-256を記録した
+Engineering evidenceと承認状態は[`docs/compliance/h3-license-boundary-review.md`](compliance/h3-license-boundary-review.md)および[`compliance/release-gates/initial-runtime.json`](../compliance/release-gates/initial-runtime.json)へ記録する。`h3fast release check --record compliance/release-gates/initial-runtime.json`はrequired checkとlegal、release、schema approvalがすべて証拠付きで完了した場合だけ成功しなければならない。
+
+- [x] 利用するH3ライセンス版のURL、取得日、SHA-256を記録した
 - [ ] Applicable Territoryと配布先の整合性を法務担当が確認した
 - [ ] 対象成果物がModel Derivativeに該当する前提でレビューした
-- [ ] 公開runtimeへMiniMax Materialsをコピーしていないか、コピーしたファイルと適用条件を確認した
+- [x] 公開runtimeへMiniMax Materialsをコピーしていないかengineering inventoryを実施した（H3 Works非該当の法務承認は未完了）
 - [ ] `LICENSE`, `NOTICE`, `MODIFICATIONS.md`を同梱した
 - [ ] 第三者依存物のライセンスを収集した
 - [ ] Qwen3-VL由来部分のApache-2.0表示を確認した
@@ -326,10 +329,13 @@ h3fast/
 │   ├── backends/
 │   │   └── sglang.py
 │   ├── diagnostics/
-│   └── benchmarks/
+│   ├── benchmarks/
+│   └── release/
 ├── tests/                     # CPU unit/schema/package contract tests
 ├── benchmarks/
 │   └── quality/
+├── compliance/
+│   └── release-gates/
 ├── schemas/
 ├── runtime/
 │   └── ffprobe.py             # pinned SGLang image用local adapter
@@ -626,7 +632,7 @@ explicit = true
 
 ### 5.8 build backend方針
 
-- v0.8の単一`h3fast` distributionはHatchling `>=1.27,<2`を使用し、wheel/sdistとclean installを検証する。backend変更だけを目的に移行しない。
+- v0.9の単一`h3fast` distributionはHatchling `>=1.27,<2`を使用し、wheel/sdistとclean installを検証する。backend変更だけを目的に移行しない。
 - workspace分割後のpure Python `h3fast-core`、`h3fast-kernels`、`h3fast`には`uv_build`をSHOULD検討する。
 - `uv_build`のversionには互換上限をMUST設ける。
 - CUDA/C++/Rust extensionを含むpackageには、extension対応PEP 517 backendをMUST使用する。
@@ -641,6 +647,8 @@ explicit = true
 ```bash
 uv sync --locked --all-groups
 uv run h3fast --help
+# `blocked` recordでは終了code 1が正常。release workflowだけがcode 0を要求する。
+uv run h3fast release check --record compliance/release-gates/initial-runtime.json
 uv run pytest --cov=h3fast
 uv run ruff format --check .
 uv run ruff check .
@@ -718,7 +726,7 @@ production GPU imageでは、上記のmain workspace lockではなく、該当�
 
 ### 5.11 CI/CDとuv
 
-v0.8は`.github/workflows/ci.yml`でMain project CPU CIとClean-wheel CIを実装済みである。Target GPU CIとRelease CIは未実装であり、対象targetまたは公開releaseを追加する変更で導入する。
+v0.9は`.github/workflows/ci.yml`でMain project CPU CIとClean-wheel CIを実装済みである。Target GPU CIとRelease CIは未実装であり、対象targetまたは公開releaseを追加する変更で導入する。
 
 完成時のCIは次の層に分ける。
 
@@ -968,7 +976,7 @@ uv run h3fast --help
 uv build --no-sources
 ```
 
-Public Runtime release後は`uv add h3fast`または`pip install h3fast`を想定するが、v0.8時点ではPyPI公開済みコマンドではない。公開前に別名packageを誤って取得しないよう、現行setup手順として提示してはならない。
+Public Runtime release後は`uv add h3fast`または`pip install h3fast`を想定するが、v0.9時点ではPyPI公開済みコマンドではない。公開前に別名packageを誤って取得しないよう、現行setup手順として提示してはならない。
 
 将来の開発・サーバー用途では、検証済みtarget projectまたは公式OCI imageを優先する。GPUスタックを任意のextraだけで完全に再現できると表現してはならない。次はtarget作成後に検証する構想例であり、現在は実行できない。
 
@@ -986,7 +994,7 @@ uv run h3fast doctor
 
 ### 7.2 変換CLI
 
-この節はInitial Runtime releaseへ向けた将来契約である。v0.8に`convert` commandは存在せず、次の例は実行不可である。
+この節はInitial Runtime releaseへ向けた将来契約である。v0.9に`convert` commandは存在せず、次の例は実行不可である。
 
 ```bash
 h3fast convert \
@@ -1023,7 +1031,7 @@ h3fast verify-model /models/H3-Fast-FL2VA-FP8
 h3fast doctor
 ```
 
-`verify-image`とmodel-aware `doctor`は将来契約であり、v0.8では実行できない。
+`verify-image`とmodel-aware `doctor`は将来契約であり、v0.9では実行できない。
 
 ```bash
 h3fast verify-image ghcr.io/org/h3fast@sha256:<digest>
@@ -1166,7 +1174,7 @@ ghcr.io/org/h3fast:1.0.0-rocm-cdna
 
 ### 9.2 起動例
 
-次はOCI distribution実装後の構想例である。v0.8ではH3Fast OCI imageと`h3fast serve`は未実装・未検証であり、digestのplaceholderを実行値として使用してはならない。
+次はOCI distribution実装後の構想例である。v0.9ではH3Fast OCI imageと`h3fast serve`は未実装・未検証であり、digestのplaceholderを実行値として使用してはならない。
 
 ```bash
 docker run --rm --gpus all \
@@ -1222,7 +1230,7 @@ Sidecar or platform service
 
 ### 10.1 BYOW
 
-次はconverter実装後に利用者が明示的に取得・変換する構想例である。v0.8はmodelを自動downloadせず、`h3fast convert`も未実装である。H3の取得前に利用権とApplicable Territoryを確認する。
+次はconverter実装後に利用者が明示的に取得・変換する構想例である。v0.9はmodelを自動downloadせず、`h3fast convert`も未実装である。H3の取得前に利用権とApplicable Territoryを確認する。
 
 ```bash
 hf download MiniMaxAI/MiniMax-H3 \
@@ -1572,13 +1580,14 @@ NVIDIA SANA TeamのSol Engine H3ページは、stock checkpointに対し、kerne
 
 ### 16.1 Pull Request CI
 
-v0.8のCPU-only Pull Request CIは次を実装済みとする。
+v0.9のCPU-only Pull Request CIは次を実装済みとする。
 
 - pinned uv versionで`uv sync --locked`が成功
 - build済みwheelだけを用いたclean install test
 - Ruff format/lintと`ty` type check
 - coverage閾値付きunit test
-- 全JSON schemaのmeta-schema検証と、commit済みprotocol/referenceのinstance検証
+- 全JSON schemaのmeta-schema検証と、commit済みprotocol/reference/release gateのinstance検証
+- Initial Runtime release recordのsemantic validationとfail-closed CLI test
 - repository外の一時環境でCPU import
 
 Public Runtime release前には次を追加し、完了するまでこのrepositoryのCIをrelease gate済みと扱わない。
@@ -2104,10 +2113,10 @@ reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52
 
 ## 24. 未解決事項
 
-Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBlockerを決定する必要がある。v0.8時点では組織上のownerとdecision deadlineが未設定であり、この未割当自体をDraft解除のblockerとする。決定時にowner、deadline、記録へのlinkを追加する。
+Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBlockerを決定する必要がある。Issue [#11](https://github.com/nishide-dev/h3fast/issues/11)でcoordination ownerを`nishide-dev`、暫定target dateを2026-08-31として追跡するが、legal reviewer、release approver、schema ownerは未指名である。この未割当自体をDraft解除のblockerとし、決定時にowner、deadline、記録へのlinkをrelease gate recordへ追加する。
 
-1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
-2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
+1. **Blocker / tracked in #11:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。timezone、IP判定、HF gateだけを適合証拠にしない。
+2. **Blocker / engineering inventory complete:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、要約documentationがH3 Worksに該当しないか、および将来BYOW converterへ公式codeをどこまで含められるかはlegal reviewerの承認待ちとする。
 3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
@@ -2124,6 +2133,6 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくともBloc
 16. native CUDA/C++ extensionが必要になった場合のdistribution名とbuild backend。
 17. Public Runtime release前にdependency/license scan、secret scan、artifact notice検証をどのCIで必須化するか。
 18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
-19. schema owner、release承認者、各Blockerのownerとdecision deadlineを誰が担うか。
+19. **Partially resolved:** coordination ownerは`nishide-dev`、暫定target dateは2026-08-31とした。legal reviewer、release approver、schema ownerと正式deadlineはIssue #11で未決定。
 
 次の作業順序は、(1) 項目1・2・19の責任者と期限の決定、(2) 項目11を含む権利review済み10/50 quality set、(3) 項目18のclean-machine再現、(4) 項目17のrelease supply-chain gateとする。これらの完了前にPublic Runtime公開、Support Tier付与、Phase 2 derivative配布へ進まない。
