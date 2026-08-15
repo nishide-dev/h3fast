@@ -12,6 +12,7 @@ from h3fast.benchmarks.guard import (
     ForeignGpuProcess,
     _health_ready,
     _query_gpu_uuids,
+    _query_pmon,
     _query_with_timeout_retry,
     _signal_and_wait,
     find_foreign_gpu_processes,
@@ -132,6 +133,66 @@ def test_gpu_uuid_query_selects_requested_devices(monkeypatch) -> None:
 
     with pytest.raises(ValidationError, match="disappeared"):
         _query_gpu_uuids((3,))
+
+
+def test_gpu_queries_fail_closed_without_nvidia_smi(monkeypatch) -> None:
+    monkeypatch.setattr("h3fast.benchmarks.guard.shutil.which", lambda _name: None)
+
+    with pytest.raises(ValidationError, match="required"):
+        _query_pmon((1, 2))
+    with pytest.raises(ValidationError, match="required"):
+        _query_gpu_uuids((1, 2))
+
+
+@pytest.mark.parametrize(
+    ("output", "return_code", "match"),
+    [
+        ("", 1, "pmon failed"),
+        ("unexpected", 0, "unexpected process row"),
+        ("x 200 C 100 0 process", 0, "invalid process data"),
+        ("3 200 C 100 0 process", 0, "unselected GPU"),
+    ],
+)
+def test_pmon_query_rejects_invalid_results(
+    output: str, return_code: int, match: str, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.shutil.which", lambda _name: "/usr/bin/nvidia-smi"
+    )
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            [], return_code, output, "failure"
+        ),
+    )
+
+    with pytest.raises(ValidationError, match=match):
+        _query_pmon((1, 2))
+
+
+@pytest.mark.parametrize(
+    ("output", "return_code", "match"),
+    [
+        ("", 1, "UUID query failed"),
+        ("unexpected", 0, "unexpected GPU UUID row"),
+        ("x, gpu-x", 0, "invalid GPU index"),
+    ],
+)
+def test_gpu_uuid_query_rejects_invalid_results(
+    output: str, return_code: int, match: str, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.shutil.which", lambda _name: "/usr/bin/nvidia-smi"
+    )
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            [], return_code, output, "failure"
+        ),
+    )
+
+    with pytest.raises(ValidationError, match=match):
+        _query_gpu_uuids((1, 2))
 
 
 class _Process:
