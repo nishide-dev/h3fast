@@ -405,7 +405,8 @@ def check_human_pairwise_ballot(
             )
             raise ValidationError(message)
         _sha(case["assignment_commitment_sha256"], f"ballot case {case_id} commitment")
-        if case["selection"] not in {"a", "b", "tie"}:
+        selection = case["selection"]
+        if not isinstance(selection, str) or selection not in {"a", "b", "tie"}:
             message = (
                 f"human-pairwise ballot case {case_id} is missing a valid selection"
             )
@@ -425,7 +426,7 @@ def check_human_pairwise_ballot(
             message = f"duplicate human-pairwise assignment case: {case_id}"
             raise ValidationError(message)
         a_source = case["a_source"]
-        if a_source not in {"baseline", "candidate"}:
+        if not isinstance(a_source, str) or a_source not in {"baseline", "candidate"}:
             message = f"human-pairwise assignment case {case_id} has invalid a_source"
             raise ValidationError(message)
         salt = _sha(case["salt"], f"assignment case {case_id} salt")

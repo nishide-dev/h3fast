@@ -169,6 +169,12 @@ def test_pending_or_missing_observation_fails_closed(tmp_path: Path) -> None:
     with pytest.raises(ValidationError, match="missing a valid selection"):
         check_human_pairwise_ballot(FORMAL_SET, ballot, assignment)
 
+    value = _read(ballot)
+    _cases(value)[0]["selection"] = []
+    _write(ballot, value)
+    with pytest.raises(ValidationError, match="missing a valid selection"):
+        check_human_pairwise_ballot(FORMAL_SET, ballot, assignment)
+
 
 def test_assignment_digest_and_commitment_tampering_fail(tmp_path: Path) -> None:
     ballot, assignment = _prepare(tmp_path)
@@ -325,6 +331,14 @@ def test_ballot_commitment_and_assignment_shape_fail_closed(tmp_path: Path) -> N
     _write(assignment, assignment_value)
     _refresh_assignment_digest(ballot, assignment)
     with pytest.raises(ValidationError, match="unknown fields"):
+        check_human_pairwise_ballot(FORMAL_SET, ballot, assignment)
+
+    assignment_value = _read(assignment)
+    _cases(assignment_value)[0].pop("unexpected")
+    _cases(assignment_value)[0]["a_source"] = []
+    _write(assignment, assignment_value)
+    _refresh_assignment_digest(ballot, assignment)
+    with pytest.raises(ValidationError, match="invalid a_source"):
         check_human_pairwise_ballot(FORMAL_SET, ballot, assignment)
 
 
