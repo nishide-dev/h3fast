@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0",
+  "inventory_id": "initial-runtime-territories",
+  "status": "incomplete",
+  "updated_at": "2026-08-16",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/11",
+  "license_evidence": {
+    "base_revision": "42ed227ee7df40d41602854ae760620d6eb651fe",
+    "license_sha256": "59b99642b95ea21630e311198ddbfffbfe05aadba0c2f5d884cbdf4efcc90f44",
+    "applicable_territory": "Worldwide excluding the European Union, United Kingdom, Republic of Korea, and United States of America",
+    "evidence": [
+      "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/42ed227ee7df40d41602854ae760620d6eb651fe/LICENSE",
+      "docs/compliance/h3-license-boundary-review.md"
+    ]
+  },
+  "legal_approval": {
+    "state": "unassigned",
+    "owner": null,
+    "deadline": "2026-08-31",
+    "approved_at": null,
+    "evidence": []
+  },
+  "flows": [
+    {
+      "id": "development-host",
+      "description": "Developer workstation or remote workspace used for H3Fast and local H3 work",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "h3-works",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/compliance/h3-license-boundary-review.md"
+      ],
+      "notes": "Asia/Tokyo timezone does not prove the physical country or operating entity."
+    },
+    {
+      "id": "gpu-benchmark-host",
+      "description": "GPU host used for the fixed H3 baseline and resident-layer candidate",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "both",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/experiments/0003-rtx6000-ada-measured-baseline.md",
+        "docs/experiments/0005-rtx6000-ada-resident40.md"
+      ],
+      "notes": "Hardware and runtime evidence exists, but physical country and operator are not recorded."
+    },
+    {
+      "id": "github-actions",
+      "description": "GitHub-hosted Ubuntu runners executing CPU-only pull request checks",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "none",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": "GitHub",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        ".github/workflows/ci.yml",
+        "https://docs.github.com/en/actions/reference/runners/github-hosted-runners"
+      ],
+      "notes": "Standard ubuntu-latest runners use Azure, but this workflow does not select or prove a fixed Azure region and never downloads H3."
+    },
+    {
+      "id": "source-storage",
+      "description": "Public GitHub.com repository storing H3Fast source and documentation",
+      "location_scope": "countries",
+      "country_codes": [
+        "US"
+      ],
+      "territory_assessment": "includes-excluded",
+      "h3_relation": "undetermined",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": "GitHub",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/about-github-enterprise-cloud-with-data-residency",
+        "docs/compliance/h3-license-boundary-review.md"
+      ],
+      "notes": "GitHub documents US storage as the GitHub.com default; legal classification of H3Fast source remains pending."
+    },
+    {
+      "id": "ci-artifact-storage",
+      "description": "GitHub Actions logs and transient build outputs for CPU-only checks",
+      "location_scope": "countries",
+      "country_codes": [
+        "US"
+      ],
+      "territory_assessment": "includes-excluded",
+      "h3_relation": "none",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": "GitHub",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        ".github/workflows/ci.yml",
+        "https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization"
+      ],
+      "notes": "The workflow uploads no artifacts and uses synthetic fixtures, but Actions logs and service data still require classification."
+    },
+    {
+      "id": "benchmark-output-storage",
+      "description": "Repository-external storage for generated media and raw benchmark bundles",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "output",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/compliance/artifact-register.md"
+      ],
+      "notes": "Git exclusion is verified, but storage country, operator, retention, and access controls are not recorded."
+    },
+    {
+      "id": "public-source-distribution",
+      "description": "Global access to public H3Fast source, schema, protocol, and documentation",
+      "location_scope": "global",
+      "country_codes": [],
+      "territory_assessment": "includes-excluded",
+      "h3_relation": "undetermined",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": "GitHub",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast",
+        "docs/compliance/h3-license-boundary-review.md"
+      ],
+      "notes": "Global source access requires a legal decision that the public boundary is not H3 Works or has suitable authorization."
+    },
+    {
+      "id": "initial-user-access",
+      "description": "Countries and entities allowed to obtain and use the Initial Runtime",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "undetermined",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/issues/11"
+      ],
+      "notes": "No initial user cohort, contracting entity, or access-control method has been approved."
+    },
+    {
+      "id": "runtime-execution",
+      "description": "Countries where users will execute H3 and the H3Fast runtime",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "h3-works",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/issues/11"
+      ],
+      "notes": "BYOW does not establish the user's execution country or license rights."
+    },
+    {
+      "id": "output-use",
+      "description": "Countries where generated H3 Outputs will be stored, displayed, or otherwise used",
+      "location_scope": "unknown",
+      "country_codes": [],
+      "territory_assessment": "unknown",
+      "h3_relation": "output",
+      "decision": "unknown",
+      "written_license": null,
+      "operator": null,
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/issues/11"
+      ],
+      "notes": "Output storage, display, distribution, and downstream-use countries have not been declared."
+    }
+  ]
+}

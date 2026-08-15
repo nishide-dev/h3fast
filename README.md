@@ -19,7 +19,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
-Initial Runtimeは現在公開承認されていません。一次資料、source boundary、未確認regionは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、machine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
+Initial Runtimeは現在公開承認されていません。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、全体のmachine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
 
 ## Development setup
 
@@ -58,6 +58,13 @@ Initial Runtimeのrelease gateを検査します。現在のrecordは未指名ap
 ```bash
 uv run h3fast release check \
   --record compliance/release-gates/initial-runtime.json
+```
+
+開発、GPU、CI、storage、配布、実行、Output利用のterritory inventoryを検査します。このrecordも正式なlocation、owner、legal approvalがない間は終了code 1を返します。
+
+```bash
+uv run h3fast compliance check-territories \
+  --record compliance/territories/initial-runtime.json
 ```
 
 benchmark protocolの構造を検証します。

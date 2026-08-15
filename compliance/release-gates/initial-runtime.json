@@ -45,6 +45,7 @@
       "owner": null,
       "deadline": "2026-08-31",
       "evidence": [
+        "compliance/territories/initial-runtime.json",
         "https://github.com/nishide-dev/h3fast/issues/11"
       ]
     },
