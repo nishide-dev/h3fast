@@ -12,11 +12,26 @@ from h3fast.benchmarks.preflight import (
     NvidiaDevice,
     _hf_snapshot_revision,
     _query_nvidia,
+    _run,
     _validate_hf_snapshot_revision,
     run_preflight,
 )
 from h3fast.exceptions import ValidationError
 from h3fast.manifest.snapshot import REQUIRED_COMPONENTS
+
+
+def test_nvidia_command_allows_driver_busy_interval(monkeypatch) -> None:
+    observed: dict[str, object] = {}
+
+    def run(command, **kwargs):
+        observed.update(kwargs)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr("h3fast.benchmarks.preflight.subprocess.run", run)
+
+    _run(["nvidia-smi"])
+
+    assert observed["timeout"] == 30.0
 
 
 def _write_protocol(path: Path) -> None:

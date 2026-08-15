@@ -17,6 +17,7 @@ from h3fast.manifest import inspect_snapshot
 from h3fast.manifest.checksums import sha256_file
 
 CheckStatus = Literal["pass", "fail"]
+_NVIDIA_QUERY_TIMEOUT_SECONDS = 30.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,7 +96,7 @@ def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
         check=False,
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=_NVIDIA_QUERY_TIMEOUT_SECONDS,
     )
 
 
