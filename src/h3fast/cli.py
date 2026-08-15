@@ -16,6 +16,7 @@ from h3fast.benchmarks import (
     build_singularity_launch,
     check_formal_quality_set,
     check_quality,
+    check_quality_metric_plan,
     compile_quality_registry,
     load_runtime_settings,
     prepare_quality_registry_review,
@@ -275,6 +276,12 @@ def _benchmark_check_quality_set(args: argparse.Namespace) -> int:
     return 0 if report.ready else 1
 
 
+def _benchmark_check_quality_metric_plan(args: argparse.Namespace) -> int:
+    report = check_quality_metric_plan(Path(args.plan))
+    _write_json(report.to_dict())
+    return 0 if report.ready else 1
+
+
 def _benchmark_compile_quality_registry(args: argparse.Namespace) -> int:
     report = compile_quality_registry(
         Path(args.registry),
@@ -501,6 +508,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     quality_set_check.add_argument("--record", required=True)
     quality_set_check.set_defaults(handler=_benchmark_check_quality_set)
+
+    quality_metric_plan_check = benchmark_subparsers.add_parser(
+        "check-quality-metric-plan",
+        help="Exit successfully only when every formal metric plan is approved",
+    )
+    quality_metric_plan_check.add_argument("--plan", required=True)
+    quality_metric_plan_check.set_defaults(handler=_benchmark_check_quality_metric_plan)
 
     quality_registry_compile = benchmark_subparsers.add_parser(
         "compile-quality-registry",

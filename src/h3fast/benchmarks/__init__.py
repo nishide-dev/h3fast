@@ -11,6 +11,10 @@ from h3fast.benchmarks.protocol import (
     validate_protocol,
 )
 from h3fast.benchmarks.quality import build_quality_reference, check_quality
+from h3fast.benchmarks.quality_metrics import (
+    QualityMetricPlanReport,
+    check_quality_metric_plan,
+)
 from h3fast.benchmarks.quality_registry import (
     QualityRegistryCompileReport,
     QualityRegistryReviewReport,
@@ -32,6 +36,7 @@ __all__ = [
     "LaunchPlan",
     "PreflightReport",
     "ProtocolReport",
+    "QualityMetricPlanReport",
     "QualityRegistryCompileReport",
     "QualityRegistryReviewReport",
     "RuntimeSettings",
@@ -40,6 +45,7 @@ __all__ = [
     "build_singularity_launch",
     "check_formal_quality_set",
     "check_quality",
+    "check_quality_metric_plan",
     "compile_quality_registry",
     "load_runtime_settings",
     "prepare_quality_registry_review",

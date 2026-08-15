@@ -155,6 +155,24 @@ def test_benchmark_quality_set_command_reports_committed_blockers(capsys) -> Non
     assert "approval:rights_reviewer:unassigned" in output["blockers"]
 
 
+def test_benchmark_quality_metric_plan_command_reports_draft(capsys) -> None:
+    status = main(
+        [
+            "benchmark",
+            "check-quality-metric-plan",
+            "--plan",
+            "benchmarks/quality/formal-quality-metric-plan.json",
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert output["ready"] is False
+    assert output["approved_metrics"] == 0
+    assert output["unassigned_metrics"] == 6
+    assert "metric:audio-quality:unassigned" in output["blockers"]
+
+
 def test_benchmark_compile_quality_registry_command(tmp_path, capsys) -> None:
     registry = tmp_path / "quality.private-quality-registry.json"
     registry.write_text(
