@@ -189,7 +189,7 @@
       "family": "human-pairwise",
       "disposition": "candidate",
       "research_owner": "nishide-dev",
-      "proposed_method": "Use a project-owned blind randomized paired ballot that shows baseline and candidate media as A/B, records per-family preference and ties, and keeps case identity separate from presentation order.",
+      "proposed_method": "Use a project-owned blind randomized paired ballot that shows baseline and candidate media as A/B, records one overall preference or tie per case, and keeps case identity separate from presentation order.",
       "external_components": [],
       "inputs": [
         "prompt",
@@ -201,14 +201,14 @@
       ],
       "score_direction": "two-sided",
       "adoption_requirements": [
-        "Define and schema-validate the blind ballot, randomization seed, reviewer identity, tie, abstention, and missing-observation semantics.",
-        "Implement an offline runner that does not upload prompts, media, ballots, or generated outputs.",
+        "Integrate the schema-validated blind ballot, hidden assignment key, tie, and missing-observation semantics with an offline A/B media presentation runner.",
+        "Keep prompts, media, ballots, assignment keys, randomization seeds, and generated outputs local and outside Git and CI artifacts.",
         "Pilot the protocol, review reviewer burden and bias controls, and approve the final aggregation before formal scoring."
       ],
       "blockers": [
-        "No ballot schema, offline runner, aggregation implementation, or correctness test exists.",
-        "Reviewer count, conflict handling, and tie/abstention policy are not approved.",
-        "No pilot evidence or quality-owner approval evidence exists."
+        "The ballot/key schemas and aggregate scorer exist, but no offline A/B media presentation runner exists.",
+        "Reviewer count, conflict handling, and single-reviewer acceptability are not approved.",
+        "No completed formal ballot, pilot evidence, immutable implementation revision, or quality-owner approval evidence exists."
       ],
       "sources": [
         "https://github.com/nishide-dev/h3fast/issues/16",

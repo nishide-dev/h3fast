@@ -41,4 +41,6 @@ budgetとapproval evidenceは自己変動測定後に別PRでreviewし、6 famil
 
 候補調査を再現でき、次に実装するadapterの境界と採用条件が明確になる。現在のcandidate assessmentは実行可能性、metric妥当性、checkpoint配布権または品質同等性を承認しない。
 
-最初の実装対象は、native buildや未確定checkpointを必要としないproject-owned human ballot contractとする。その後、固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。
+最初の実装対象として、native buildや未確定checkpointを必要としないproject-owned human ballot/key schema、blind assignment commitment、欠損時fail、aggregate scorerを追加した。seed、ballotとassignmentはprivate fileとして分離し、prompt、media、pathまたはper-case decisionをaggregate出力へ含めない。
+
+ただしoffline A/B media presentation runner、pilot、review policy、formal実測とimmutable implementation evidenceは未完了である。このためhuman-pairwiseはcandidateのままとし、formal metric planを`planned`へ変更しない。次はpresentation runnerとpilotを完了してから、固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。

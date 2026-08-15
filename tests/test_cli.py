@@ -320,6 +320,66 @@ def test_benchmark_quality_review_commands_fail_closed_until_approved(
     assert not output.exists()
 
 
+def test_benchmark_human_pairwise_commands_prepare_and_score(tmp_path, capsys) -> None:
+    ballot = tmp_path / "ballot.json"
+    assignment = tmp_path / "assignment.json"
+    seed = tmp_path / "seed.txt"
+    seed.write_text("test-only-secret-seed-with-32-characters", encoding="utf-8")
+    seed.chmod(0o600)
+    prepare_status = main(
+        [
+            "benchmark",
+            "prepare-human-pairwise",
+            "--formal-set",
+            "benchmarks/quality/formal-quality-set.json",
+            "--ballot-id",
+            "cli-pilot-001",
+            "--reviewer",
+            "reviewer-001",
+            "--randomization-seed-file",
+            str(seed),
+            "--ballot",
+            str(ballot),
+            "--assignment",
+            str(assignment),
+        ]
+    )
+    prepare_output = json.loads(capsys.readouterr().out)
+
+    assert prepare_status == 0
+    assert prepare_output["case_count"] == 60
+    assert str(tmp_path) not in json.dumps(prepare_output)
+    ballot_value = json.loads(ballot.read_text(encoding="utf-8"))
+    assignment_value = json.loads(assignment.read_text(encoding="utf-8"))
+    assignment_cases = {case["case_id"]: case for case in assignment_value["cases"]}
+    for case in ballot_value["cases"]:
+        case["selection"] = (
+            "a" if assignment_cases[case["case_id"]]["a_source"] == "candidate" else "b"
+        )
+    ballot_value["status"] = "completed"
+    ballot_value["completed_at"] = ballot_value["created_at"]
+    ballot.write_text(json.dumps(ballot_value), encoding="utf-8")
+
+    check_status = main(
+        [
+            "benchmark",
+            "check-human-pairwise",
+            "--formal-set",
+            "benchmarks/quality/formal-quality-set.json",
+            "--ballot",
+            str(ballot),
+            "--assignment",
+            str(assignment),
+        ]
+    )
+    check_output = json.loads(capsys.readouterr().out)
+
+    assert check_status == 0
+    assert check_output["candidate_wins"] == 60
+    assert check_output["score"] == 1
+    assert str(tmp_path) not in json.dumps(check_output)
+
+
 def test_gpu_ids_parser_rejects_invalid_values() -> None:
     assert _gpu_ids("1,2") == (1, 2)
     with pytest.raises(argparse.ArgumentTypeError):

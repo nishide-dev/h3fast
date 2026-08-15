@@ -77,6 +77,9 @@ Thumbs.db
 *.flac
 *.private-quality-registry.json
 *.private-quality-review.json
+*.private-human-pairwise-ballot.json
+*.private-human-pairwise-assignment.json
+*.private-human-pairwise-seed
 
 # Local credentials and environment files
 .env
