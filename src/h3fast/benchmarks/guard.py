@@ -449,23 +449,27 @@ def serve_guarded(
     baseline_holders = (
         _device_holder_pids(plan.selected_gpus) if foreign_process_query is None else {}
     )
+    pmon_enabled = True
 
     def default_query(
         gpus: tuple[int, ...], root_pid: int
     ) -> tuple[ForeignGpuProcess, ...]:
+        nonlocal pmon_enabled
         if not gpu_uuids:
             gpu_uuids.update(_query_gpu_uuids(gpus))
-        try:
-            return find_foreign_gpu_processes_pmon(
-                gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
-            )
-        except subprocess.TimeoutExpired:
-            return find_foreign_gpu_device_holders(
-                gpus,
-                allowed_root_pid=root_pid,
-                baseline_holders=baseline_holders,
-                gpu_uuids=gpu_uuids,
-            )
+        if pmon_enabled:
+            try:
+                return find_foreign_gpu_processes_pmon(
+                    gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
+                )
+            except subprocess.TimeoutExpired:
+                pmon_enabled = False
+        return find_foreign_gpu_device_holders(
+            gpus,
+            allowed_root_pid=root_pid,
+            baseline_holders=baseline_holders,
+            gpu_uuids=gpu_uuids,
+        )
 
     query = foreign_process_query or default_query
     started_at = datetime.now(UTC)

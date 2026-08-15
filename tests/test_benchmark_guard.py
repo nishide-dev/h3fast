@@ -371,6 +371,64 @@ def test_serve_guarded_reports_ready_and_handles_interrupt(
     assert lifecycle_value["startup_seconds"] >= 0
 
 
+def test_serve_guarded_keeps_device_fallback_after_pmon_timeout(
+    tmp_path: Path, monkeypatch
+) -> None:
+    process = _Process()
+    pmon_calls = 0
+    holder_calls = 0
+    command = "nvidia-smi pmon"
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.subprocess.Popen", lambda *_args, **_kwargs: process
+    )
+    monkeypatch.setattr("h3fast.benchmarks.guard._stop_process", lambda _value: None)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard._query_gpu_uuids",
+        lambda _gpus: {1: "gpu-1", 2: "gpu-2"},
+    )
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard._device_holder_pids",
+        lambda _gpus: {1: set(), 2: set()},
+    )
+
+    def pmon(*_args, **_kwargs):
+        nonlocal pmon_calls
+        pmon_calls += 1
+        raise subprocess.TimeoutExpired(command, 10)
+
+    def holders(*_args, **_kwargs):
+        nonlocal holder_calls
+        holder_calls += 1
+        return ()
+
+    monkeypatch.setattr("h3fast.benchmarks.guard.find_foreign_gpu_processes_pmon", pmon)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.find_foreign_gpu_device_holders", holders
+    )
+    health = iter((False, True))
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard._health_ready", lambda *_args: next(health)
+    )
+    sleeps = 0
+
+    def sleep(_seconds: float) -> None:
+        nonlocal sleeps
+        sleeps += 1
+        if sleeps == 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr("h3fast.benchmarks.guard.time.sleep", sleep)
+
+    serve_guarded(
+        _plan(),
+        endpoint="http://127.0.0.1:30010",
+        report_path=tmp_path / "unused.json",
+    )
+
+    assert pmon_calls == 1
+    assert holder_calls == 2
+
+
 def test_serve_guarded_records_unexpected_server_exit(
     tmp_path: Path, monkeypatch
 ) -> None:
