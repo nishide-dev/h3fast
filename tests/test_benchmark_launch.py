@@ -125,6 +125,12 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
             selected_gpus=(1, 2),
             dit_layerwise_resident_layers=51,
         )
+    with pytest.raises(ValidationError, match="resident layers"):
+        build_singularity_launch(
+            **arguments,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=True,
+        )
 
     adapter.chmod(0o644)
     with pytest.raises(ValidationError, match="not executable"):

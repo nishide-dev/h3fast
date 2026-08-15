@@ -79,7 +79,11 @@ def build_singularity_launch(
     if not (1 <= port <= 65535):
         message = "port must be between 1 and 65535"
         raise ValidationError(message)
-    if not 1 <= dit_layerwise_resident_layers <= 50:
+    if (
+        not isinstance(dit_layerwise_resident_layers, int)
+        or isinstance(dit_layerwise_resident_layers, bool)
+        or not 1 <= dit_layerwise_resident_layers <= 50
+    ):
         message = "DiT layerwise resident layers must be between 1 and 50"
         raise ValidationError(message)
 

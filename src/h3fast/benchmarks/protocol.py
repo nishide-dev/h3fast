@@ -110,6 +110,13 @@ def validate_protocol(path: Path) -> ProtocolReport:
     if not isinstance(cases, list) or not cases:
         msg = "benchmark protocol cases must be a non-empty array"
         raise ValidationError(msg)
+    unknown_runtime_fields = sorted(
+        set(runtime).difference({"dit_layerwise_resident_layers"})
+    )
+    if unknown_runtime_fields:
+        fields = ", ".join(unknown_runtime_fields)
+        msg = f"benchmark protocol runtime contains unsupported fields: {fields}"
+        raise ValidationError(msg)
     resident_layers = runtime.get("dit_layerwise_resident_layers")
     if (
         not isinstance(resident_layers, int)

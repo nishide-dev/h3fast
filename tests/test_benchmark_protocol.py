@@ -163,6 +163,17 @@ def test_protocol_rejects_invalid_resident_layers(
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 
+def test_protocol_rejects_unknown_runtime_fields(tmp_path: Path) -> None:
+    protocol = _ready_protocol()
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "dit_layerwise_resident_layer": 40,
+    }
+
+    with pytest.raises(ValidationError, match="unsupported fields"):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
 def test_ready_protocol_rejects_unresolved_items(tmp_path: Path) -> None:
     protocol = _ready_protocol()
     protocol["unresolved"] = ["GPU"]
