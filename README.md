@@ -10,7 +10,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
 - CPU-only環境でimport可能な単一Python package
 
-製品・配布仕様は[`docs/spec.md`](docs/spec.md)、開発規約は[`AGENTS.md`](AGENTS.md)を参照してください。
+製品・配布仕様は[`docs/spec.md`](docs/spec.md)、開発規約は[`AGENTS.md`](AGENTS.md)、Phase 1B完了監査は[`docs/audits/0001-phase1b-completion.md`](docs/audits/0001-phase1b-completion.md)を参照してください。
 
 ## Status
 

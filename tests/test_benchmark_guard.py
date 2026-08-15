@@ -365,7 +365,9 @@ def test_serve_guarded_reports_ready_and_handles_interrupt(
         foreign_process_query=lambda _gpus, _root: (),
     )
 
-    assert json.loads(capsys.readouterr().out)["event"] == "server-ready"
+    ready_event = json.loads(capsys.readouterr().out)
+    assert ready_event["event"] == "server-ready"
+    assert ready_event["runtime_settings"] == {"dit_layerwise_resident_layers": 40}
     assert stopped == [process]
     assert not report.exists()
     lifecycle_value = json.loads(lifecycle.read_text(encoding="utf-8"))

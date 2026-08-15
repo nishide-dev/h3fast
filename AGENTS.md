@@ -6,17 +6,17 @@ H3Fast is a research and runtime project for making local MiniMax H3-Base infere
 
 The authoritative product and distribution specification is `docs/spec.md`. Read the relevant sections before changing architecture, packaging, model conversion, serving, optimization, benchmarking, or release behavior.
 
-The repository was initialized from `ml-research-template`. The current MNIST, PyTorch Lightning, Hydra, logger, and training files are disposable template scaffolding, not H3Fast architecture. Do not extend or preserve them merely for compatibility. Remove them when replacing the template with the first H3Fast implementation.
+The repository was initialized from `ml-research-template`, but its MNIST, PyTorch Lightning, Hydra, logger, and training scaffolding has been removed. Do not reintroduce template dependencies or structure for compatibility; the current `src/h3fast` package, schemas, benchmark protocols, and tests are the implemented architecture.
 
 ## Current phase and priorities
 
-The project is in Phase 1A implementation and follows this order:
+The Phase 1A technical baseline and the first Phase 1B measured optimization are implemented. This does not make the repository release-ready: the protocol remains `draft`, no GPU has a Support Tier, and public distribution is blocked. Follow this order:
 
-1. Resolve the remaining Phase 0 blockers in `docs/spec.md`: license and territory applicability and the quality reference set. The base revision is immutable and one FL2VA/T2VA E2E smoke has completed on 2×RTX 6000 Ada, but this is not yet a support tier or performance baseline.
-2. Extend the fixed BF16 harness from one smoke run to stage-level profiling and the protocol's measured-run set.
-3. Keep the smallest single-package BYOW validation and benchmark path reproducible and CPU-import-safe.
-4. Use the profile to select and implement one independently measurable optimization.
-5. Publish only after legal, quality, reproducibility, and supply-chain gates pass.
+1. Resolve the Phase 0 release blockers in `docs/spec.md`: Applicable Territory and license/code boundaries, with named owners and deadlines.
+2. Create the rights-reviewed 10-case smoke and 50-case regression quality sets; the committed exact gate covers only one placement-only case.
+3. Reproduce the pinned baseline and adopted 40-layer candidate on a clean machine, preserving the 20-layer rollback protocol.
+4. Close the public-release supply-chain gaps documented by the Phase 1B audit before publishing a wheel, image, benchmark bundle, or service.
+5. Select another optimization only from new profile evidence, and measure one dimension at a time against the fixed baseline.
 
 Avoid speculative support for multiple GPU vendors, task families, quantization schemes, servers, or package distributions before an actual need and test environment exist.
 
@@ -157,7 +157,7 @@ Draft pull requests must clearly state what remains incomplete. Performance pull
 Every optimization must include:
 
 - A clear hypothesis tied to profiling evidence
-- A PyTorch or otherwise trustworthy reference implementation
+- A PyTorch or otherwise trustworthy reference for numerical, kernel, or algorithm changes; placement-only changes that preserve the compute graph may use the pinned baseline/rollback protocol plus the exact artifact gate
 - Unit or kernel correctness tests
 - Boundary, dtype, shape, non-contiguous, NaN/Inf, and unsupported-capability cases as applicable
 - A safe fallback or an explicit unsupported error
@@ -169,17 +169,18 @@ Change one optimization dimension at a time when establishing causality. Separat
 
 ## Testing and quality checks
 
-Run the smallest relevant checks during development and the complete affected suite before handoff. Until the template is replaced, the available commands are provisional:
+Run the smallest relevant checks during development and the complete affected suite before handoff. The current CPU/package gates are:
 
 ```bash
-uv sync
-uv run pytest
+uv sync --locked --all-groups
+uv run pytest --cov=h3fast
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check src/
+uv build --no-sources
 ```
 
-When the H3Fast skeleton is implemented, the expected minimum gates are:
+The expected minimum gates for affected changes are:
 
 - Unit tests and schema validation
 - Ruff formatting and lint
@@ -191,7 +192,7 @@ When the H3Fast skeleton is implemented, the expected minimum gates are:
 - Short E2E audio-video generation smoke test for affected Tier 1 targets
 - Performance and quality regression checks for optimization changes
 
-Do not keep template training tests or dependencies merely to make obsolete CI pass. Replace CI in the same change that removes the template implementation.
+Do not add template training tests or dependencies. CI must continue to exercise the actual H3Fast package and clean-wheel path.
 
 ## Model, data, and artifact safety
 

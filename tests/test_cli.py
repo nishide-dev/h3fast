@@ -235,6 +235,8 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
             str(preflight),
             "--guard-report",
             str(tmp_path / "guard.json"),
+            "--lifecycle-report",
+            str(tmp_path / "lifecycle.json"),
         ]
     )
 
@@ -242,6 +244,32 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
     assert json.loads(preflight.read_text(encoding="utf-8"))["ready"] is True
     assert len(guarded) == 1
     assert launch_arguments[0]["dit_layerwise_resident_layers"] == 40
+
+
+def test_benchmark_serve_guarded_requires_lifecycle_report() -> None:
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "benchmark",
+                "serve-guarded",
+                "--snapshot",
+                "snapshot",
+                "--gpus",
+                "1,2",
+                "--sglang-source",
+                "source",
+                "--runtime-image",
+                "runtime.sif",
+                "--server-output",
+                "server",
+                "--preflight-output",
+                "preflight.json",
+                "--guard-report",
+                "guard.json",
+            ]
+        )
+
+    assert error.value.code == 2
 
 
 def test_benchmark_run_case_command(tmp_path, monkeypatch, capsys) -> None:

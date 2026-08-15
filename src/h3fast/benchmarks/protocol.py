@@ -25,7 +25,7 @@ class ProtocolReport:
 
     @property
     def ready(self) -> bool:
-        """Return whether the protocol is complete enough for a baseline claim."""
+        """Return whether the protocol is complete enough for a benchmark claim."""
         return self.status == "ready" and not self.unresolved
 
     def to_dict(self) -> dict[str, object]:
