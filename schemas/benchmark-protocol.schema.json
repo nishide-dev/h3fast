@@ -24,6 +24,32 @@
     "base_model": { "type": "object" },
     "environment": { "type": "object" },
     "measurement": { "type": "object" },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "reference_path",
+        "method",
+        "profile",
+        "baseline_measured_runs",
+        "video_decode_format",
+        "audio_decode_format",
+        "scope",
+        "formal_quality_set_ready"
+      ],
+      "properties": {
+        "reference_id": { "type": "string", "minLength": 1 },
+        "reference_path": { "type": "string", "minLength": 1 },
+        "method": { "const": "exact-decoded-artifact-v1" },
+        "profile": { "const": "exact" },
+        "baseline_measured_runs": { "type": "integer", "minimum": 3 },
+        "video_decode_format": { "const": "rgb24" },
+        "audio_decode_format": { "const": "pcm_s16le" },
+        "scope": { "type": "string", "minLength": 1 },
+        "formal_quality_set_ready": { "type": "boolean" }
+      }
+    },
     "cases": { "type": "array", "minItems": 1 }
   }
 }

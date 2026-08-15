@@ -11,7 +11,9 @@ from pathlib import Path
 
 from h3fast import __version__
 from h3fast.benchmarks import (
+    build_quality_reference,
     build_singularity_launch,
+    check_quality,
     run_case,
     run_preflight,
     run_suite,
@@ -218,6 +220,32 @@ def _benchmark_run_suite(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_build_quality_reference(args: argparse.Namespace) -> int:
+    reference = build_quality_reference(
+        Path(args.suite),
+        Path(args.protocol),
+        Path(args.output),
+        reference_id=args.reference_id,
+        ffmpeg=args.ffmpeg,
+        ffprobe=args.ffprobe,
+    )
+    _write_json(reference)
+    return 0
+
+
+def _benchmark_check_quality(args: argparse.Namespace) -> int:
+    report = check_quality(
+        Path(args.reference),
+        Path(args.suite),
+        Path(args.protocol),
+        Path(args.output),
+        ffmpeg=args.ffmpeg,
+        ffprobe=args.ffprobe,
+    )
+    _write_json(report)
+    return 0 if report["status"] == "passed" else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -354,6 +382,30 @@ def build_parser() -> argparse.ArgumentParser:
     suite.add_argument("--poll-interval", type=float, default=1.0)
     suite.add_argument("--timeout", type=float, default=7200.0)
     suite.set_defaults(handler=_benchmark_run_suite)
+
+    quality_reference = benchmark_subparsers.add_parser(
+        "build-quality-reference",
+        help="Build a redacted exact reference from a measured suite",
+    )
+    quality_reference.add_argument("--suite", required=True)
+    quality_reference.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    quality_reference.add_argument("--reference-id", required=True)
+    quality_reference.add_argument("--output", required=True)
+    quality_reference.add_argument("--ffmpeg", default="ffmpeg")
+    quality_reference.add_argument("--ffprobe", default="ffprobe")
+    quality_reference.set_defaults(handler=_benchmark_build_quality_reference)
+
+    quality_check = benchmark_subparsers.add_parser(
+        "check-quality",
+        help="Check a measured suite against an exact quality reference",
+    )
+    quality_check.add_argument("--reference", required=True)
+    quality_check.add_argument("--suite", required=True)
+    quality_check.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    quality_check.add_argument("--output", required=True)
+    quality_check.add_argument("--ffmpeg", default="ffmpeg")
+    quality_check.add_argument("--ffprobe", default="ffprobe")
+    quality_check.set_defaults(handler=_benchmark_check_quality)
     return parser
 
 

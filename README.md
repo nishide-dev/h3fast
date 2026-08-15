@@ -116,6 +116,30 @@ uv run h3fast benchmark run-suite \
 
 `run-suite`はSGLangのrequest ID付きperformance dumpを検証し、warmupを集計から除外して、測定runのmin／p50／p95／maxと支配的stageをJSONへ保存します。生成動画、個別result、server metricsおよびbundleは`benchmark-results/`以下のローカル成果物であり、Git管理しません。
 
+測定3回がbitwise安定した`smoke-001`から、placement-only変更用のexact quality referenceを生成できます。referenceはcontainer、RGB24へdecodeした映像、PCMへdecodeした音声を別々にSHA-256化し、media metadataとA/V duration driftのp5／p50／p95を記録します。prompt本文、生成物、local pathは保存しません。
+
+```bash
+uv run h3fast benchmark build-quality-reference \
+  --suite benchmark-results/measured-baseline/h3fast-phase1a-baseline-v1-smoke-001-suite.json \
+  --protocol benchmarks/protocol.yaml \
+  --reference-id h3fast-phase1a-exact-smoke-001-v1 \
+  --output benchmark-results/exact-smoke-001-reference.json
+```
+
+candidate suiteを固定referenceへ照合します。reportにはrun別の映像・音声・container check、candidate分布、worst caseを保存します。
+
+```bash
+uv run h3fast benchmark check-quality \
+  --reference benchmarks/quality/exact-smoke-001-reference.json \
+  --suite benchmark-results/measured-baseline/h3fast-phase1a-baseline-v1-smoke-001-suite.json \
+  --protocol benchmarks/protocol.yaml \
+  --output benchmark-results/measured-baseline/quality-report.json
+```
+
+上記はreference自身をbaseline suiteへ適用する検証済みcommandです。最適化A/Bでは`--suite`と`--protocol`をcandidateのlocal bundleへ置き換えます。
+
+このgateは固定1 caseのplacement-only回帰検出に限定します。10件以上のsmoke set、50件以上のregression set、知覚品質指標、一般的なlossless性やSupport Tierを示しません。referenceとcandidateは同じ`ffmpeg`／`ffprobe` versionを使用する必要があります。
+
 ## Quality checks
 
 ```bash

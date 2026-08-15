@@ -97,6 +97,37 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = "benchmark protocol cases must be a non-empty array"
         raise ValidationError(msg)
 
+    quality_raw = protocol.get("quality")
+    if quality_raw is not None:
+        quality = _object(quality_raw, "quality")
+        for field in (
+            "reference_id",
+            "reference_path",
+            "method",
+            "profile",
+            "video_decode_format",
+            "audio_decode_format",
+            "scope",
+        ):
+            _non_empty_string(quality.get(field), f"quality.{field}")
+        if quality.get("method") != "exact-decoded-artifact-v1":
+            msg = "benchmark protocol quality method is unsupported"
+            raise ValidationError(msg)
+        if quality.get("profile") != "exact":
+            msg = "benchmark protocol quality profile must be 'exact'"
+            raise ValidationError(msg)
+        baseline_runs = quality.get("baseline_measured_runs")
+        if (
+            not isinstance(baseline_runs, int)
+            or isinstance(baseline_runs, bool)
+            or baseline_runs < 3
+        ):
+            msg = "benchmark protocol quality baseline requires at least three runs"
+            raise ValidationError(msg)
+        if not isinstance(quality.get("formal_quality_set_ready"), bool):
+            msg = "benchmark protocol formal_quality_set_ready must be boolean"
+            raise ValidationError(msg)
+
     if status == "ready":
         revision = base_model.get("revision")
         if not isinstance(revision, str) or not IMMUTABLE_REVISION_PATTERN.fullmatch(

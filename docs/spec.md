@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.6（レビュー済み、Phase 1A BF16 baseline実測完了）
+- **状態:** Draft v0.7（レビュー済み、Phase 1A BF16 baselineと単一case exact gate実測完了）
 - **最終調査日:** 2026-08-15 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
@@ -1467,6 +1467,10 @@ BF16 50-step reference
 4. 映像指標が合格しても、音声またはA/V同期が悪化した場合は不合格とする。
 5. 平均値だけでなくp5/p50/p95とworst-caseサンプルを確認する。
 
+2026-08-15時点の最初のplacement-only A/Bには、`exact-decoded-artifact-v1`を使用する。測定3回がcontainer、RGB24 decoded video、PCM decoded audio、media metadataで一致する場合だけreferenceを作成し、candidateは同じartifact identityとmedia contractを要求する。prompt本文、生成物、local pathはreferenceへ含めない。method、decode format、`ffmpeg`/`ffprobe` version、protocol/case/request digestを固定する。
+
+このgateは[`benchmarks/quality/exact-smoke-001-reference.json`](../benchmarks/quality/exact-smoke-001-reference.json)の単一caseに限定する。10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標を代替せず、一般的なlossless性または品質同等性の根拠にしてはならない。設計判断は[`docs/decisions/0004-exact-quality-gate.md`](decisions/0004-exact-quality-gate.md)に記録する。
+
 ### 14.7 Phase 0 baseline protocol
 
 実装開始前に`benchmarks/protocol.yaml`とschemaを作り、少なくとも次を固定する。
@@ -1479,6 +1483,8 @@ BF16 50-step reference
 - E2Eと各stageの開始・終了点
 - 出力artifact、stdout/stderr、metrics、失敗を保存する規則
 - 品質比較のreference生成方法と許容差のversion
+
+固定baseline protocolはquality method `exact-decoded-artifact-v1`、reference ID、RGB24/PCM decode format、baseline measured run数を`benchmarks/protocol.yaml`へ記録する。正式なquality setが未完成であることも機械可読な`formal_quality_set_ready: false`として維持する。
 
 baselineを一度も再現できていないGPUをTier 1候補として最適化しない。
 
@@ -1804,7 +1810,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
 
-2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定した。clean machineでの再現、quality reference gate、公開可否の確認は完了条件として残る。
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。clean machineでの再現、10/50件の正式quality set、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2049,7 +2055,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
-3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contractを確認した。Tier、CI予算、quality reference gate、10件以上のsmoke set、50件以上のregression setは引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gateを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
