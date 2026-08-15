@@ -2,8 +2,8 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.7（レビュー済み、Phase 1A BF16 baselineと単一case exact gate実測完了）
-- **最終調査日:** 2026-08-15 (Asia/Tokyo)
+- **状態:** Draft v0.7（レビュー済み、Phase 1B最初の単一変数最適化まで実測完了）
+- **最終調査日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
 
@@ -1473,7 +1473,7 @@ BF16 50-step reference
 
 ### 14.7 Phase 0 baseline protocol
 
-実装開始前に`benchmarks/protocol.yaml`とschemaを作り、少なくとも次を固定する。
+実装開始前にbenchmark protocolとschemaを作り、少なくとも次を固定する。
 
 - base model repositoryとimmutable commit、task family
 - SGLang/PyTorch/Tritonのversionまたはcommit
@@ -1484,7 +1484,9 @@ BF16 50-step reference
 - 出力artifact、stdout/stderr、metrics、失敗を保存する規則
 - 品質比較のreference生成方法と許容差のversion
 
-固定baseline protocolはquality method `exact-decoded-artifact-v1`、reference ID、RGB24/PCM decode format、baseline measured run数を`benchmarks/protocol.yaml`へ記録する。正式なquality setが未完成であることも機械可読な`formal_quality_set_ready: false`として維持する。
+固定20層baselineは`benchmarks/protocol-baseline20.yaml`、実測後に採用した40層設定は`benchmarks/protocol.yaml`へ記録する。両protocolはquality method `exact-decoded-artifact-v1`、reference ID、RGB24/PCM decode format、baseline measured run数を共有し、正式なquality setが未完成であることも機械可読な`formal_quality_set_ready: false`として維持する。
+
+性能に影響するruntime設定はprotocolが所有する。launch plan、server lifecycle、suite bundleは同じ実効値を記録し、protocolと起動済みserverの値が一致しないsuiteを開始してはならない。fallbackでresident layer数を黙って下げず、20層rollbackはbaseline protocolを明示的に選択する。
 
 baselineを一度も再現できていないGPUをTier 1候補として最適化しない。
 
@@ -1723,7 +1725,7 @@ queue
 
 Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/T2VA、768p、5秒とする。これはSGLangの2×RTX 5090 layerwise-offload recipeを基にしたExperimental構成であり、H3 E2E、peak memoryおよび品質確認が完了するまでTierを付与しない。4 GPU構成は空きGPUを同時確保できる環境で別途検証する。
 
-2026-08-15に固定T2VA caseを2×RTX 6000 Adaでwarmup 1回と測定3回完走した。client E2E p50は889.495秒、server inference p50は886.759秒、reported peak GPU memoryは最大23,376 MiBだった。denoise p50は847.339秒でserver時間の約95.55%を占めた。4成果物はMP4 SHA-256、size、media contractが一致したが、これは単一caseの再現性であり一般的な品質同等性またはlossless性を証明しない。quality reference比較が未実施のためTierは付与せず、protocol statusを`draft`のまま維持する。条件と結果は[`docs/experiments/0003-rtx6000-ada-measured-baseline.md`](experiments/0003-rtx6000-ada-measured-baseline.md)に記録する。
+2026-08-15に固定T2VA caseを2×RTX 6000 Adaでwarmup 1回と測定3回完走した。client E2E p50は889.495秒、server inference p50は886.759秒、reported peak GPU memoryは最大23,376 MiBだった。denoise p50は847.339秒でserver時間の約95.55%を占めた。4成果物はMP4 SHA-256、size、media contractが一致し、後続のexact reference比較でもmeasured 3回が合格した。これは単一caseの再現性であり一般的な品質同等性またはlossless性を証明しないため、Tierは付与せずprotocol statusを`draft`のまま維持する。条件と結果は[`docs/experiments/0003-rtx6000-ada-measured-baseline.md`](experiments/0003-rtx6000-ada-measured-baseline.md)と[`docs/experiments/0004-exact-quality-reference.md`](experiments/0004-exact-quality-reference.md)に記録する。
 
 ---
 
@@ -1827,6 +1829,10 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - 効果がない最適化を既定経路へ入れない
 - 必要になった場合のみTriton、target別lock、weightless OCI imageを追加
 - 法務・品質・再現性gateを満たした時点で最初のPublic Runtime release候補とする
+
+2026-08-16に最初の単一変数最適化としてDiT resident layer数を20から40へ増やし、2×RTX 6000 Adaでwarmup 1回・測定3回を完走した。20層baselineに対し、client E2E p50は889.495秒から883.516秒へ0.672%、denoise p50は847.339秒から842.507秒へ0.570%改善した。measured 3成果物はexact decoded artifact gateをすべて通過したため、40層を既定protocolへ採用した。
+
+reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52.704%）増えた。空きメモリ要件を満たせない場合は20層baseline protocolへ明示的にrollbackする。結果は[`docs/experiments/0005-rtx6000-ada-resident40.md`](experiments/0005-rtx6000-ada-resident40.md)に記録する。単一case・単一host・測定3回の結果であり、Tierまたは公開性能主張へ拡張しない。
 
 ### Phase 2: Controlled Derivative Weights
 
@@ -2055,7 +2061,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
-3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gateを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Tier、CI予算、10件以上のsmoke set、50件以上のregression set、知覚・audio・semantic A/V品質指標は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。

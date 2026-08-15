@@ -29,6 +29,7 @@ class LaunchPlan:
     sglang_revision: str
     base_image: str
     ffprobe_adapter_sha256: str
+    runtime_settings: dict[str, int]
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable launch metadata."""
@@ -39,6 +40,7 @@ class LaunchPlan:
             "sglang_revision": self.sglang_revision,
             "base_image": self.base_image,
             "ffprobe_adapter_sha256": self.ffprobe_adapter_sha256,
+            "runtime_settings": self.runtime_settings,
         }
 
 
@@ -50,9 +52,10 @@ def build_singularity_launch(
     ffprobe_adapter: Path,
     output_path: Path,
     selected_gpus: tuple[int, ...],
+    dit_layerwise_resident_layers: int,
     port: int = 30010,
 ) -> LaunchPlan:
-    """Build the pinned two-GPU reference baseline launch command."""
+    """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
     if executable is None:
         message = "singularity is required for the pinned baseline runtime"
@@ -75,6 +78,13 @@ def build_singularity_launch(
         raise ValidationError(message)
     if not (1 <= port <= 65535):
         message = "port must be between 1 and 65535"
+        raise ValidationError(message)
+    if (
+        not isinstance(dit_layerwise_resident_layers, int)
+        or isinstance(dit_layerwise_resident_layers, bool)
+        or not 1 <= dit_layerwise_resident_layers <= 50
+    ):
+        message = "DiT layerwise resident layers must be between 1 and 50"
         raise ValidationError(message)
 
     output_path.mkdir(parents=True, exist_ok=True)
@@ -127,7 +137,7 @@ def build_singularity_launch(
         "--dit-offload-prefetch-size",
         "1",
         "--dit-layerwise-resident-layers",
-        "20",
+        str(dit_layerwise_resident_layers),
         "--enable-torch-compile",
         "false",
         "--port",
@@ -139,4 +149,7 @@ def build_singularity_launch(
         sglang_revision=REFERENCE_SGLANG_COMMIT,
         base_image=REFERENCE_RUNTIME_IMAGE,
         ffprobe_adapter_sha256=sha256_file(media_probe),
+        runtime_settings={
+            "dit_layerwise_resident_layers": dit_layerwise_resident_layers,
+        },
     )

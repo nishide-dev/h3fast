@@ -12,7 +12,8 @@
     "startup_seconds",
     "selected_gpus",
     "server_pid",
-    "endpoint"
+    "endpoint",
+    "runtime_settings"
   ],
   "properties": {
     "schema_version": { "const": "1.0" },
@@ -27,6 +28,18 @@
       "uniqueItems": true
     },
     "server_pid": { "type": "integer", "minimum": 1 },
-    "endpoint": { "type": "string", "minLength": 1 }
+    "endpoint": { "type": "string", "minLength": 1 },
+    "runtime_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dit_layerwise_resident_layers"],
+      "properties": {
+        "dit_layerwise_resident_layers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      }
+    }
   }
 }

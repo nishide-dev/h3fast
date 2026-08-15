@@ -22,6 +22,7 @@ def _lifecycle(path: Path) -> None:
                 "selected_gpus": [1, 2],
                 "server_pid": 100,
                 "endpoint": "http://127.0.0.1:30010",
+                "runtime_settings": {"dit_layerwise_resident_layers": 40},
             }
         ),
         encoding="utf-8",
@@ -41,7 +42,7 @@ def _result(index: int) -> BenchmarkResult:
         "MiniMaxH3DecodingStage",
     ]
     return BenchmarkResult(
-        protocol_id="h3fast-phase1a-baseline-v1",
+        protocol_id="h3fast-phase1b-resident40-v1",
         case_id="smoke-001",
         job_id=f"job-{index}",
         started_at="2026-08-15T00:00:00+00:00",
@@ -117,11 +118,14 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
     assert result.aggregate["client_elapsed_seconds"]["p50"] == 13.0
     saved = json.loads(
         (
-            tmp_path / "suite" / "h3fast-phase1a-baseline-v1-smoke-001-suite.json"
+            tmp_path / "suite" / "h3fast-phase1b-resident40-v1-smoke-001-suite.json"
         ).read_text(encoding="utf-8")
     )
     assert saved["status"] == "completed"
     assert saved["server_lifecycle"]["startup_seconds"] == 600.0
+    assert saved["server_lifecycle"]["runtime_settings"] == {
+        "dit_layerwise_resident_layers": 40
+    }
 
 
 def test_run_suite_records_failure_bundle(tmp_path: Path) -> None:
@@ -159,7 +163,7 @@ def test_run_suite_records_failure_bundle(tmp_path: Path) -> None:
 
     saved = json.loads(
         (
-            tmp_path / "suite" / "h3fast-phase1a-baseline-v1-smoke-001-suite.json"
+            tmp_path / "suite" / "h3fast-phase1b-resident40-v1-smoke-001-suite.json"
         ).read_text(encoding="utf-8")
     )
     assert saved["status"] == "failed"
@@ -191,6 +195,27 @@ def test_run_suite_requires_server_output_and_matching_lifecycle(
             Path("benchmarks/protocol.yaml"),
             case_id="smoke-001",
             endpoint="http://localhost:30010",
+            output_dir=tmp_path / "suite",
+            server_output_dir=server_output,
+            server_lifecycle_path=lifecycle,
+            server_guard_report_path=tmp_path / "guard.json",
+        )
+
+
+def test_run_suite_rejects_lifecycle_runtime_mismatch(tmp_path: Path) -> None:
+    lifecycle = tmp_path / "lifecycle.json"
+    _lifecycle(lifecycle)
+    lifecycle_value = json.loads(lifecycle.read_text(encoding="utf-8"))
+    lifecycle_value["runtime_settings"] = {"dit_layerwise_resident_layers": 20}
+    lifecycle.write_text(json.dumps(lifecycle_value), encoding="utf-8")
+    server_output = tmp_path / "server"
+    server_output.mkdir()
+
+    with pytest.raises(ValidationError, match="runtime settings"):
+        run_suite(
+            Path("benchmarks/protocol.yaml"),
+            case_id="smoke-001",
+            endpoint="http://127.0.0.1:30010",
             output_dir=tmp_path / "suite",
             server_output_dir=server_output,
             server_lifecycle_path=lifecycle,
@@ -238,7 +263,7 @@ def test_run_suite_records_post_run_stage_mismatch(tmp_path: Path) -> None:
         )
 
     saved = json.loads(
-        (output / "h3fast-phase1a-baseline-v1-smoke-001-suite.json").read_text(
+        (output / "h3fast-phase1b-resident40-v1-smoke-001-suite.json").read_text(
             encoding="utf-8"
         )
     )

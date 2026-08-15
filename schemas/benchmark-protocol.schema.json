@@ -10,6 +10,7 @@
     "unresolved",
     "base_model",
     "environment",
+    "runtime",
     "measurement",
     "cases"
   ],
@@ -23,6 +24,18 @@
     },
     "base_model": { "type": "object" },
     "environment": { "type": "object" },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dit_layerwise_resident_layers"],
+      "properties": {
+        "dit_layerwise_resident_layers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      }
+    },
     "measurement": { "type": "object" },
     "quality": {
       "type": "object",

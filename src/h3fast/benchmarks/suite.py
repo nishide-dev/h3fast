@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, TypedDict
 
 from h3fast.benchmarks.client import BenchmarkResult, run_case
-from h3fast.benchmarks.protocol import validate_protocol
+from h3fast.benchmarks.protocol import load_runtime_settings, validate_protocol
 from h3fast.exceptions import H3FastError, ValidationError
 
 if TYPE_CHECKING:
@@ -225,7 +225,9 @@ def _write_bundle(path: Path, value: dict[str, object]) -> None:
     temporary.replace(path)
 
 
-def _load_lifecycle(path: Path, endpoint: str) -> dict[str, object]:
+def _load_lifecycle(
+    path: Path, endpoint: str, expected_runtime_settings: dict[str, int]
+) -> dict[str, object]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -239,6 +241,9 @@ def _load_lifecycle(path: Path, endpoint: str) -> dict[str, object]:
         message = "server lifecycle report does not match the ready endpoint"
         raise ValidationError(message)
     _required_number(value, "startup_seconds")
+    if value.get("runtime_settings") != expected_runtime_settings:
+        message = "server lifecycle runtime settings do not match the protocol"
+        raise ValidationError(message)
     return value
 
 
@@ -276,7 +281,10 @@ def run_suite(
     if not server_output_dir.is_dir():
         message = f"server output directory is missing: {server_output_dir}"
         raise ValidationError(message)
-    lifecycle = _load_lifecycle(server_lifecycle_path, endpoint)
+    runtime_settings = load_runtime_settings(protocol_path)
+    lifecycle = _load_lifecycle(
+        server_lifecycle_path, endpoint, runtime_settings.to_dict()
+    )
     started = datetime.now(UTC)
     runs: list[dict[str, object]] = []
     measured_results: list[BenchmarkResult] = []

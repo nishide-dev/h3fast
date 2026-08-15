@@ -60,6 +60,7 @@ def _write_protocol(path: Path) -> None:
                 ).hexdigest(),
             },
         },
+        "runtime": {"dit_layerwise_resident_layers": 20},
         "measurement": {},
         "cases": [{"id": "smoke"}],
     }

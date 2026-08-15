@@ -1,8 +1,9 @@
 # First optimization target
 
-- Status: Accepted for the next Phase 1B experiment
+- Status: Accepted and measured
 - Date: 2026-08-15
-- Related: Issue #3
+- Measured: 2026-08-16
+- Related: Issues #3 and #7
 
 ## Context
 
@@ -27,6 +28,12 @@ baselineはDiT 50層のうち20層だけをGPU residentとし、残りをlayerwi
 
 ## Consequences
 
-resident layer数を設定・記録できるlaunch interfaceと、baseline artifactから作るlocal quality reference gateを先に実装する。品質gateがない状態ではcandidateの性能測定を採用しない。
+resident layer数をprotocolで設定し、launch plan、server lifecycle、suite bundleへ同じ実効値を記録する。protocolと起動済みserverの値が異なるsuiteは拒否する。baseline artifactから作るlocal quality reference gateがない状態ではcandidateの性能測定を採用しない。
 
 この判断はTriton kernel、quantization、sparse attention、cache、compileを同時に導入しない。placement A/Bの結果が否定的でも、測定記録を残してbaselineへ戻す。
+
+## Outcome
+
+2×RTX 6000 Adaで40層candidateをwarmup 1回、測定3回実行した。20層baselineに対してclient E2E p50は`889.495172`秒から`883.515755`秒へ0.672%、denoise p50は`847.339288`秒から`842.506824`秒へ0.570%改善した。OOMと外部GPU processはなく、3 measured runすべてがexact decoded artifact gateを通過したため、事前条件に従い40層を既定protocolとして採用する。
+
+代償としてreported peak GPU memoryの最大値は`23,376` MiBから`35,696` MiBへ12,320 MiB（52.704%）増えた。空きメモリ要件を満たせない環境では[`benchmarks/protocol-baseline20.yaml`](../../benchmarks/protocol-baseline20.yaml)を明示して20層へrollbackする。これは固定1 case、単一hostでの小幅な改善であり、Support Tierまたは一般的な性能主張には使用しない。詳細は[`docs/experiments/0005-rtx6000-ada-resident40.md`](../experiments/0005-rtx6000-ada-resident40.md)に記録する。

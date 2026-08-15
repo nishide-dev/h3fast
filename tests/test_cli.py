@@ -155,14 +155,20 @@ def test_benchmark_plan_command(monkeypatch, capsys) -> None:
         def to_dict() -> dict[str, object]:
             return {"ok": True}
 
-    monkeypatch.setattr(
-        "h3fast.cli.build_singularity_launch", lambda **_kwargs: Value()
-    )
+    arguments: list[dict[str, object]] = []
+
+    def build(**kwargs):
+        arguments.append(kwargs)
+        return Value()
+
+    monkeypatch.setattr("h3fast.cli.build_singularity_launch", build)
     assert (
         main(
             [
                 "benchmark",
                 "plan-launch",
+                "--protocol",
+                "benchmarks/protocol.yaml",
                 "--snapshot",
                 "snapshot",
                 "--gpus",
@@ -178,6 +184,7 @@ def test_benchmark_plan_command(monkeypatch, capsys) -> None:
         == 0
     )
     assert json.loads(capsys.readouterr().out)["ok"] is True
+    assert arguments[0]["dit_layerwise_resident_layers"] == 40
 
 
 def test_benchmark_serve_guarded_runs_preflight_before_launch(
@@ -195,7 +202,13 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
 
     guarded: list[object] = []
     monkeypatch.setattr("h3fast.cli.run_preflight", lambda *_args, **_kwargs: Report())
-    monkeypatch.setattr("h3fast.cli.build_singularity_launch", lambda **_kwargs: Plan())
+    launch_arguments: list[dict[str, object]] = []
+
+    def build(**kwargs):
+        launch_arguments.append(kwargs)
+        return Plan()
+
+    monkeypatch.setattr("h3fast.cli.build_singularity_launch", build)
     monkeypatch.setattr(
         "h3fast.cli.serve_guarded",
         lambda plan, **_kwargs: guarded.append(plan),
@@ -206,6 +219,8 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
         [
             "benchmark",
             "serve-guarded",
+            "--protocol",
+            "benchmarks/protocol.yaml",
             "--snapshot",
             "snapshot",
             "--gpus",
@@ -226,6 +241,7 @@ def test_benchmark_serve_guarded_runs_preflight_before_launch(
     assert status == 0
     assert json.loads(preflight.read_text(encoding="utf-8"))["ready"] is True
     assert len(guarded) == 1
+    assert launch_arguments[0]["dit_layerwise_resident_layers"] == 40
 
 
 def test_benchmark_run_case_command(tmp_path, monkeypatch, capsys) -> None:

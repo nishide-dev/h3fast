@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Self
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from h3fast.benchmarks.guard import (
     ForeignGpuProcess,
@@ -44,6 +45,7 @@ def _plan() -> LaunchPlan:
         sglang_revision="revision",
         base_image="image",
         ffprobe_adapter_sha256="a" * 64,
+        runtime_settings={"dit_layerwise_resident_layers": 40},
     )
 
 
@@ -369,6 +371,14 @@ def test_serve_guarded_reports_ready_and_handles_interrupt(
     lifecycle_value = json.loads(lifecycle.read_text(encoding="utf-8"))
     assert lifecycle_value["status"] == "ready"
     assert lifecycle_value["startup_seconds"] >= 0
+    assert lifecycle_value["runtime_settings"] == {"dit_layerwise_resident_layers": 40}
+    lifecycle_schema = json.loads(
+        Path("schemas/benchmark-server-lifecycle.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    Draft202012Validator.check_schema(lifecycle_schema)
+    Draft202012Validator(lifecycle_schema).validate(lifecycle_value)
 
 
 def test_serve_guarded_revalidates_pmon_before_reporting_ready(
