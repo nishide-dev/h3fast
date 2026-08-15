@@ -64,9 +64,7 @@ class BenchmarkResult:
         }
 
 
-def _load_case(
-    protocol_path: Path, case_id: str
-) -> tuple[str, dict[str, object], str]:
+def _load_case(protocol_path: Path, case_id: str) -> tuple[str, dict[str, object], str]:
     validate_protocol(protocol_path)
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     software = protocol["environment"]["software"]
