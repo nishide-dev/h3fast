@@ -1,0 +1,114 @@
+{
+  "baseline_statistics": {
+    "artifact_size": {
+      "max": 912408.0,
+      "min": 912408.0,
+      "p5": 912408.0,
+      "p50": 912408.0,
+      "p95": 912408.0
+    },
+    "audio_duration_seconds": {
+      "max": 5.175,
+      "min": 5.175,
+      "p5": 5.175,
+      "p50": 5.175,
+      "p95": 5.175
+    },
+    "audio_frames": {
+      "max": 163.0,
+      "min": 163.0,
+      "p5": 163.0,
+      "p50": 163.0,
+      "p95": 163.0
+    },
+    "av_duration_drift_seconds": {
+      "max": 0.00833299999999948,
+      "min": 0.00833299999999948,
+      "p5": 0.00833299999999948,
+      "p50": 0.00833299999999948,
+      "p95": 0.00833299999999948
+    },
+    "container_duration_seconds": {
+      "max": 5.207,
+      "min": 5.207,
+      "p5": 5.207,
+      "p50": 5.207,
+      "p95": 5.207
+    },
+    "video_duration_seconds": {
+      "max": 5.166667,
+      "min": 5.166667,
+      "p5": 5.166667,
+      "p50": 5.166667,
+      "p95": 5.166667
+    },
+    "video_frames": {
+      "max": 124.0,
+      "min": 124.0,
+      "p5": 124.0,
+      "p50": 124.0,
+      "p95": 124.0
+    }
+  },
+  "expected": {
+    "artifact_sha256": "530a6bc980cf357d0518ea60366bc09dd1868ee77f46ee3f43681ca8822f5909",
+    "artifact_size": 912408,
+    "audio_decoded_sha256": "d635ad6825998a1322d964d252d53e923e9832e1566ecf6f47614f1c16ad1712",
+    "media": {
+      "audio": {
+        "channels": 2,
+        "codec": "aac",
+        "duration_seconds": 5.175,
+        "frames": 163,
+        "sample_rate_hz": 32000
+      },
+      "av_duration_drift_seconds": 0.00833299999999948,
+      "container": {
+        "duration_seconds": 5.207,
+        "format": "mov,mp4,m4a,3gp,3g2,mj2"
+      },
+      "video": {
+        "codec": "h264",
+        "duration_seconds": 5.166667,
+        "frame_rate": "24/1",
+        "frames": 124,
+        "height": 768,
+        "pixel_format": "yuv420p",
+        "width": 1344
+      }
+    },
+    "video_decoded_sha256": "e4920b0ad49c51f2e4032c0156b6f1adeaa9955377ca7ac700f6be528c7ee836"
+  },
+  "limitations": [
+    "single-case placement-only regression gate",
+    "not evidence of general perceptual quality equivalence",
+    "not a lossless or support-tier claim"
+  ],
+  "method": {
+    "audio_decode_format": "pcm_s16le",
+    "ffmpeg_version": "ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers",
+    "ffprobe_version": "ffprobe version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2007-2021 the FFmpeg developers",
+    "id": "exact-decoded-artifact-v1",
+    "profile": "exact",
+    "video_decode_format": "rgb24"
+  },
+  "reference_id": "h3fast-phase1a-exact-smoke-001-v1",
+  "schema_version": "1.0",
+  "source": {
+    "measured_runs": 3,
+    "prompt_sha256": "eeb2aac52b698c1d76031d2cd4755f9429e08a5fa614da07812bb185cbebccae",
+    "protocol_id": "h3fast-phase1a-baseline-v1",
+    "protocol_identity": {
+      "case_id": "smoke-001",
+      "case_sha256": "6015d51c9e8524c2b9120655c10c5968a399b4fd6153124c1cd0b41e59718281",
+      "prompt_sha256": "eeb2aac52b698c1d76031d2cd4755f9429e08a5fa614da07812bb185cbebccae",
+      "repository": "MiniMaxAI/MiniMax-H3",
+      "revision": "42ed227ee7df40d41602854ae760620d6eb651fe",
+      "task": "t2va",
+      "task_family": "fl2va"
+    },
+    "request_sha256": "d4852068c6172d03ed65954da0f8ed3b9ef19e8beb57cdbd50022c05d36393bc",
+    "sglang_commit": "6eb941a34cb100b708a42ed1d26d2bdefafbd01e",
+    "suite_completed_at": "2026-08-15T10:46:05.771507+00:00"
+  }
+}

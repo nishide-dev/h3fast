@@ -311,3 +311,62 @@ def test_benchmark_run_suite_command(tmp_path, monkeypatch, capsys) -> None:
 
     assert status == 0
     assert json.loads(capsys.readouterr().out)["status"] == "completed"
+
+
+def test_benchmark_quality_reference_command(tmp_path, monkeypatch, capsys) -> None:
+    output = tmp_path / "reference.json"
+
+    def build(*_args, **_kwargs):
+        output.write_text('{"reference_id":"reference-v1"}\n', encoding="utf-8")
+        return {"reference_id": "reference-v1"}
+
+    monkeypatch.setattr("h3fast.cli.build_quality_reference", build)
+
+    status = main(
+        [
+            "benchmark",
+            "build-quality-reference",
+            "--suite",
+            "suite.json",
+            "--reference-id",
+            "reference-v1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    assert json.loads(capsys.readouterr().out)["reference_id"] == "reference-v1"
+
+
+@pytest.mark.parametrize(
+    ("quality_status", "exit_status"), [("passed", 0), ("failed", 1)]
+)
+def test_benchmark_quality_check_command(
+    tmp_path, monkeypatch, capsys, quality_status: str, exit_status: int
+) -> None:
+    output = tmp_path / "quality-report.json"
+
+    def check(*_args, **_kwargs):
+        output.write_text(
+            json.dumps({"status": quality_status}) + "\n", encoding="utf-8"
+        )
+        return {"status": quality_status}
+
+    monkeypatch.setattr("h3fast.cli.check_quality", check)
+
+    status = main(
+        [
+            "benchmark",
+            "check-quality",
+            "--reference",
+            "reference.json",
+            "--suite",
+            "suite.json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == exit_status
+    assert json.loads(capsys.readouterr().out)["status"] == quality_status

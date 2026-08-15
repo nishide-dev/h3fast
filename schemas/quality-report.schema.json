@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/quality-report.schema.json",
+  "title": "H3Fast exact quality regression report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reference_id",
+    "method_id",
+    "status",
+    "recorded_at",
+    "candidate",
+    "environment_checks",
+    "runs",
+    "candidate_statistics",
+    "worst_case",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "reference_id": { "type": "string", "minLength": 1 },
+    "method_id": { "const": "exact-decoded-artifact-v1" },
+    "status": { "enum": ["passed", "failed"] },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "protocol_identity",
+        "case_id",
+        "measured_runs",
+        "ffmpeg_version",
+        "ffprobe_version"
+      ],
+      "properties": {
+        "protocol_id": { "type": "string", "minLength": 1 },
+        "protocol_identity": { "$ref": "#/$defs/protocol_identity" },
+        "case_id": { "type": "string", "minLength": 1 },
+        "measured_runs": { "type": "integer", "minimum": 3 },
+        "ffmpeg_version": { "type": "string", "minLength": 1 },
+        "ffprobe_version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "environment_checks": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "passed", "checks"],
+        "properties": {
+          "label": { "type": "string", "pattern": "^measured-[0-9]{3}$" },
+          "passed": { "type": "boolean" },
+          "checks": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/check" }
+          }
+        }
+      }
+    },
+    "candidate_statistics": { "$ref": "#/$defs/statistics_set" },
+    "worst_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "failed_checks"],
+      "properties": {
+        "scope": { "enum": ["environment", "run"] },
+        "label": { "type": "string", "pattern": "^measured-[0-9]{3}$" },
+        "failed_checks": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "run" } } },
+          "then": { "required": ["label"] }
+        },
+        {
+          "if": { "properties": { "scope": { "const": "environment" } } },
+          "then": { "not": { "required": ["label"] } }
+        }
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "protocol_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "revision",
+        "task_family",
+        "task",
+        "case_id",
+        "prompt_sha256",
+        "case_sha256"
+      ],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "task_family": { "type": "string", "minLength": 1 },
+        "task": { "type": "string", "minLength": 1 },
+        "case_id": { "type": "string", "minLength": 1 },
+        "prompt_sha256": { "$ref": "#/$defs/sha256" },
+        "case_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "p5", "p50", "p95", "max"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "p5": { "type": "number", "minimum": 0 },
+        "p50": { "type": "number", "minimum": 0 },
+        "p95": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      }
+    },
+    "statistics_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_size",
+        "video_duration_seconds",
+        "video_frames",
+        "audio_duration_seconds",
+        "audio_frames",
+        "container_duration_seconds",
+        "av_duration_drift_seconds"
+      ],
+      "properties": {
+        "artifact_size": { "$ref": "#/$defs/statistics" },
+        "video_duration_seconds": { "$ref": "#/$defs/statistics" },
+        "video_frames": { "$ref": "#/$defs/statistics" },
+        "audio_duration_seconds": { "$ref": "#/$defs/statistics" },
+        "audio_frames": { "$ref": "#/$defs/statistics" },
+        "container_duration_seconds": { "$ref": "#/$defs/statistics" },
+        "av_duration_drift_seconds": { "$ref": "#/$defs/statistics" }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "passed", "expected", "actual"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "passed": { "type": "boolean" },
+        "expected": {},
+        "actual": {}
+      }
+    }
+  }
+}

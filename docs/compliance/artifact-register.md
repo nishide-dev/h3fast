@@ -16,6 +16,7 @@
 | H3 derivative weights | 未作成 | Model Derivative候補 | MiniMax H3 Community License | 配布禁止 | 対象外 |
 | AdaLN cache / LoRA / quantized weights | 未作成 | Model Derivative候補 | 未確定 | 配布禁止 | 対象外 |
 | Benchmark outputs | 固定H3 baselineで作成 | H3 Output | H3 license・AUP review必須 | 非公開・Git管理禁止 | 2×RTX 6000 Adaでwarmup 1回・測定3回済み。4成果物はhash/media contract一致。品質・配布review待ち |
+| Exact quality reference metadata | local Benchmark outputsから生成したdigest・media metadata | H3 Output自体を含まず、Outputのhashとstream metadataを記録 | H3 license・AUP review必須 | Public候補 | 単一caseのplacement-only gateで実測検証済み。一般品質・配布review待ち |
 
 ## Initial boundary decision
 

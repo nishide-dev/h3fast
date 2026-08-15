@@ -15,7 +15,25 @@ def test_repository_protocol_is_valid_draft() -> None:
     assert report.status == "draft"
     assert report.ready is False
     assert "immutable base model revision" not in report.unresolved
-    assert "quality reference set" in report.unresolved
+    assert (
+        "formal 10-case smoke and 50-case regression quality sets" in report.unresolved
+    )
+
+
+def test_repository_protocol_pins_exact_quality_gate() -> None:
+    protocol = json.loads(Path("benchmarks/protocol.yaml").read_text(encoding="utf-8"))
+
+    assert protocol["quality"] == {
+        "reference_id": "h3fast-phase1a-exact-smoke-001-v1",
+        "reference_path": "benchmarks/quality/exact-smoke-001-reference.json",
+        "method": "exact-decoded-artifact-v1",
+        "profile": "exact",
+        "baseline_measured_runs": 3,
+        "video_decode_format": "rgb24",
+        "audio_decode_format": "pcm_s16le",
+        "scope": "single-case placement-only regression gate",
+        "formal_quality_set_ready": False,
+    }
 
 
 def test_ready_protocol_requires_immutable_revision(tmp_path: Path) -> None:
@@ -120,6 +138,37 @@ def test_ready_protocol_requires_environment_details(
 ) -> None:
     protocol = _ready_protocol()
     protocol["environment"] = environment
+
+    with pytest.raises(ValidationError, match=message):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("method", "unknown", "method is unsupported"),
+        ("profile", "balanced", "profile must"),
+        ("baseline_measured_runs", 2, "at least three"),
+        ("formal_quality_set_ready", "no", "must be boolean"),
+    ],
+)
+def test_protocol_rejects_invalid_quality_gate(
+    tmp_path: Path, field: str, value: object, message: str
+) -> None:
+    protocol = _ready_protocol()
+    quality: dict[str, object] = {
+        "reference_id": "reference-v1",
+        "reference_path": "reference.json",
+        "method": "exact-decoded-artifact-v1",
+        "profile": "exact",
+        "baseline_measured_runs": 3,
+        "video_decode_format": "rgb24",
+        "audio_decode_format": "pcm_s16le",
+        "scope": "test",
+        "formal_quality_set_ready": False,
+    }
+    quality[field] = value
+    protocol["quality"] = quality
 
     with pytest.raises(ValidationError, match=message):
         validate_protocol(_write_protocol(tmp_path, protocol))

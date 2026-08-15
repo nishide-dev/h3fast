@@ -4,7 +4,7 @@
   "status": "draft",
   "unresolved": [
     "H3 license approval for the selected environment",
-    "quality reference set"
+    "formal 10-case smoke and 50-case regression quality sets"
   ],
   "base_model": {
     "repository": "MiniMaxAI/MiniMax-H3",
@@ -73,6 +73,17 @@
       "success": "atomic per-run result JSON, artifact hash and media contract, request-scoped server performance JSON, aggregate suite JSON",
       "failure": "atomic suite failure JSON and guarded server failure JSON"
     }
+  },
+  "quality": {
+    "reference_id": "h3fast-phase1a-exact-smoke-001-v1",
+    "reference_path": "benchmarks/quality/exact-smoke-001-reference.json",
+    "method": "exact-decoded-artifact-v1",
+    "profile": "exact",
+    "baseline_measured_runs": 3,
+    "video_decode_format": "rgb24",
+    "audio_decode_format": "pcm_s16le",
+    "scope": "single-case placement-only regression gate",
+    "formal_quality_set_ready": false
   },
   "cases": [
     {
