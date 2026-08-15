@@ -95,6 +95,8 @@ def build_singularity_launch(
         "PYTHONPATH=/opt/h3fast/sglang/python",
         "--env",
         f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}",
+        "--env",
+        "SGLANG_USE_RUNAI_MODEL_STREAMER=false",
         "--bind",
         f"{snapshot}:/models/MiniMax-H3:ro",
         "--bind",

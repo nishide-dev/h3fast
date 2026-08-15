@@ -371,7 +371,7 @@ def test_serve_guarded_reports_ready_and_handles_interrupt(
     assert lifecycle_value["startup_seconds"] >= 0
 
 
-def test_serve_guarded_keeps_device_fallback_after_pmon_timeout(
+def test_serve_guarded_revalidates_pmon_before_reporting_ready(
     tmp_path: Path, monkeypatch
 ) -> None:
     process = _Process()
@@ -394,12 +394,14 @@ def test_serve_guarded_keeps_device_fallback_after_pmon_timeout(
     def pmon(*_args, **_kwargs):
         nonlocal pmon_calls
         pmon_calls += 1
-        raise subprocess.TimeoutExpired(command, 10)
+        if pmon_calls == 1:
+            raise subprocess.TimeoutExpired(command, 10)
+        return ()
 
     def holders(*_args, **_kwargs):
         nonlocal holder_calls
         holder_calls += 1
-        return ()
+        return (ForeignGpuProcess(1, "gpu-1", 300, "enumerator", 0),)
 
     monkeypatch.setattr("h3fast.benchmarks.guard.find_foreign_gpu_processes_pmon", pmon)
     monkeypatch.setattr(
@@ -425,7 +427,7 @@ def test_serve_guarded_keeps_device_fallback_after_pmon_timeout(
         report_path=tmp_path / "unused.json",
     )
 
-    assert pmon_calls == 1
+    assert pmon_calls == 2
     assert holder_calls == 2
 
 

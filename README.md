@@ -14,7 +14,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 ## Status
 
-このrepositoryはPhase 1Aの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 Adaでは固定T2VA caseをAPI送信からaudio-video MP4取得まで1回完走しました。これはE2E互換性のsmoke確認であり、性能分布、品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
+このrepositoryはPhase 1Aの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 Adaでは固定T2VA caseをwarmup 1回・測定3回完走し、client E2E p50 889.495秒を記録しました。単一caseのlocal baselineであり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 

@@ -36,7 +36,8 @@
       "pytorch": "2.11.0+cu129",
       "triton": "3.6.0",
       "cuda": "12.9",
-      "driver": "555.58.02"
+      "driver": "555.58.02",
+      "runai_model_streamer": false
     }
   },
   "measurement": {

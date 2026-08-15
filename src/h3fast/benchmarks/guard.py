@@ -450,6 +450,7 @@ def serve_guarded(
         _device_holder_pids(plan.selected_gpus) if foreign_process_query is None else {}
     )
     pmon_enabled = True
+    require_pmon = False
 
     def default_query(
         gpus: tuple[int, ...], root_pid: int
@@ -457,19 +458,26 @@ def serve_guarded(
         nonlocal pmon_enabled
         if not gpu_uuids:
             gpu_uuids.update(_query_gpu_uuids(gpus))
-        if pmon_enabled:
+        if pmon_enabled or require_pmon:
             try:
                 return find_foreign_gpu_processes_pmon(
                     gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
                 )
             except subprocess.TimeoutExpired:
+                if require_pmon:
+                    raise
                 pmon_enabled = False
-        return find_foreign_gpu_device_holders(
+        # During model loading, NVIDIA's process query can stall while unrelated
+        # processes merely enumerate every GPU device. Keep scanning holders as
+        # candidates, but do not call them compute processes until pmon confirms
+        # them. Readiness is withheld until that confirmation succeeds.
+        find_foreign_gpu_device_holders(
             gpus,
             allowed_root_pid=root_pid,
             baseline_holders=baseline_holders,
             gpu_uuids=gpu_uuids,
         )
+        return ()
 
     query = foreign_process_query or default_query
     started_at = datetime.now(UTC)
@@ -522,7 +530,31 @@ def serve_guarded(
                 raise ValidationError(message)
 
             if not ready and _health_ready(endpoint, min(poll_interval, 5.0)):
+                if foreign_process_query is None and not pmon_enabled:
+                    try:
+                        foreign = find_foreign_gpu_processes_pmon(
+                            plan.selected_gpus,
+                            allowed_root_pid=process.pid,
+                            gpu_uuids=gpu_uuids,
+                        )
+                    except subprocess.TimeoutExpired:
+                        time.sleep(poll_interval)
+                        continue
+                    if foreign:
+                        pids = ", ".join(str(value.pid) for value in foreign)
+                        message = f"foreign GPU compute processes detected: {pids}"
+                        _write_failure(
+                            report_path,
+                            started_at=started_at,
+                            selected_gpus=plan.selected_gpus,
+                            server_pid=process.pid,
+                            error=message,
+                            foreign=foreign,
+                        )
+                        raise ValidationError(message)
+                    pmon_enabled = True
                 ready = True
+                require_pmon = foreign_process_query is None
                 ready_at = datetime.now(UTC)
                 startup_seconds = time.monotonic() - started_monotonic
                 if lifecycle_path is not None:

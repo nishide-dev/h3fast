@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.5（レビュー済み、Phase 1A E2E smoke完了）
+- **状態:** Draft v0.6（レビュー済み、Phase 1A BF16 baseline実測完了）
 - **最終調査日:** 2026-08-15 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
@@ -1717,7 +1717,7 @@ queue
 
 Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/T2VA、768p、5秒とする。これはSGLangの2×RTX 5090 layerwise-offload recipeを基にしたExperimental構成であり、H3 E2E、peak memoryおよび品質確認が完了するまでTierを付与しない。4 GPU構成は空きGPUを同時確保できる環境で別途検証する。
 
-2026-08-15に固定T2VA caseを2×RTX 6000 Adaで1回完走し、API送信からaudio-video MP4取得、23,376 MiBのreported peak GPU memory、media contractを確認した。これはE2E互換性のsmoke結果であり、規定3回の性能測定とquality reference比較は未実施である。Tierは付与せず、protocol statusを`draft`のまま維持する。条件と結果は[`docs/experiments/0002-rtx6000-ada-baseline-smoke.md`](experiments/0002-rtx6000-ada-baseline-smoke.md)に記録する。
+2026-08-15に固定T2VA caseを2×RTX 6000 Adaでwarmup 1回と測定3回完走した。client E2E p50は889.495秒、server inference p50は886.759秒、reported peak GPU memoryは最大23,376 MiBだった。denoise p50は847.339秒でserver時間の約95.55%を占めた。4成果物はMP4 SHA-256、size、media contractが一致したが、これは単一caseの再現性であり一般的な品質同等性またはlossless性を証明しない。quality reference比較が未実施のためTierは付与せず、protocol statusを`draft`のまま維持する。条件と結果は[`docs/experiments/0003-rtx6000-ada-measured-baseline.md`](experiments/0003-rtx6000-ada-measured-baseline.md)に記録する。
 
 ---
 
@@ -1803,6 +1803,8 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - 固定SGLang版へのadapter
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
+
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定した。clean machineでの再現、quality reference gate、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2047,7 +2049,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
-3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）の単一H3 E2E smokeとmemory capacityは確認した。Tier、CI予算、規定回数の性能測定、品質referenceは引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contractを確認した。Tier、CI予算、quality reference gate、10件以上のsmoke set、50件以上のregression setは引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
