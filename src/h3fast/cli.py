@@ -14,6 +14,7 @@ from h3fast.benchmarks import (
     build_quality_reference,
     build_singularity_launch,
     check_quality,
+    load_runtime_settings,
     run_case,
     run_preflight,
     run_suite,
@@ -116,6 +117,7 @@ def _benchmark_preflight(args: argparse.Namespace) -> int:
 
 
 def _benchmark_plan_launch(args: argparse.Namespace) -> int:
+    runtime_settings = load_runtime_settings(Path(args.protocol))
     plan = build_singularity_launch(
         snapshot_path=Path(args.snapshot),
         runtime_image=Path(args.runtime_image),
@@ -123,6 +125,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         ffprobe_adapter=Path(args.ffprobe_adapter),
         output_path=Path(args.server_output),
         selected_gpus=args.gpus,
+        dit_layerwise_resident_layers=(runtime_settings.dit_layerwise_resident_layers),
         port=args.port,
     )
     _write_json(plan.to_dict())
@@ -149,6 +152,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         sys.stdout.write(data)
         return 1
 
+    runtime_settings = load_runtime_settings(Path(args.protocol))
     plan = build_singularity_launch(
         snapshot_path=Path(args.snapshot),
         runtime_image=Path(args.runtime_image),
@@ -156,6 +160,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         ffprobe_adapter=Path(args.ffprobe_adapter),
         output_path=Path(args.server_output),
         selected_gpus=args.gpus,
+        dit_layerwise_resident_layers=(runtime_settings.dit_layerwise_resident_layers),
         port=args.port,
     )
     serve_guarded(
@@ -321,6 +326,7 @@ def build_parser() -> argparse.ArgumentParser:
         "plan-launch",
         help="Emit the pinned Singularity SGLang launch argv",
     )
+    launch.add_argument("--protocol", default="benchmarks/protocol.yaml")
     launch.add_argument("--snapshot", required=True)
     launch.add_argument("--gpus", required=True, type=_gpu_ids)
     launch.add_argument("--sglang-source", required=True)

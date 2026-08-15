@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from h3fast.exceptions import ValidationError
 
@@ -36,6 +36,19 @@ class ProtocolReport:
             "status": self.status,
             "ready": self.ready,
             "unresolved": list(self.unresolved),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeSettings:
+    """Protocol-owned settings that may change benchmark runtime behavior."""
+
+    dit_layerwise_resident_layers: int
+
+    def to_dict(self) -> dict[str, int]:
+        """Return JSON-serializable effective runtime settings."""
+        return {
+            "dit_layerwise_resident_layers": self.dit_layerwise_resident_layers,
         }
 
 
@@ -91,10 +104,22 @@ def validate_protocol(path: Path) -> ProtocolReport:
 
     base_model = _object(protocol.get("base_model"), "base_model")
     environment = _object(protocol.get("environment"), "environment")
+    runtime = _object(protocol.get("runtime"), "runtime")
     cases = protocol.get("cases")
     _object(protocol.get("measurement"), "measurement")
     if not isinstance(cases, list) or not cases:
         msg = "benchmark protocol cases must be a non-empty array"
+        raise ValidationError(msg)
+    resident_layers = runtime.get("dit_layerwise_resident_layers")
+    if (
+        not isinstance(resident_layers, int)
+        or isinstance(resident_layers, bool)
+        or not 1 <= resident_layers <= 50
+    ):
+        msg = (
+            "benchmark protocol runtime.dit_layerwise_resident_layers "
+            "must be an integer between 1 and 50"
+        )
         raise ValidationError(msg)
 
     quality_raw = protocol.get("quality")
@@ -152,3 +177,12 @@ def validate_protocol(path: Path) -> ProtocolReport:
         status=status,
         unresolved=unresolved,
     )
+
+
+def load_runtime_settings(path: Path) -> RuntimeSettings:
+    """Load validated runtime settings from a benchmark protocol."""
+    validate_protocol(path)
+    protocol = _load_protocol(path)
+    runtime = _object(protocol.get("runtime"), "runtime")
+    resident_layers = cast("int", runtime["dit_layerwise_resident_layers"])
+    return RuntimeSettings(dit_layerwise_resident_layers=resident_layers)

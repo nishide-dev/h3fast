@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "protocol_id": "h3fast-phase1b-resident40-v1",
+  "protocol_id": "h3fast-phase1a-baseline-v1",
   "status": "draft",
   "unresolved": [
     "H3 license approval for the selected environment",
@@ -41,7 +41,7 @@
     }
   },
   "runtime": {
-    "dit_layerwise_resident_layers": 40
+    "dit_layerwise_resident_layers": 20
   },
   "measurement": {
     "warmup_runs": 1,

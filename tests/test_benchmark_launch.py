@@ -22,6 +22,7 @@ def test_build_singularity_launch_requires_singularity(
             ffprobe_adapter=tmp_path / "ffprobe.py",
             output_path=tmp_path,
             selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=20,
         )
 
 
@@ -47,6 +48,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         ffprobe_adapter=adapter,
         output_path=output,
         selected_gpus=(1, 2),
+        dit_layerwise_resident_layers=40,
     )
 
     assert plan.sglang_revision == REFERENCE_SGLANG_COMMIT
@@ -55,6 +57,9 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert "SGLANG_USE_RUNAI_MODEL_STREAMER=false" in plan.argv
     assert "--enable-torch-compile" in plan.argv
     assert "false" in plan.argv
+    resident_index = plan.argv.index("--dit-layerwise-resident-layers")
+    assert plan.argv[resident_index + 1] == "40"
+    assert plan.runtime_settings == {"dit_layerwise_resident_layers": 40}
     assert any("/usr/local/bin/ffprobe:ro" in value for value in plan.argv)
     assert len(plan.ffprobe_adapter_sha256) == 64
     assert plan.to_dict()["shell_command"].startswith("/usr/bin/singularity exec")
@@ -76,6 +81,7 @@ def test_build_singularity_launch_rejects_missing_runtime(
             ffprobe_adapter=tmp_path / "missing-probe.py",
             output_path=tmp_path / "output",
             selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=20,
         )
 
 
@@ -103,10 +109,27 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
     }
 
     with pytest.raises(ValidationError, match="two distinct GPUs"):
-        build_singularity_launch(**arguments, selected_gpus=(1,))
+        build_singularity_launch(
+            **arguments, selected_gpus=(1,), dit_layerwise_resident_layers=20
+        )
     with pytest.raises(ValidationError, match="port"):
-        build_singularity_launch(**arguments, selected_gpus=(1, 2), port=0)
+        build_singularity_launch(
+            **arguments,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=20,
+            port=0,
+        )
+    with pytest.raises(ValidationError, match="resident layers"):
+        build_singularity_launch(
+            **arguments,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=51,
+        )
 
     adapter.chmod(0o644)
     with pytest.raises(ValidationError, match="not executable"):
-        build_singularity_launch(**arguments, selected_gpus=(1, 2))
+        build_singularity_launch(
+            **arguments,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=20,
+        )

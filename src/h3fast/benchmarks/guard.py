@@ -405,6 +405,7 @@ def _write_lifecycle(
     selected_gpus: tuple[int, ...],
     server_pid: int,
     endpoint: str,
+    runtime_settings: dict[str, int],
 ) -> None:
     value = {
         "schema_version": "1.0",
@@ -415,6 +416,7 @@ def _write_lifecycle(
         "selected_gpus": list(selected_gpus),
         "server_pid": server_pid,
         "endpoint": endpoint,
+        "runtime_settings": runtime_settings,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".partial")
@@ -566,6 +568,7 @@ def serve_guarded(
                         selected_gpus=plan.selected_gpus,
                         server_pid=process.pid,
                         endpoint=endpoint,
+                        runtime_settings=plan.runtime_settings,
                     )
                 event = json.dumps(
                     {

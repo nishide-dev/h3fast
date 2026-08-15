@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
-from h3fast.benchmarks.protocol import validate_protocol
+from h3fast.benchmarks.protocol import load_runtime_settings, validate_protocol
 from h3fast.exceptions import ValidationError
 
 
@@ -36,6 +37,39 @@ def test_repository_protocol_pins_exact_quality_gate() -> None:
     }
 
 
+def test_repository_protocols_change_only_dit_residency() -> None:
+    baseline = json.loads(
+        Path("benchmarks/protocol-baseline20.yaml").read_text(encoding="utf-8")
+    )
+    candidate = json.loads(Path("benchmarks/protocol.yaml").read_text(encoding="utf-8"))
+
+    assert baseline["runtime"]["dit_layerwise_resident_layers"] == 20
+    assert candidate["runtime"]["dit_layerwise_resident_layers"] == 40
+    assert (
+        load_runtime_settings(
+            Path("benchmarks/protocol.yaml")
+        ).dit_layerwise_resident_layers
+        == 40
+    )
+    baseline["protocol_id"] = candidate["protocol_id"]
+    baseline["runtime"] = candidate["runtime"]
+    assert baseline == candidate
+
+
+@pytest.mark.parametrize(
+    "protocol_path",
+    [Path("benchmarks/protocol-baseline20.yaml"), Path("benchmarks/protocol.yaml")],
+)
+def test_repository_protocols_match_schema(protocol_path: Path) -> None:
+    schema = json.loads(
+        Path("schemas/benchmark-protocol.schema.json").read_text(encoding="utf-8")
+    )
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(protocol)
+
+
 def test_ready_protocol_requires_immutable_revision(tmp_path: Path) -> None:
     protocol = {
         "schema_version": "1.0",
@@ -47,6 +81,7 @@ def test_ready_protocol_requires_immutable_revision(tmp_path: Path) -> None:
             "accelerator": {"model": "H100"},
             "software": {"sglang": "0.5.15.post1"},
         },
+        "runtime": {"dit_layerwise_resident_layers": 20},
         "measurement": {},
         "cases": [{}],
     }
@@ -68,6 +103,7 @@ def _ready_protocol() -> dict[str, object]:
             "accelerator": {"model": "H100"},
             "software": {"sglang": "0.5.15.post1"},
         },
+        "runtime": {"dit_layerwise_resident_layers": 20},
         "measurement": {},
         "cases": [{}],
     }
@@ -101,6 +137,7 @@ def test_ready_protocol_is_reported_ready(tmp_path: Path) -> None:
         ("unresolved", [1], "array of strings"),
         ("base_model", [], "base_model"),
         ("environment", [], "environment"),
+        ("runtime", [], "runtime"),
         ("measurement", [], "measurement"),
         ("cases", [], "non-empty array"),
     ],
@@ -112,6 +149,17 @@ def test_protocol_rejects_invalid_fields(
     protocol[field] = value
 
     with pytest.raises(ValidationError, match=message):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
+@pytest.mark.parametrize("value", [0, 51, True, "40"])
+def test_protocol_rejects_invalid_resident_layers(
+    tmp_path: Path, value: object
+) -> None:
+    protocol = _ready_protocol()
+    protocol["runtime"] = {"dit_layerwise_resident_layers": value}
+
+    with pytest.raises(ValidationError, match="between 1 and 50"):
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 

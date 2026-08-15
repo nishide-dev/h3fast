@@ -55,7 +55,7 @@ def test_run_case_records_hashes_without_prompt(tmp_path: Path, monkeypatch) -> 
     assert "prompt" not in value["request"]
     assert len(value["prompt_sha256"]) == 64
     saved = json.loads(
-        (output / "h3fast-phase1a-baseline-v1-smoke-001.json").read_text(
+        (output / "h3fast-phase1b-resident40-v1-smoke-001.json").read_text(
             encoding="utf-8"
         )
     )

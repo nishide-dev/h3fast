@@ -77,4 +77,4 @@ warmupを含む4成果物はすべて次の値で一致した。
 
 規定したwarmup 1回と測定3回の性能baselineを取得し、固定caseのartifact再現性とmedia contractを確認した。次の単一最適化では、支配stageであるdenoiseと、その中で発生するlayerwise offload/placementだけを変更対象にする。
 
-quality reference gate、公開可能な10件以上のsmoke set、50件以上のregression set、法務確認は未完了である。したがってprotocol statusは`draft`、RTX 6000 AdaはTier未付与のままとし、外部向けにlosslessまたは品質同等を主張しない。
+後続変更で単一`smoke-001`のexact quality reference gateは実装・実測した。一方、公開可能な10件以上のsmoke set、50件以上のregression set、知覚品質および法務確認は未完了である。したがってprotocol statusは`draft`、RTX 6000 AdaはTier未付与のままとし、外部向けにlosslessまたは品質同等を主張しない。

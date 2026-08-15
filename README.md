@@ -2,7 +2,7 @@
 
 H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高速化・効率化するための研究・ランタイムプロジェクトです。
 
-現在はPhase 1Aの基盤段階です。公式H3の重みやコードは含めず、次を提供します。
+現在はPhase 1Bの最初の実測最適化まで完了しています。公式H3の重みやコードは含めず、次を提供します。
 
 - ローカルH3 snapshotの構造・revision検証
 - 派生成果物manifestとchecksumの検証
@@ -14,7 +14,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 ## Status
 
-このrepositoryはPhase 1Aの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 Adaでは固定T2VA caseをwarmup 1回・測定3回完走し、client E2E p50 889.495秒を記録しました。単一caseのlocal baselineであり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
+このrepositoryはPhase 1Bの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbenchmark harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 AdaではDiT resident layerを20から40へ増やした単一変数A/Bを実施し、client E2E p50を889.495秒から883.516秒へ、denoise p50を847.339秒から842.507秒へ改善しました。一方、reported peak GPU memoryは最大23,376 MiBから35,696 MiBへ増加しています。単一caseのlocal測定であり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
@@ -54,7 +54,10 @@ benchmark protocolの構造を検証します。
 
 ```bash
 uv run h3fast benchmark validate-protocol benchmarks/protocol.yaml
+uv run h3fast benchmark validate-protocol benchmarks/protocol-baseline20.yaml
 ```
+
+`benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。
 
 固定runtime、SGLang source、明示したローカルsnapshot、選択GPUを検査します。選択GPUにcompute processがある場合は失敗します。
 
@@ -72,27 +75,29 @@ uv run h3fast benchmark preflight \
 
 ```bash
 uv run h3fast benchmark plan-launch \
+  --protocol benchmarks/protocol.yaml \
   --snapshot models/MiniMax-H3 \
   --gpus 1,2 \
   --sglang-source runtime-cache/sglang \
   --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
   --ffprobe-adapter runtime/ffprobe.py \
-  --server-output outputs/server
+  --server-output benchmark-results/resident40-server
 ```
 
 次のcommandを実行し、`server-ready` eventが出るまで待ちます。
 
 ```bash
 uv run h3fast benchmark serve-guarded \
+  --protocol benchmarks/protocol.yaml \
   --snapshot models/MiniMax-H3 \
   --gpus 1,2 \
   --sglang-source runtime-cache/sglang \
   --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
   --ffprobe-adapter runtime/ffprobe.py \
-  --server-output benchmark-results/server \
-  --preflight-output benchmark-results/preflight.json \
-  --guard-report benchmark-results/server-failure.json \
-  --lifecycle-report benchmark-results/server-lifecycle.json
+  --server-output benchmark-results/resident40-server \
+  --preflight-output benchmark-results/resident40-preflight.json \
+  --guard-report benchmark-results/resident40-server-failure.json \
+  --lifecycle-report benchmark-results/resident40-server-lifecycle.json
 ```
 
 準備完了後、別shellから規定caseを実行します。生成完了まで`serve-guarded`を終了しないでください。単一の互換性smokeには`run-case`、protocolのwarmup・測定回数を実行してstage metricsを集計する場合は`run-suite`を使います。
@@ -107,11 +112,12 @@ uv run h3fast benchmark run-case \
 
 ```bash
 uv run h3fast benchmark run-suite \
+  --protocol benchmarks/protocol.yaml \
   --case-id smoke-001 \
-  --output-dir benchmark-results/measured-baseline \
-  --server-output benchmark-results/server \
-  --server-lifecycle-report benchmark-results/server-lifecycle.json \
-  --server-guard-report benchmark-results/server-failure.json
+  --output-dir benchmark-results/resident40 \
+  --server-output benchmark-results/resident40-server \
+  --server-lifecycle-report benchmark-results/resident40-server-lifecycle.json \
+  --server-guard-report benchmark-results/resident40-server-failure.json
 ```
 
 `run-suite`はSGLangのrequest ID付きperformance dumpを検証し、warmupを集計から除外して、測定runのmin／p50／p95／maxと支配的stageをJSONへ保存します。生成動画、個別result、server metricsおよびbundleは`benchmark-results/`以下のローカル成果物であり、Git管理しません。
@@ -121,7 +127,7 @@ uv run h3fast benchmark run-suite \
 ```bash
 uv run h3fast benchmark build-quality-reference \
   --suite benchmark-results/measured-baseline/h3fast-phase1a-baseline-v1-smoke-001-suite.json \
-  --protocol benchmarks/protocol.yaml \
+  --protocol benchmarks/protocol-baseline20.yaml \
   --reference-id h3fast-phase1a-exact-smoke-001-v1 \
   --output benchmark-results/exact-smoke-001-reference.json
 ```
@@ -131,12 +137,12 @@ candidate suiteを固定referenceへ照合します。reportにはrun別の映�
 ```bash
 uv run h3fast benchmark check-quality \
   --reference benchmarks/quality/exact-smoke-001-reference.json \
-  --suite benchmark-results/measured-baseline/h3fast-phase1a-baseline-v1-smoke-001-suite.json \
+  --suite benchmark-results/resident40/h3fast-phase1b-resident40-v1-smoke-001-suite.json \
   --protocol benchmarks/protocol.yaml \
-  --output benchmark-results/measured-baseline/quality-report.json
+  --output benchmark-results/resident40/quality-report.json
 ```
 
-上記はreference自身をbaseline suiteへ適用する検証済みcommandです。最適化A/Bでは`--suite`と`--protocol`をcandidateのlocal bundleへ置き換えます。
+上記は採用した40層candidateへreferenceを適用した検証済みcommandです。baselineを再測定する場合はsuiteとprotocolの両方を20層用へ切り替えます。
 
 このgateは固定1 caseのplacement-only回帰検出に限定します。10件以上のsmoke set、50件以上のregression set、知覚品質指標、一般的なlossless性やSupport Tierを示しません。referenceとcandidateは同じ`ffmpeg`／`ffprobe` versionを使用する必要があります。
 
