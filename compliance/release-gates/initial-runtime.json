@@ -1,17 +1,10 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "release_id": "initial-runtime",
   "status": "blocked",
   "updated_at": "2026-08-16",
   "source_issue": "https://github.com/nishide-dev/h3fast/issues/11",
   "approvals": {
-    "legal_reviewer": {
-      "state": "unassigned",
-      "owner": null,
-      "deadline": "2026-08-31",
-      "approved_at": null,
-      "evidence": []
-    },
     "release_approver": {
       "state": "unassigned",
       "owner": null,
@@ -39,17 +32,6 @@
       ]
     },
     {
-      "id": "territory-approval",
-      "description": "Approve development, CI, storage, distribution, execution, and Output-use territories",
-      "status": "blocked",
-      "owner": null,
-      "deadline": "2026-08-31",
-      "evidence": [
-        "compliance/territories/initial-runtime.json",
-        "https://github.com/nishide-dev/h3fast/issues/11"
-      ]
-    },
-    {
       "id": "code-boundary-engineering",
       "description": "Inventory the public package boundary and copied-material scan",
       "status": "passed",
@@ -61,13 +43,15 @@
       ]
     },
     {
-      "id": "code-boundary-legal",
-      "description": "Approve whether the independent H3Fast runtime is outside MiniMax H3 Works or satisfies applicable terms",
-      "status": "blocked",
-      "owner": null,
-      "deadline": "2026-08-31",
+      "id": "code-boundary-classification",
+      "description": "Classify the independently authored H3Fast package separately from H3 Works and H3-use flows",
+      "status": "passed",
+      "owner": "nishide-dev",
+      "deadline": "2026-08-16",
       "evidence": [
-        "https://github.com/nishide-dev/h3fast/issues/11"
+        "docs/decisions/0006-independent-code-license-boundary.md",
+        "docs/compliance/h3-license-boundary-review.md",
+        "docs/compliance/artifact-register.md"
       ]
     },
     {

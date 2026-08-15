@@ -76,8 +76,8 @@ def test_committed_territory_inventory_is_explicitly_incomplete() -> None:
     assert "legal-approval:unassigned" in report.blockers
     assert "flow:development-host:location-unknown" in report.blockers
     assert "flow:development-host:operator-unassigned" in report.blockers
-    assert "flow:source-storage:h3-relation-undetermined" in report.blockers
-    assert "flow:public-source-distribution:decision-unknown" in report.blockers
+    assert "flow:source-storage:h3-relation-undetermined" not in report.blockers
+    assert "flow:public-source-distribution:decision-unknown" not in report.blockers
 
 
 def test_fully_approved_territory_inventory_is_ready(tmp_path: Path) -> None:
@@ -110,6 +110,8 @@ def test_incomplete_inventory_rejects_no_remaining_blockers(tmp_path: Path) -> N
 def test_global_flow_requires_excluded_assessment(tmp_path: Path) -> None:
     inventory = _inventory()
     flow = _flow(inventory, "public-source-distribution")
+    flow["h3_relation"] = "h3-works"
+    flow["decision"] = "unknown"
     flow["territory_assessment"] = "unknown"
 
     with pytest.raises(ValidationError, match="must include excluded territories"):
@@ -186,11 +188,23 @@ def test_not_applicable_decision_requires_no_h3_relation(tmp_path: Path) -> None
         check_territory_inventory(_write_inventory(tmp_path, inventory))
 
 
+def test_not_applicable_decision_requires_matching_assessment(
+    tmp_path: Path,
+) -> None:
+    inventory = _inventory()
+    flow = _flow(inventory, "github-actions")
+    flow["territory_assessment"] = "unknown"
+
+    with pytest.raises(ValidationError, match="requires not-applicable assessment"):
+        check_territory_inventory(_write_inventory(tmp_path, inventory))
+
+
 def test_resolved_flow_requires_owner(tmp_path: Path) -> None:
     inventory = _inventory()
     flow = _flow(inventory, "github-actions")
     flow["decision"] = "not-applicable"
     flow["territory_assessment"] = "not-applicable"
+    flow["owner"] = None
 
     with pytest.raises(ValidationError, match="requires an owner"):
         check_territory_inventory(_write_inventory(tmp_path, inventory))

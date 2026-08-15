@@ -61,18 +61,18 @@
       "description": "GitHub-hosted Ubuntu runners executing CPU-only pull request checks",
       "location_scope": "unknown",
       "country_codes": [],
-      "territory_assessment": "unknown",
+      "territory_assessment": "not-applicable",
       "h3_relation": "none",
-      "decision": "unknown",
+      "decision": "not-applicable",
       "written_license": null,
       "operator": "GitHub",
-      "owner": null,
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         ".github/workflows/ci.yml",
         "https://docs.github.com/en/actions/reference/runners/github-hosted-runners"
       ],
-      "notes": "Standard ubuntu-latest runners use Azure, but this workflow does not select or prove a fixed Azure region and never downloads H3."
+      "notes": "This CPU-only workflow uses synthetic fixtures and neither downloads nor executes H3. Its runner region is outside the H3 territory decision."
     },
     {
       "id": "source-storage",
@@ -81,18 +81,18 @@
       "country_codes": [
         "US"
       ],
-      "territory_assessment": "includes-excluded",
-      "h3_relation": "undetermined",
-      "decision": "unknown",
+      "territory_assessment": "not-applicable",
+      "h3_relation": "none",
+      "decision": "not-applicable",
       "written_license": null,
       "operator": "GitHub",
-      "owner": null,
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         "https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/about-github-enterprise-cloud-with-data-residency",
         "docs/compliance/h3-license-boundary-review.md"
       ],
-      "notes": "GitHub documents US storage as the GitHub.com default; legal classification of H3Fast source remains pending."
+      "notes": "The repository contains independently authored Apache-2.0 code and metadata, not H3 Works. H3 territory restrictions do not govern this storage flow."
     },
     {
       "id": "ci-artifact-storage",
@@ -101,18 +101,18 @@
       "country_codes": [
         "US"
       ],
-      "territory_assessment": "includes-excluded",
+      "territory_assessment": "not-applicable",
       "h3_relation": "none",
-      "decision": "unknown",
+      "decision": "not-applicable",
       "written_license": null,
       "operator": "GitHub",
-      "owner": null,
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         ".github/workflows/ci.yml",
         "https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization"
       ],
-      "notes": "The workflow uploads no artifacts and uses synthetic fixtures, but Actions logs and service data still require classification."
+      "notes": "Actions logs and transient CPU build data contain no H3 Materials or Outputs, so their storage region is outside the H3 territory decision."
     },
     {
       "id": "benchmark-output-storage",
@@ -136,35 +136,35 @@
       "description": "Global access to public H3Fast source, schema, protocol, and documentation",
       "location_scope": "global",
       "country_codes": [],
-      "territory_assessment": "includes-excluded",
-      "h3_relation": "undetermined",
-      "decision": "unknown",
+      "territory_assessment": "not-applicable",
+      "h3_relation": "none",
+      "decision": "not-applicable",
       "written_license": null,
       "operator": "GitHub",
-      "owner": null,
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         "https://github.com/nishide-dev/h3fast",
         "docs/compliance/h3-license-boundary-review.md"
       ],
-      "notes": "Global source access requires a legal decision that the public boundary is not H3 Works or has suitable authorization."
+      "notes": "Global distribution covers independently authored Apache-2.0 code and metadata only. It does not distribute H3 Works, Model Derivatives, or Outputs."
     },
     {
       "id": "initial-user-access",
-      "description": "Countries and entities allowed to obtain and use the Initial Runtime",
-      "location_scope": "unknown",
+      "description": "Global access to the H3Fast Python package without H3 Materials",
+      "location_scope": "global",
       "country_codes": [],
-      "territory_assessment": "unknown",
-      "h3_relation": "undetermined",
-      "decision": "unknown",
+      "territory_assessment": "not-applicable",
+      "h3_relation": "none",
+      "decision": "not-applicable",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "Public package and source hosts",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         "https://github.com/nishide-dev/h3fast/issues/11"
       ],
-      "notes": "No initial user cohort, contracting entity, or access-control method has been approved."
+      "notes": "Package access is distinct from obtaining or running H3. Runtime execution remains a separate H3-related flow below."
     },
     {
       "id": "runtime-execution",

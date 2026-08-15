@@ -18,9 +18,9 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 このrepositoryはPhase 1Bの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbenchmark harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 AdaではDiT resident layerを20から40へ増やした単一変数A/Bを実施し、client E2E p50を889.495秒から883.516秒へ、denoise p50を847.339秒から842.507秒へ改善しました。一方、reported peak GPU memoryは最大23,376 MiBから35,696 MiBへ増加しています。単一caseのlocal測定であり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
-BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
+このrepositoryのsource、schema、CLIおよびH3 Materialsを含まないwheelは独立実装のApache-2.0成果物です。MiniMax公式プロジェクトまたは提携製品ではありません。一方、BYOWはH3の重みを再配布しない方式にすぎず、H3の取得・実行・変換・Outputに対するMiniMax H3 Community Licenseの地域・用途等の制限を免除しません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
-Initial Runtimeは現在公開承認されていません。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、formal quality setは[`benchmarks/quality/formal-quality-set.json`](benchmarks/quality/formal-quality-set.json)、全体のmachine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
+Initial Runtimeのpackage releaseは品質、再現性、supply-chain等が未完了のため現在承認されていません。これは独立sourceのApache-2.0公開可否とは別です。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、H3-related flowの未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、formal quality setは[`benchmarks/quality/formal-quality-set.json`](benchmarks/quality/formal-quality-set.json)、package release stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
 
 ## Development setup
 
@@ -54,14 +54,14 @@ uv run h3fast inspect-snapshot /models/MiniMax-H3 \
 uv run h3fast verify-model /models/H3-Fast-FL2VA-FP8
 ```
 
-Initial Runtimeのrelease gateを検査します。現在のrecordは未指名approvalと未完了checkを含むため、JSON reportを出力して終了code 1を返すのが正常です。終了code 0は全required checkとlegal、release、schema approvalが証拠付きで完了した場合だけ返します。
+Initial Runtime packageのrelease gateを検査します。現在のrecordは未指名approvalと未完了checkを含むため、JSON reportを出力して終了code 1を返すのが正常です。終了code 0は全required checkとrelease/schema approvalが証拠付きで完了した場合だけ返します。H3-use territory approvalはこのcode-only release gateには含めません。
 
 ```bash
 uv run h3fast release check \
   --record compliance/release-gates/initial-runtime.json
 ```
 
-開発、GPU、CI、storage、配布、実行、Output利用のterritory inventoryを検査します。このrecordも正式なlocation、owner、legal approvalがない間は終了code 1を返します。
+H3 snapshotへのaccess、GPU実行、H3 artifact storage、runtime execution、Output利用のterritory inventoryを検査します。このrecordは正式なlocation、owner、approvalがない間は終了code 1を返します。H3を扱わないsource storage、CPU CI、global source/package accessは`not-applicable`であり、このcommandは独立codeの配布可否を判定しません。
 
 ```bash
 uv run h3fast compliance check-territories \

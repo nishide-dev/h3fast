@@ -48,15 +48,15 @@ Git追跡対象にMNIST、PyTorch Lightning、Hydra、logger、training config�
 - clean wheelのCPU install/import
 - source、weight、runtime、Outputの初期artifact分類
 
-次が未完了のため、Draft解除、Public Runtime公開、Support Tier付与、Phase 2開始は不可とする。
+独立sourceはApache-2.0境界として公開可能である。次が未完了のため、versioned Public Runtime package release、Support Tier付与、H3-related Phase 2 artifact配布は不可とする。
 
-1. Applicable Territory、H3 license、H3/SGLang code boundaryの承認とowner/deadline
+1. H3-related development、GPU実行、Output利用のApplicable Territory確認とowner/deadline。これは独立code配布のblockerではない
 2. 公開権を確認した10-case smoke / 50-case regression setと知覚・audio・semantic A/V gate
 3. clean machineでの20層baselineと40層candidate再現
 4. dependency/license scan、secret scan、release notice、必要時のSBOM/vulnerability gate
 5. schema owner、release承認者、初期support targetの正式決定
 
-次の実装順序は上記1から4とし、新しい最適化やdistribution分割を先行させない。
+次のrelease実装順序は上記2から4とし、新しい最適化やdistribution分割を先行させない。新たなH3-related runを行う前には上記1を解決する。
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted for contract implementation; dataset approval pending
 - **Date:** 2026-08-16
-- **Related:** [Issue #16](https://github.com/nishide-dev/h3fast/issues/16) (population/evaluation), [Issue #14](https://github.com/nishide-dev/h3fast/issues/14) (contract), [Issue #11](https://github.com/nishide-dev/h3fast/issues/11) (legal)
+- **Related:** [Issue #16](https://github.com/nishide-dev/h3fast/issues/16) (population/evaluation), [Issue #14](https://github.com/nishide-dev/h3fast/issues/14) (contract), [Issue #11](https://github.com/nishide-dev/h3fast/issues/11) (H3-use compliance)
 
 ## Context
 
@@ -29,4 +29,4 @@
 
 契約と未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
 
-実際のcase選定、rights review、GPU生成、metric実装とbudget決定は別途必要である。Issue #11のlegal reviewerを推測で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
+実際のcase選定、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。

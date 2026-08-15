@@ -10,19 +10,19 @@ The repository was initialized from `ml-research-template`, but its MNIST, PyTor
 
 ## Current phase and priorities
 
-The Phase 1A technical baseline and the first Phase 1B measured optimization are implemented. This does not make the repository release-ready: the protocol remains `draft`, no GPU has a Support Tier, and public distribution is blocked. Follow this order:
+The Phase 1A technical baseline and the first Phase 1B measured optimization are implemented. This does not make a versioned runtime package release-ready: the protocol remains `draft` and no GPU has a Support Tier. Independently authored source is Apache-2.0 and may be distributed without H3 territory approval. Follow this order:
 
-1. Resolve the Phase 0 release blockers in `docs/spec.md`: Applicable Territory and license/code boundaries, with named owners and deadlines.
-2. Create the rights-reviewed 10-case smoke and 50-case regression quality sets; the committed exact gate covers only one placement-only case.
-3. Reproduce the pinned baseline and adopted 40-layer candidate on a clean machine, preserving the 20-layer rollback protocol.
-4. Close the public-release supply-chain gaps documented by the Phase 1B audit before publishing a wheel, image, benchmark bundle, or service.
+1. Create the rights-reviewed 10-case smoke and 50-case regression quality sets; the committed exact gate covers only one placement-only case.
+2. Reproduce the pinned baseline and adopted 40-layer candidate on a clean machine, preserving the 20-layer rollback protocol.
+3. Close the package-release supply-chain gaps documented by the Phase 1B audit before publishing a wheel, image, benchmark bundle, or service.
+4. Resolve Applicable Territory, operator, and approval evidence before any new H3-related run, derivative, Output distribution, or service; do not apply this gate to source-only work.
 5. Select another optimization only from new profile evidence, and measure one dimension at a time against the fixed baseline.
 
 Avoid speculative support for multiple GPU vendors, task families, quantization schemes, servers, or package distributions before an actual need and test environment exist.
 
 The Initial Runtime release source of truth is `compliance/release-gates/initial-runtime.json`. It is intentionally `blocked`. Do not mark an approval or check as complete without the named owner, timestamp, and evidence required by its schema and semantic validator. A release workflow must require `h3fast release check` to exit successfully; ordinary development CI must validate the blocked record without pretending a release is approved.
 
-Territory evidence is recorded separately in `compliance/territories/initial-runtime.json`. Do not infer physical location from timezone, IP geolocation, runner labels, or repository hosting alone. Keep unknown locations and legal classifications explicit, and require `h3fast compliance check-territories` before changing the release gate's `territory-approval` check to `passed`.
+Territory evidence for H3-related flows is recorded separately in `compliance/territories/initial-runtime.json`. Do not infer physical location from timezone, IP geolocation, runner labels, or repository hosting alone. Keep unknown H3-use locations and classifications explicit, and require `h3fast compliance check-territories` before new H3 access, execution, derivatives, Output distribution, or services. Source storage, CPU-only CI, and code-only package access are `not-applicable` and are not part of the package release gate.
 
 Formal quality-set readiness is recorded in `benchmarks/quality/formal-quality-set.json`. The committed record is intentionally `incomplete` and contains no prompt text or media. Do not set `formal_quality_set_ready` or the release gate to passed until the case registry, 10/50 minimums, required coverage, per-case rights evidence, metric plans, and named rights/quality approvals all pass `h3fast benchmark check-quality-set`.
 
@@ -213,6 +213,8 @@ Do not add template training tests or dependencies. CI must continue to exercise
 ## License, territory, and security
 
 MiniMax H3 has non-standard license, territory, downstream-terms, commercial-display, safety, and Output-use restrictions. BYOW does not remove those restrictions.
+
+These restrictions do not automatically apply to independently authored H3Fast source, schemas, CLI, wheels, synthetic fixtures, or metadata that contain no MiniMax Materials. Treat those artifacts as Apache-2.0 under ADR 0006. Keep H3 access, execution, derivatives, Outputs, and services as separately gated flows.
 
 - Do not copy MiniMax H3 code, configuration, weights, documentation, or other Materials into H3Fast without recording provenance and completing the artifact classification required by `docs/spec.md`.
 - Do not publish H3 Works, Model Derivatives, containers that include them, or services using them before the applicable release gate passes.

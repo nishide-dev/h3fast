@@ -112,7 +112,7 @@ def test_release_check_reports_committed_blockers(capsys) -> None:
     output = json.loads(capsys.readouterr().out)
     assert status == 1
     assert output["ready"] is False
-    assert "approval:legal_reviewer:unassigned" in output["blockers"]
+    assert "approval:release_approver:unassigned" in output["blockers"]
 
 
 def test_compliance_check_territories_reports_committed_blockers(capsys) -> None:

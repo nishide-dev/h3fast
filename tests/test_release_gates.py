@@ -54,9 +54,10 @@ def test_committed_initial_runtime_gate_is_explicitly_blocked() -> None:
 
     assert report.status == "blocked"
     assert report.ready is False
-    assert "approval:legal_reviewer:unassigned" in report.blockers
-    assert "check:territory-approval:blocked" in report.blockers
-    assert "check:territory-approval:owner-unassigned" in report.blockers
+    assert "approval:release_approver:unassigned" in report.blockers
+    assert "approval:schema_owner:unassigned" in report.blockers
+    assert "check:formal-quality-set:blocked" in report.blockers
+    assert "check:code-boundary-classification:blocked" not in report.blockers
 
 
 def test_formal_quality_release_check_rejects_incomplete_record(
@@ -89,12 +90,12 @@ def test_approved_release_gate_rejects_remaining_blocker(tmp_path: Path) -> None
     record = _approved_record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal.update(
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release.update(
         {
             "state": "pending",
-            "owner": "legal-owner",
+            "owner": "release-owner",
             "approved_at": None,
             "evidence": [],
         }
@@ -130,9 +131,9 @@ def test_release_gate_rejects_pending_approval_without_owner(tmp_path: Path) -> 
     record = _record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal["state"] = "pending"
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release["state"] = "pending"
 
     with pytest.raises(ValidationError, match="requires owner and deadline"):
         check_release_gate(_write_record(tmp_path, record))
@@ -142,9 +143,9 @@ def test_release_gate_rejects_naive_approval_timestamp(tmp_path: Path) -> None:
     record = _approved_record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal["approved_at"] = "2026-08-20T00:00:00"
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release["approved_at"] = "2026-08-20T00:00:00"
 
     with pytest.raises(ValidationError, match="must include a UTC offset"):
         check_release_gate(_write_record(tmp_path, record))
@@ -210,27 +211,27 @@ def test_release_gate_rejects_invalid_approval_states(tmp_path: Path) -> None:
     record = _record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal["state"] = "accepted"
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release["state"] = "accepted"
     with pytest.raises(ValidationError, match="unsupported state"):
         check_release_gate(_write_record(tmp_path, record))
 
     record = _record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal["owner"] = "someone"
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release["owner"] = "someone"
     with pytest.raises(ValidationError, match="unassigned approval"):
         check_release_gate(_write_record(tmp_path, record))
 
     record = _record()
     approvals = record["approvals"]
     assert isinstance(approvals, dict)
-    legal = approvals["legal_reviewer"]
-    assert isinstance(legal, dict)
-    legal["deadline"] = None
+    release = approvals["release_approver"]
+    assert isinstance(release, dict)
+    release["deadline"] = None
     with pytest.raises(ValidationError, match="requires a decision deadline"):
         check_release_gate(_write_record(tmp_path, record))
 
