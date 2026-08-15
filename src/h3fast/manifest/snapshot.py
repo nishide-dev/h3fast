@@ -20,7 +20,7 @@ REQUIRED_COMPONENTS = (
     "tokenizer",
     "text_encoder",
     "transformer",
-    "visual_vae",
+    "video_vae",
     "audio_vae",
 )
 
@@ -99,12 +99,15 @@ def inspect_snapshot(
 
     files: list[SnapshotFile] = []
     for path in sorted(root.rglob("*")):
+        relative_path = path.relative_to(root)
+        if relative_path.parts and relative_path.parts[0] == ".cache":
+            continue
         if path.is_symlink():
             msg = f"snapshot symlinks are not accepted: {path.relative_to(root)}"
             raise ValidationError(msg)
         if not path.is_file():
             continue
-        relative = path.relative_to(root).as_posix()
+        relative = relative_path.as_posix()
         files.append(
             SnapshotFile(
                 path=relative,

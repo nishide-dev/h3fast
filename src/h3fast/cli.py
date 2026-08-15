@@ -6,10 +6,16 @@ import argparse
 import json
 import sys
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 from h3fast import __version__
-from h3fast.benchmarks import validate_protocol
+from h3fast.benchmarks import (
+    build_singularity_launch,
+    run_case,
+    run_preflight,
+    validate_protocol,
+)
 from h3fast.diagnostics import run_doctor
 from h3fast.exceptions import H3FastError
 from h3fast.manifest import inspect_snapshot, verify_model_artifact
@@ -61,6 +67,86 @@ def _verify_model(args: argparse.Namespace) -> int:
 def _validate_benchmark_protocol(args: argparse.Namespace) -> int:
     report = validate_protocol(Path(args.path))
     _write_json(report.to_dict())
+    return 0
+
+
+def _gpu_ids(value: str) -> tuple[int, ...]:
+    try:
+        result = tuple(int(item) for item in value.split(","))
+    except ValueError as error:
+        message = "GPU IDs must be comma-separated integers"
+        raise argparse.ArgumentTypeError(message) from error
+    if (
+        not result
+        or any(index < 0 for index in result)
+        or len(set(result)) != len(result)
+    ):
+        message = "GPU IDs must be distinct non-negative integers"
+        raise argparse.ArgumentTypeError(message)
+    return result
+
+
+def _benchmark_preflight(args: argparse.Namespace) -> int:
+    output = Path(args.output)
+    report = run_preflight(
+        Path(args.protocol),
+        snapshot_path=Path(args.snapshot),
+        selected_gpus=args.gpus,
+        output_path=output,
+        sglang_source=Path(args.sglang_source),
+        runtime_image=Path(args.runtime_image),
+    )
+    data = json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_suffix(output.suffix + ".partial")
+    temporary.write_text(data, encoding="utf-8")
+    temporary.replace(output)
+    sys.stdout.write(data)
+    return 0 if report.ready else 1
+
+
+def _benchmark_plan_launch(args: argparse.Namespace) -> int:
+    plan = build_singularity_launch(
+        snapshot_path=Path(args.snapshot),
+        runtime_image=Path(args.runtime_image),
+        sglang_source=Path(args.sglang_source),
+        output_path=Path(args.server_output),
+        selected_gpus=args.gpus,
+        port=args.port,
+    )
+    _write_json(plan.to_dict())
+    return 0
+
+
+def _benchmark_run_case(args: argparse.Namespace) -> int:
+    output_dir = Path(args.output_dir)
+    try:
+        result = run_case(
+            Path(args.protocol),
+            case_id=args.case_id,
+            endpoint=args.endpoint,
+            output_dir=output_dir,
+            poll_interval=args.poll_interval,
+            timeout=args.timeout,
+        )
+    except H3FastError as error:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        failure = {
+            "schema_version": "1.0",
+            "status": "failed",
+            "recorded_at": datetime.now(UTC).isoformat(),
+            "case_id": args.case_id,
+            "error_type": type(error).__name__,
+            "error": str(error),
+        }
+        path = output_dir / f"{args.case_id}-failure.json"
+        temporary = path.with_suffix(".json.partial")
+        temporary.write_text(
+            json.dumps(failure, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        temporary.replace(path)
+        raise
+    _write_json(result.to_dict())
     return 0
 
 
@@ -121,6 +207,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     protocol.add_argument("path")
     protocol.set_defaults(handler=_validate_benchmark_protocol)
+
+    preflight = benchmark_subparsers.add_parser(
+        "preflight",
+        help="Fail closed unless the pinned local baseline environment is ready",
+    )
+    preflight.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    preflight.add_argument("--snapshot", required=True)
+    preflight.add_argument("--gpus", required=True, type=_gpu_ids)
+    preflight.add_argument("--sglang-source", required=True)
+    preflight.add_argument("--runtime-image", required=True)
+    preflight.add_argument("--output", required=True)
+    preflight.set_defaults(handler=_benchmark_preflight)
+
+    launch = benchmark_subparsers.add_parser(
+        "plan-launch",
+        help="Emit the pinned Singularity SGLang launch argv",
+    )
+    launch.add_argument("--snapshot", required=True)
+    launch.add_argument("--gpus", required=True, type=_gpu_ids)
+    launch.add_argument("--sglang-source", required=True)
+    launch.add_argument("--runtime-image", required=True)
+    launch.add_argument("--server-output", required=True)
+    launch.add_argument("--port", type=int, default=30010)
+    launch.set_defaults(handler=_benchmark_plan_launch)
+
+    run = benchmark_subparsers.add_parser(
+        "run-case",
+        help="Run one asynchronous local video benchmark case",
+    )
+    run.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    run.add_argument("--case-id", required=True)
+    run.add_argument("--endpoint", default="http://127.0.0.1:30010")
+    run.add_argument("--output-dir", required=True)
+    run.add_argument("--poll-interval", type=float, default=1.0)
+    run.add_argument("--timeout", type=float, default=7200.0)
+    run.set_defaults(handler=_benchmark_run_case)
     return parser
 
 

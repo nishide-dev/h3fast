@@ -7,14 +7,14 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - ローカルH3 snapshotの構造・revision検証
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
-- 再現可能なbenchmark protocolの検証基盤
+- 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
 - CPU-only環境でimport可能な単一Python package
 
 製品・配布仕様は[`docs/spec.md`](docs/spec.md)、開発規約は[`AGENTS.md`](AGENTS.md)を参照してください。
 
 ## Status
 
-このrepositoryは実装初期段階です。モデル変換、生成、Triton kernel、Hosted APIはまだ提供しません。性能や品質に関する公開結果もまだありません。
+このrepositoryは実装初期段階です。Phase 1Aの内部実験として固定SGLang sourceとSingularity runtimeを使うbaseline harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。RTX 6000 Adaではruntime互換性とDiT staging到達までを確認しましたが、GPU競合により最初の試行を中断しており、H3 E2E、性能、品質に関する公開結果はまだありません。
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
@@ -54,6 +54,32 @@ benchmark protocolの構造を検証します。
 
 ```bash
 uv run h3fast benchmark validate-protocol benchmarks/protocol.yaml
+```
+
+固定runtime、SGLang source、明示したローカルsnapshot、選択GPUを検査します。選択GPUにcompute processがある場合は失敗します。
+
+```bash
+uv run h3fast benchmark preflight \
+  --snapshot models/MiniMax-H3 \
+  --gpus 1,2 \
+  --sglang-source runtime-cache/sglang \
+  --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
+  --output benchmark-results/preflight.json
+```
+
+起動argvをJSONで確認し、server起動後に規定caseを実行します。これらはH3の利用権を判定せず、重みも取得しません。
+
+```bash
+uv run h3fast benchmark plan-launch \
+  --snapshot models/MiniMax-H3 \
+  --gpus 1,2 \
+  --sglang-source runtime-cache/sglang \
+  --runtime-image runtime-cache/sglang-v0.5.16-cu129-runtime.sif \
+  --server-output outputs/server
+
+uv run h3fast benchmark run-case \
+  --case-id smoke-001 \
+  --output-dir benchmark-results/smoke-001
 ```
 
 ## Quality checks

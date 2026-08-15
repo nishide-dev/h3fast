@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.3（レビュー済み、実装前）
+- **状態:** Draft v0.4（レビュー済み、Phase 1A実装中）
 - **最終調査日:** 2026-08-15 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
 - **想定読者:** モデル研究者、GPUカーネル開発者、MLOps/SRE、配布・法務担当、サービス開発者
@@ -1705,7 +1705,7 @@ queue
 | Experimental | コミュニティまたはbest effort。fallback前提 |
 | Unsupported | 起動拒否または明確な非対応表示 |
 
-初期候補:
+将来のproduction候補:
 
 - NVIDIA H100/H200: Tier 1候補
 - NVIDIA B200/GB200/B300: Tier 1候補
@@ -1714,6 +1714,8 @@ queue
 - Apple Silicon/consumer Radeon: ExperimentalまたはUnsupported
 
 これはSGLang等の外部対応実績を参考にした候補であり、H3Fastの実機CIが完了するまで正式サポートと表示してはならない。
+
+Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/T2VA、768p、5秒とする。これはSGLangの2×RTX 5090 layerwise-offload recipeを基にしたExperimental構成であり、H3 E2E、peak memoryおよび品質確認が完了するまでTierを付与しない。4 GPU構成は空きGPUを同時確保できる環境で別途検証する。
 
 ---
 
@@ -2043,8 +2045,8 @@ queue
 
 1. **Blocker:** 開発者、CI、配布元、初期利用者がApplicable Territory要件を満たすか。満たさない場合に個別licenseを取得するか。
 2. **Blocker:** BYOW converterとruntimeにH3公式コードをどの程度含めるか、および公開コードのlicense境界。
-3. **Blocker:** 初期候補（FL2VA/T2VA、768p、5秒、4×RTX 6000 Ada 48GB）でH3 E2Eとmemory capacityを検証し、Tier、CI予算、品質referenceを確定する。
-4. **Blocker:** 参照するSGLang release/commitと、adapterが依存してよい公開・内部APIの境界。
+3. **Blocker:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）でH3 E2Eとmemory capacityを検証し、Tier、CI予算、品質referenceを確定する。4 GPU構成は空きGPU確保後に別途検証する。
+4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、公開CLIの`sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
 7. FP8の保存形式と各backend間の互換性。

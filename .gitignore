@@ -63,6 +63,7 @@ Thumbs.db
 /model-cache/
 /outputs/
 /benchmark-results/
+/runtime-cache/
 /triton-cache/
 *.safetensors
 *.ckpt

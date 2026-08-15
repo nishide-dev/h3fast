@@ -1,10 +1,14 @@
 """Tests for the public command-line interface."""
 
+import argparse
 import json
 from importlib import metadata
 from pathlib import Path
 
-from h3fast.cli import main
+import pytest
+
+from h3fast.cli import _gpu_ids, main
+from h3fast.exceptions import ValidationError
 from h3fast.manifest.snapshot import REQUIRED_COMPONENTS
 from tests.test_model_manifest import _write_artifact
 
@@ -100,3 +104,121 @@ def test_benchmark_protocol_command(capsys) -> None:
 
     assert status == 0
     assert json.loads(capsys.readouterr().out)["status"] == "draft"
+
+
+def test_gpu_ids_parser_rejects_invalid_values() -> None:
+    assert _gpu_ids("1,2") == (1, 2)
+    with pytest.raises(argparse.ArgumentTypeError):
+        _gpu_ids("one,two")
+    with pytest.raises(argparse.ArgumentTypeError):
+        _gpu_ids("1,1")
+
+
+def test_benchmark_preflight_command_writes_report(
+    tmp_path, monkeypatch, capsys
+) -> None:
+    class Report:
+        ready = True
+
+        @staticmethod
+        def to_dict() -> dict[str, object]:
+            return {"ready": True}
+
+    monkeypatch.setattr("h3fast.cli.run_preflight", lambda *_args, **_kwargs: Report())
+    output = tmp_path / "preflight.json"
+
+    status = main(
+        [
+            "benchmark",
+            "preflight",
+            "--snapshot",
+            "snapshot",
+            "--gpus",
+            "1,2",
+            "--sglang-source",
+            "source",
+            "--runtime-image",
+            "runtime.sif",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["ready"] is True
+    assert json.loads(capsys.readouterr().out)["ready"] is True
+
+
+def test_benchmark_plan_and_run_case_commands(monkeypatch, capsys) -> None:
+    class Value:
+        @staticmethod
+        def to_dict() -> dict[str, object]:
+            return {"ok": True}
+
+    monkeypatch.setattr(
+        "h3fast.cli.build_singularity_launch", lambda **_kwargs: Value()
+    )
+    assert (
+        main(
+            [
+                "benchmark",
+                "plan-launch",
+                "--snapshot",
+                "snapshot",
+                "--gpus",
+                "1,2",
+                "--sglang-source",
+                "source",
+                "--runtime-image",
+                "runtime.sif",
+                "--server-output",
+                "output",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["ok"] is True
+
+    monkeypatch.setattr("h3fast.cli.run_case", lambda *_args, **_kwargs: Value())
+    assert (
+        main(
+            [
+                "benchmark",
+                "run-case",
+                "--case-id",
+                "smoke-001",
+                "--output-dir",
+                "output",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["ok"] is True
+
+
+def test_benchmark_run_case_records_failure(tmp_path, monkeypatch, capsys) -> None:
+    def fail(*_args, **_kwargs):
+        message = "server failed"
+        raise ValidationError(message)
+
+    monkeypatch.setattr("h3fast.cli.run_case", fail)
+    output = tmp_path / "results"
+
+    status = main(
+        [
+            "benchmark",
+            "run-case",
+            "--case-id",
+            "smoke-001",
+            "--output-dir",
+            str(output),
+        ]
+    )
+
+    assert status == 2
+    failure = json.loads(
+        (output / "smoke-001-failure.json").read_text(encoding="utf-8")
+    )
+    assert failure["status"] == "failed"
+    assert failure["error"] == "server failed"
+    assert "server failed" in capsys.readouterr().err

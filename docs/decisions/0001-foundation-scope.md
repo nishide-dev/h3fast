@@ -1,6 +1,6 @@
 # Foundation scope
 
-- Status: Accepted
+- Status: Superseded in part by 0002
 - Date: 2026-08-15
 
 ## Context
