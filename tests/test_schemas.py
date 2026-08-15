@@ -12,6 +12,9 @@ COMPLIANCE_RECORDS = (
     Path("compliance/territories/initial-runtime.json"),
 )
 FORMAL_QUALITY_SET = Path("benchmarks/quality/formal-quality-set.json")
+QUALITY_REGISTRY_ATTESTATION = Path(
+    "benchmarks/quality/formal-quality-registry-attestation.json"
+)
 
 
 def _evidence_values(value: object) -> tuple[str, ...]:
@@ -87,6 +90,19 @@ def test_committed_formal_quality_set_matches_schema() -> None:
     Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
     ).validate(record)
+
+
+def test_committed_quality_registry_attestation_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/quality-registry-attestation.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    attestation = json.loads(QUALITY_REGISTRY_ATTESTATION.read_text(encoding="utf-8"))
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(attestation)
 
 
 @pytest.mark.parametrize("record_path", COMPLIANCE_RECORDS, ids=lambda path: path.name)
