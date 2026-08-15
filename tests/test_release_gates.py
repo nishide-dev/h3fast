@@ -242,7 +242,7 @@ def test_release_gate_rejects_invalid_check_states(tmp_path: Path) -> None:
     blocked = checks[1]
     assert isinstance(blocked, dict)
     blocked["deadline"] = None
-    with pytest.raises(ValidationError, match="blocked release check"):
+    with pytest.raises(ValidationError, match="requires a disposition deadline"):
         check_release_gate(_write_record(tmp_path, record))
 
     record = _record()

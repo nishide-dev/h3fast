@@ -167,19 +167,17 @@ def _validate_approval(role: str, value: object) -> str:
         raise ValidationError(message)
     owner = _nullable_string(value["owner"], f"approval {role!r} owner")
     deadline = _date(value["deadline"], f"approval {role!r} deadline")
+    if deadline is None:
+        message = f"approval {role!r} requires a decision deadline"
+        raise ValidationError(message)
     approved_at = _date_time(value["approved_at"], f"approval {role!r} approved_at")
     evidence = _evidence(
         value["evidence"],
         f"approval {role!r} evidence",
         required=state == "approved",
     )
-    if state == "unassigned" and (
-        owner is not None or deadline is None or approved_at is not None
-    ):
-        message = (
-            f"unassigned approval {role!r} requires a decision deadline and "
-            "cannot have an owner or approval time"
-        )
+    if state == "unassigned" and (owner is not None or approved_at is not None):
+        message = f"unassigned approval {role!r} cannot have an owner or approval time"
         raise ValidationError(message)
     if state == "pending" and (owner is None or deadline is None or approved_at):
         message = (
@@ -207,6 +205,9 @@ def _validate_check(value: object, index: int) -> tuple[str, str, str | None]:
         raise ValidationError(message)
     owner = _nullable_string(value["owner"], f"release check {check_id!r} owner")
     deadline = _date(value["deadline"], f"release check {check_id!r} deadline")
+    if deadline is None:
+        message = f"release check {check_id!r} requires a disposition deadline"
+        raise ValidationError(message)
     _evidence(
         value["evidence"],
         f"release check {check_id!r} evidence",
@@ -214,9 +215,6 @@ def _validate_check(value: object, index: int) -> tuple[str, str, str | None]:
     )
     if status != "blocked" and owner is None:
         message = f"resolved release check {check_id!r} requires an owner"
-        raise ValidationError(message)
-    if status == "blocked" and deadline is None:
-        message = f"blocked release check {check_id!r} requires a deadline"
         raise ValidationError(message)
     return check_id, status, owner
 

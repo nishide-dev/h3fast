@@ -50,7 +50,7 @@
         "owner": { "type": ["string", "null"], "minLength": 1 },
         "deadline": {
           "description": "Decision or approval target date, not an inferred implementation promise",
-          "type": ["string", "null"],
+          "type": "string",
           "format": "date"
         },
         "approved_at": { "type": ["string", "null"], "format": "date-time" },
@@ -72,7 +72,7 @@
         "owner": { "type": ["string", "null"], "minLength": 1 },
         "deadline": {
           "description": "Gate disposition target date, not an inferred implementation promise",
-          "type": ["string", "null"],
+          "type": "string",
           "format": "date"
         },
         "evidence": {
