@@ -15,10 +15,12 @@ from h3fast.benchmarks import (
     build_quality_reference,
     build_singularity_launch,
     check_formal_quality_set,
+    check_human_pairwise_ballot,
     check_quality,
     check_quality_metric_plan,
     compile_quality_registry,
     load_runtime_settings,
+    prepare_human_pairwise_ballot,
     prepare_quality_registry_review,
     run_case,
     run_preflight,
@@ -313,6 +315,27 @@ def _benchmark_apply_quality_review(args: argparse.Namespace) -> int:
     return 0 if report.ready else 1
 
 
+def _benchmark_prepare_human_pairwise(args: argparse.Namespace) -> int:
+    report = prepare_human_pairwise_ballot(
+        Path(args.formal_set),
+        Path(args.ballot),
+        Path(args.assignment),
+        ballot_id=args.ballot_id,
+        reviewer=args.reviewer,
+        randomization_seed_file=Path(args.randomization_seed_file),
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
+def _benchmark_check_human_pairwise(args: argparse.Namespace) -> int:
+    report = check_human_pairwise_ballot(
+        Path(args.formal_set), Path(args.ballot), Path(args.assignment)
+    )
+    _write_json(report.to_dict())
+    return 0 if report.complete else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -546,6 +569,27 @@ def build_parser() -> argparse.ArgumentParser:
     quality_review_apply.add_argument("--review", required=True)
     quality_review_apply.add_argument("--output", required=True)
     quality_review_apply.set_defaults(handler=_benchmark_apply_quality_review)
+
+    human_pairwise_prepare = benchmark_subparsers.add_parser(
+        "prepare-human-pairwise",
+        help="Create a private blind ballot and separate assignment key",
+    )
+    human_pairwise_prepare.add_argument("--formal-set", required=True)
+    human_pairwise_prepare.add_argument("--ballot-id", required=True)
+    human_pairwise_prepare.add_argument("--reviewer", required=True)
+    human_pairwise_prepare.add_argument("--randomization-seed-file", required=True)
+    human_pairwise_prepare.add_argument("--ballot", required=True)
+    human_pairwise_prepare.add_argument("--assignment", required=True)
+    human_pairwise_prepare.set_defaults(handler=_benchmark_prepare_human_pairwise)
+
+    human_pairwise_check = benchmark_subparsers.add_parser(
+        "check-human-pairwise",
+        help="Verify and score a complete private human-pairwise ballot",
+    )
+    human_pairwise_check.add_argument("--formal-set", required=True)
+    human_pairwise_check.add_argument("--ballot", required=True)
+    human_pairwise_check.add_argument("--assignment", required=True)
+    human_pairwise_check.set_defaults(handler=_benchmark_check_human_pairwise)
     return parser
 
 

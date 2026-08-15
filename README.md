@@ -75,7 +75,7 @@ uv run h3fast benchmark validate-protocol benchmarks/protocol.yaml
 uv run h3fast benchmark validate-protocol benchmarks/protocol-baseline20.yaml
 ```
 
-formal quality setの件数、層化coverage、rights evidence、metric plan、approvalを検査します。現在のcommitted recordはprompt本文やmediaを含まず、caseと承認が未登録のため終了code 1を返します。Git管理外には10 smoke / 50 regressionのcandidate registryがあり、公開可能な全体digestと件数だけを[`formal-quality-registry-attestation.json`](benchmarks/quality/formal-quality-registry-attestation.json)へ記録しています。不正または矛盾するrecordは終了code 2です。
+formal quality setの件数、層化coverage、rights evidence、metric plan、approvalを検査します。現在のcommitted recordはprompt本文やmediaを含まず、review済み10 smoke / 50 regressionのredacted metadata、coverage、rights evidenceを登録済みです。metricとQuality ownerのset-level approvalが未完了のため終了code 1を返します。不正または矛盾するrecordは終了code 2です。
 
 ```bash
 uv run h3fast benchmark check-quality-set \
@@ -118,6 +118,29 @@ uv run h3fast benchmark apply-quality-review \
   --registry /secure/h3fast/quality.private-quality-registry.json \
   --review /secure/h3fast/quality.private-quality-review.json \
   --output /secure/h3fast/quality.reviewed.private-quality-registry.json
+```
+
+human-pairwise評価のballotとhidden assignment keyは別のprivate fileとして準備します。randomization seedは32文字以上で、group/otherから読めないfileに保存してください。seed、ballot、assignmentはGit、CI artifactまたは共有logへ追加せず、assignmentはballot完了までreviewerへ開示しません。次のpathはlocal例であり、環境に合わせて置き換えます。
+
+```bash
+install -m 600 /dev/null /secure/h3fast/pilot-001.private-human-pairwise-seed
+openssl rand -hex 32 > /secure/h3fast/pilot-001.private-human-pairwise-seed
+uv run h3fast benchmark prepare-human-pairwise \
+  --formal-set benchmarks/quality/formal-quality-set.json \
+  --ballot-id pilot-001 \
+  --reviewer <reviewer-id> \
+  --randomization-seed-file /secure/h3fast/pilot-001.private-human-pairwise-seed \
+  --ballot /secure/h3fast/pilot-001.private-human-pairwise-ballot.json \
+  --assignment /secure/h3fast/pilot-001.private-human-pairwise-assignment.json
+```
+
+現在の実装はballot/key contractとaggregate scorerであり、A/B mediaを提示するrunnerではありません。別途blind presentationを行い、全caseの`selection`を`a` / `b` / `tie`で埋め、statusと完了時刻を更新した後に検証します。欠損、abstain、stale digest、commitment改ざん、case順序変更はfailします。aggregate出力にはper-case判断、seed、pathまたはmediaを含めません。
+
+```bash
+uv run h3fast benchmark check-human-pairwise \
+  --formal-set benchmarks/quality/formal-quality-set.json \
+  --ballot /secure/h3fast/pilot-001.private-human-pairwise-ballot.json \
+  --assignment /secure/h3fast/pilot-001.private-human-pairwise-assignment.json
 ```
 
 `benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。

@@ -2,6 +2,12 @@
 
 from h3fast.benchmarks.client import BenchmarkResult, run_case
 from h3fast.benchmarks.guard import ForeignGpuProcess, serve_guarded
+from h3fast.benchmarks.human_pairwise import (
+    HumanPairwisePreparationReport,
+    HumanPairwiseReport,
+    check_human_pairwise_ballot,
+    prepare_human_pairwise_ballot,
+)
 from h3fast.benchmarks.launch import LaunchPlan, build_singularity_launch
 from h3fast.benchmarks.preflight import PreflightReport, run_preflight
 from h3fast.benchmarks.protocol import (
@@ -33,6 +39,8 @@ __all__ = [
     "BenchmarkSuiteResult",
     "ForeignGpuProcess",
     "FormalQualitySetReport",
+    "HumanPairwisePreparationReport",
+    "HumanPairwiseReport",
     "LaunchPlan",
     "PreflightReport",
     "ProtocolReport",
@@ -44,10 +52,12 @@ __all__ = [
     "build_quality_reference",
     "build_singularity_launch",
     "check_formal_quality_set",
+    "check_human_pairwise_ballot",
     "check_quality",
     "check_quality_metric_plan",
     "compile_quality_registry",
     "load_runtime_settings",
+    "prepare_human_pairwise_ballot",
     "prepare_quality_registry_review",
     "run_case",
     "run_preflight",
