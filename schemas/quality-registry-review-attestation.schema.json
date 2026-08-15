@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/quality-registry-review-attestation.schema.json",
+  "title": "H3Fast redacted quality-registry review attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "attestation_id",
+    "registry_id",
+    "source_registry_sha256",
+    "registry_content_sha256",
+    "reviewed_at",
+    "source_issue",
+    "reviewer",
+    "approval_source",
+    "roles",
+    "selection",
+    "cases",
+    "private_artifacts",
+    "redaction",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "attestation_id": { "const": "h3fast-phase0-formal-quality-review-v1" },
+    "registry_id": { "const": "h3fast-phase0-formal-quality-v1" },
+    "source_registry_sha256": { "$ref": "#/$defs/sha256" },
+    "registry_content_sha256": { "$ref": "#/$defs/sha256" },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "source_issue": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "reviewer": { "const": "nishide-dev" },
+    "approval_source": { "const": "project-owner-self-attestation" },
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rights_reviewer", "quality_owner"],
+      "properties": {
+        "rights_reviewer": { "const": "accepted" },
+        "quality_owner": { "const": "accepted" }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "exclusions", "known_failures"],
+      "properties": {
+        "method": { "const": "approved" },
+        "exclusions": { "const": "approved" },
+        "known_failures": { "const": "approved" }
+      }
+    },
+    "cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "rights_approved",
+        "selection_approved",
+        "pending",
+        "rejected"
+      ],
+      "properties": {
+        "total": { "const": 60 },
+        "rights_approved": { "const": 60 },
+        "selection_approved": { "const": 60 },
+        "pending": { "const": 0 },
+        "rejected": { "const": 0 }
+      }
+    },
+    "private_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storage", "committed", "uploaded"],
+      "properties": {
+        "storage": { "const": "repository-external" },
+        "committed": { "const": false },
+        "uploaded": { "const": false }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt_text_present",
+        "reference_paths_present",
+        "media_present",
+        "per_case_digests_present"
+      ],
+      "properties": {
+        "prompt_text_present": { "const": false },
+        "reference_paths_present": { "const": false },
+        "media_present": { "const": false },
+        "per_case_digests_present": { "const": false }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
