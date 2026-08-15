@@ -68,7 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | 実装済み・incomplete | source/CPU CI/package accessを対象外と明示し、H3 access・GPU・実行・Output flowはregion、operator、H3関係をrecord化。H3-related flowにunknown/未承認があれば終了code 1 |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
-| Formal quality set | 契約実装済み・incomplete | 10/50件、層化coverage、rights、metric、approvalをrecord化。prompt/mediaは未収録、未承認なら終了code 1 |
+| Formal quality set | contract/compiler実装済み・incomplete | private registryからprompt/path/mediaを除いたdigest metadataをatomic生成し、10/50件、coverage、rights、metric、approvalを検査。実registryは未登録 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -1515,6 +1515,16 @@ BF16 50-step reference
 
 Phase 0 formal setのmachine-readable契約は[`benchmarks/quality/formal-quality-set.json`](../benchmarks/quality/formal-quality-set.json)と[`schemas/formal-quality-set.schema.json`](../schemas/formal-quality-set.schema.json)で固定する。prompt本文、reference media、生成物、local pathはこのrecordへ含めない。case registryのURI/digest、caseごとのprompt/reference digest、rights evidence、selection method、exclusions、known failures、metric plan、rights reviewer、quality ownerが揃い、次のcoverageをaggregateで満たした場合だけ`approved`にできる。
 
+prompt本文とreference assetのlocal pathを含む入力は[`schemas/private-quality-registry.schema.json`](../schemas/private-quality-registry.schema.json)に従うprivate registryとしてrepository外で管理する。`h3fast benchmark compile-quality-registry`はregistry file自体、prompt UTF-8 bytes、reference asset bytesのSHA-256を計算し、formal record candidateへdigestと公開可能metadataだけを出力する。次をMUSTとする。
+
+- private registry、reference asset、prompt本文またはlocal pathをGit、CI artifact、logへ追加しない
+- registry URIは権限制御されたimmutable HTTPS identityとし、local pathや一時URLを公開recordへ記録しない
+- T2VAはreferenceなし、FL2VA/Ref2VAは1件以上の実在assetを要求し、複数modalityは`mixed` coverageとして記録する
+- per-case rights status/evidenceをcompilerが推測せず、approvedの場合はHTTPS evidenceを要求する
+- registry digestとcaseが変わるたびにset-levelのrights reviewer/quality owner承認を`unassigned`へ戻し、旧承認を引き継がない
+- outputがregistry/template inputを上書きしないよう拒否し、一時fileのformal semantic validation成功後にだけatomic replaceする
+- compiler成功はcase、rights、metricまたはset approvalを意味しない。formal validatorが終了code 0になるまでcandidateを正式recordとして採用しない
+
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
 - 横長、正方形、縦長
@@ -1891,7 +1901,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
 
-2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約を追加したが、case registry、rights review、metric planとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約とprivate registry compilerを追加したが、実case registry、rights review、metric planとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2142,7 +2152,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 
 1. **Blocker for H3 use / tracked in #11:** H3へaccessするdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useのlocation、operator、owner、decisionが残る。満たさない場合に個別licenseを取得するか。timezone、IP判定、HF gateだけを適合証拠にしない。このblockerは独立source、CPU CIまたはcode-only package配布をblockしない。
 2. **Resolved for independent code:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、CLI、wheelおよび独自documentationはApache-2.0境界へ分類した。将来BYOW converterへ公式code、configurationまたはDocumentationを取り込む場合は再reviewする。
-3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Issue #14でformal quality-set schema、validator、空の`incomplete` recordを実装した。Tier、CI予算、case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Issue #14でformal quality-set schema、validator、空の`incomplete` recordを実装し、private registryからredacted metadataをatomic生成するcompilerも追加した。実case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。

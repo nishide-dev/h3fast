@@ -24,7 +24,7 @@ The Initial Runtime release source of truth is `compliance/release-gates/initial
 
 Territory evidence for H3-related flows is recorded separately in `compliance/territories/initial-runtime.json`. Do not infer physical location from timezone, IP geolocation, runner labels, or repository hosting alone. Keep unknown H3-use locations and classifications explicit, and require `h3fast compliance check-territories` before new H3 access, execution, derivatives, Output distribution, or services. Source storage, CPU-only CI, and code-only package access are `not-applicable` and are not part of the package release gate.
 
-Formal quality-set readiness is recorded in `benchmarks/quality/formal-quality-set.json`. The committed record is intentionally `incomplete` and contains no prompt text or media. Do not set `formal_quality_set_ready` or the release gate to passed until the case registry, 10/50 minimums, required coverage, per-case rights evidence, metric plans, and named rights/quality approvals all pass `h3fast benchmark check-quality-set`.
+Formal quality-set readiness is recorded in `benchmarks/quality/formal-quality-set.json`. The committed record is intentionally `incomplete` and contains no prompt text or media. Keep private registry instances and reference assets outside Git; use `h3fast benchmark compile-quality-registry` to produce redacted candidates. Do not set `formal_quality_set_ready` or the release gate to passed until the case registry, 10/50 minimums, required coverage, per-case rights evidence, metric plans, and named rights/quality approvals all pass `h3fast benchmark check-quality-set`.
 
 ## Source of truth
 

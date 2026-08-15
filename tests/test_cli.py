@@ -155,6 +155,69 @@ def test_benchmark_quality_set_command_reports_committed_blockers(capsys) -> Non
     assert "approval:rights_reviewer:unassigned" in output["blockers"]
 
 
+def test_benchmark_compile_quality_registry_command(tmp_path, capsys) -> None:
+    registry = tmp_path / "quality.private-quality-registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "registry_id": "h3fast-phase0-formal-quality-v1",
+                "updated_at": "2026-08-16",
+                "selection": {
+                    "method": "Project-authored case.",
+                    "exclusions_reviewed": False,
+                    "public_exclusions": [],
+                    "known_failures_reviewed": False,
+                    "public_known_failures": [],
+                },
+                "cases": [
+                    {
+                        "id": "smoke-001",
+                        "split": "smoke",
+                        "prompt": "Private prompt",
+                        "seed": 1,
+                        "task": "t2va",
+                        "duration_seconds": 5,
+                        "aspect_ratio": "landscape",
+                        "languages": ["en"],
+                        "subject_tags": ["product"],
+                        "motion_tags": ["static"],
+                        "audio_tags": ["near-silent"],
+                        "references": [],
+                        "rights_status": "unreviewed",
+                        "rights_evidence": [],
+                        "public_notes": "Pending rights review.",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "formal.json"
+
+    status = main(
+        [
+            "benchmark",
+            "compile-quality-registry",
+            "--registry",
+            str(registry),
+            "--registry-uri",
+            "https://example.test/private/quality-v1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    stdout = capsys.readouterr().out
+    report = json.loads(stdout)
+    assert status == 0
+    assert report["smoke_cases"] == 1
+    assert report["ready"] is False
+    assert output.is_file()
+    assert str(tmp_path) not in stdout
+    assert "Private prompt" not in output.read_text(encoding="utf-8")
+
+
 def test_gpu_ids_parser_rejects_invalid_values() -> None:
     assert _gpu_ids("1,2") == (1, 2)
     with pytest.raises(argparse.ArgumentTypeError):

@@ -22,11 +22,13 @@
 - prompt adherence、perceptual video、temporal consistency、audio quality、A/V sync、人手pairwiseのversioned implementation、budget、owner、evidenceを要求する
 - set全体のrights reviewerとquality ownerを別々に承認する
 - selection method、case registry digest、exclusions、known failuresのreview状態を記録する
+- prompt本文とlocal reference pathを持つregistryは[`schemas/private-quality-registry.schema.json`](../../schemas/private-quality-registry.schema.json)に従いrepository外で管理する
+- `h3fast benchmark compile-quality-registry`はprivate registryとassetをhashし、公開recordへprompt本文、local path、mediaを含めずatomicに出力し、set-level承認を引き継がない
 
 `h3fast benchmark check-quality-set`は、承認済みrecordだけ終了code 0、正当だが未完了のrecordは1、schemaまたは意味上矛盾するrecordは2を返す。
 
 ## Consequences
 
-契約と未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
+契約、private registry compiler、redactionと未完了項目はCPU-only CIで検証できる。case registryやmediaを公開せずに設計を先行できるが、このrecordが`incomplete`の間はquality同等性、lossless性、Support Tier、公開releaseを主張できない。
 
 実際のcase選定、rights review、GPU生成、metric実装とbudget決定は別途必要である。formal quality setのrights reviewerをH3-use compliance判断で代替せず、承認evidenceが揃うまでprotocolの`formal_quality_set_ready`を`false`に保つ。
