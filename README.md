@@ -8,6 +8,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
+- 承認前にfail closedするmachine-readable release gate
 - CPU-only環境でimport可能な単一Python package
 
 製品・配布仕様は[`docs/spec.md`](docs/spec.md)、開発規約は[`AGENTS.md`](AGENTS.md)、Phase 1B完了監査は[`docs/audits/0001-phase1b-completion.md`](docs/audits/0001-phase1b-completion.md)を参照してください。
@@ -17,6 +18,8 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 このrepositoryはPhase 1Bの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbenchmark harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 AdaではDiT resident layerを20から40へ増やした単一変数A/Bを実施し、client E2E p50を889.495秒から883.516秒へ、denoise p50を847.339秒から842.507秒へ改善しました。一方、reported peak GPU memoryは最大23,376 MiBから35,696 MiBへ増加しています。単一caseのlocal測定であり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
+
+Initial Runtimeは現在公開承認されていません。一次資料、source boundary、未確認regionは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、machine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
 
 ## Development setup
 
@@ -48,6 +51,13 @@ uv run h3fast inspect-snapshot /models/MiniMax-H3 \
 
 ```bash
 uv run h3fast verify-model /models/H3-Fast-FL2VA-FP8
+```
+
+Initial Runtimeのrelease gateを検査します。現在のrecordは未指名approvalと未完了checkを含むため、JSON reportを出力して終了code 1を返すのが正常です。終了code 0は全required checkとlegal、release、schema approvalが証拠付きで完了した場合だけ返します。
+
+```bash
+uv run h3fast release check \
+  --record compliance/release-gates/initial-runtime.json
 ```
 
 benchmark protocolの構造を検証します。

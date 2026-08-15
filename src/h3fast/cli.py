@@ -24,6 +24,7 @@ from h3fast.benchmarks import (
 from h3fast.diagnostics import run_doctor
 from h3fast.exceptions import H3FastError
 from h3fast.manifest import inspect_snapshot, verify_model_artifact
+from h3fast.release import check_release_gate
 
 CommandHandler = Callable[[argparse.Namespace], int]
 
@@ -72,6 +73,12 @@ def _verify_model(args: argparse.Namespace) -> int:
     report = verify_model_artifact(Path(args.path))
     _write_json(report.to_dict())
     return 0
+
+
+def _release_check(args: argparse.Namespace) -> int:
+    report = check_release_gate(Path(args.record))
+    _write_json(report.to_dict())
+    return 0 if report.ready else 1
 
 
 def _validate_benchmark_protocol(args: argparse.Namespace) -> int:
@@ -294,6 +301,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     verify_model.add_argument("path")
     verify_model.set_defaults(handler=_verify_model)
+
+    release = subparsers.add_parser(
+        "release",
+        help="Validate fail-closed release readiness records",
+    )
+    release_subparsers = release.add_subparsers(dest="release_command", required=True)
+    release_check = release_subparsers.add_parser(
+        "check",
+        help="Exit successfully only when every required release gate is approved",
+    )
+    release_check.add_argument("--record", required=True)
+    release_check.set_defaults(handler=_release_check)
 
     benchmark = subparsers.add_parser(
         "benchmark",

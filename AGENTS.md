@@ -20,6 +20,8 @@ The Phase 1A technical baseline and the first Phase 1B measured optimization are
 
 Avoid speculative support for multiple GPU vendors, task families, quantization schemes, servers, or package distributions before an actual need and test environment exist.
 
+The Initial Runtime release source of truth is `compliance/release-gates/initial-runtime.json`. It is intentionally `blocked`. Do not mark an approval or check as complete without the named owner, timestamp, and evidence required by its schema and semantic validator. A release workflow must require `h3fast release check` to exit successfully; ordinary development CI must validate the blocked record without pretending a release is approved.
+
 ## Source of truth
 
 - `docs/spec.md` defines product scope, phases, compliance requirements, artifact formats, benchmark policy, and release gates.

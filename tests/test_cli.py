@@ -99,6 +99,22 @@ def test_verify_model_command(tmp_path: Path, capsys) -> None:
     assert json.loads(capsys.readouterr().out)["artifact_id"] == "h3fast-test"
 
 
+def test_release_check_reports_committed_blockers(capsys) -> None:
+    status = main(
+        [
+            "release",
+            "check",
+            "--record",
+            "compliance/release-gates/initial-runtime.json",
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert output["ready"] is False
+    assert "approval:legal_reviewer:unassigned" in output["blockers"]
+
+
 def test_benchmark_protocol_command(capsys) -> None:
     status = main(["benchmark", "validate-protocol", "benchmarks/protocol.yaml"])
 

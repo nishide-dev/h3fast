@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/release-gate.schema.json",
+  "title": "H3Fast release gate record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "status",
+    "updated_at",
+    "source_issue",
+    "approvals",
+    "checks"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "release_id": { "const": "initial-runtime" },
+    "status": { "enum": ["blocked", "approved"] },
+    "updated_at": { "type": "string", "format": "date" },
+    "source_issue": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legal_reviewer", "release_approver", "schema_owner"],
+      "properties": {
+        "legal_reviewer": { "$ref": "#/$defs/approval" },
+        "release_approver": { "$ref": "#/$defs/approval" },
+        "schema_owner": { "$ref": "#/$defs/approval" }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/check" }
+    }
+  },
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "owner", "deadline", "approved_at", "evidence"],
+      "properties": {
+        "state": { "enum": ["unassigned", "pending", "approved"] },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "deadline": {
+          "description": "Decision or approval target date, not an inferred implementation promise",
+          "type": "string",
+          "format": "date"
+        },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "status", "owner", "deadline", "evidence"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "description": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["blocked", "passed", "not_applicable"] },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "deadline": {
+          "description": "Gate disposition target date, not an inferred implementation promise",
+          "type": "string",
+          "format": "date"
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

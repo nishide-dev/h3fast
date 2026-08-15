@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0",
+  "release_id": "initial-runtime",
+  "status": "blocked",
+  "updated_at": "2026-08-16",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/11",
+  "approvals": {
+    "legal_reviewer": {
+      "state": "unassigned",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "approved_at": null,
+      "evidence": []
+    },
+    "release_approver": {
+      "state": "unassigned",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "approved_at": null,
+      "evidence": []
+    },
+    "schema_owner": {
+      "state": "unassigned",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "approved_at": null,
+      "evidence": []
+    }
+  },
+  "checks": [
+    {
+      "id": "license-evidence",
+      "description": "Pin the official MiniMax H3 license and Q&A evidence",
+      "status": "passed",
+      "owner": "nishide-dev",
+      "deadline": "2026-08-16",
+      "evidence": [
+        "docs/compliance/h3-license-boundary-review.md"
+      ]
+    },
+    {
+      "id": "territory-approval",
+      "description": "Approve development, CI, storage, distribution, execution, and Output-use territories",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/issues/11"
+      ]
+    },
+    {
+      "id": "code-boundary-engineering",
+      "description": "Inventory the public package boundary and copied-material scan",
+      "status": "passed",
+      "owner": "nishide-dev",
+      "deadline": "2026-08-16",
+      "evidence": [
+        "docs/compliance/h3-license-boundary-review.md",
+        "docs/compliance/artifact-register.md"
+      ]
+    },
+    {
+      "id": "code-boundary-legal",
+      "description": "Approve whether the independent H3Fast runtime is outside MiniMax H3 Works or satisfies applicable terms",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "https://github.com/nishide-dev/h3fast/issues/11"
+      ]
+    },
+    {
+      "id": "formal-quality-set",
+      "description": "Approve rights-reviewed 10-case smoke and 50-case regression sets",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#24-未解決事項"
+      ]
+    },
+    {
+      "id": "clean-machine-reproduction",
+      "description": "Reproduce the fixed 20-layer baseline and adopted 40-layer candidate on a clean machine",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/audits/0001-phase1b-completion.md"
+      ]
+    },
+    {
+      "id": "supply-chain",
+      "description": "Pass dependency, license, secret, provenance, and applicable SBOM or vulnerability gates",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/audits/0001-phase1b-completion.md"
+      ]
+    },
+    {
+      "id": "artifact-notices",
+      "description": "Approve LICENSE, NOTICE, modifications, and third-party notices for every release artifact",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#42-リリースゲート"
+      ]
+    },
+    {
+      "id": "support-target",
+      "description": "Name and approve the initial tested support target without extrapolating current local evidence",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#191-support-tier"
+      ]
+    },
+    {
+      "id": "byow-converter",
+      "description": "Implement and verify the local-only fail-closed BYOW conversion contract",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#72-変換cli"
+      ]
+    },
+    {
+      "id": "gpu-e2e",
+      "description": "Pass the required representative-GPU E2E release validation",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#22-initial-runtime-release-definition-of-done"
+      ]
+    },
+    {
+      "id": "public-benchmark",
+      "description": "Approve and publish reproducible baseline, candidate, quality, environment, and artifact metadata",
+      "status": "blocked",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/spec.md#22-initial-runtime-release-definition-of-done"
+      ]
+    }
+  ]
+}
