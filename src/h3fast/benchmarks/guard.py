@@ -174,6 +174,47 @@ def _query_pmon(
     return applications
 
 
+def _query_gpu_uuids(selected_gpus: tuple[int, ...]) -> dict[int, str]:
+    executable = shutil.which("nvidia-smi")
+    if executable is None:
+        message = "nvidia-smi is required for the GPU guard"
+        raise ValidationError(message)
+    result = subprocess.run(  # noqa: S603
+        [
+            executable,
+            "--query-gpu=index,uuid",
+            "--format=csv,noheader,nounits",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "unknown nvidia-smi UUID query failure"
+        message = f"nvidia-smi GPU UUID query failed: {detail}"
+        raise ValidationError(message)
+    selected = set(selected_gpus)
+    gpu_uuids: dict[int, str] = {}
+    for line in result.stdout.splitlines():
+        fields = [field.strip() for field in line.split(",")]
+        if len(fields) != 2:
+            message = "nvidia-smi returned an unexpected GPU UUID row"
+            raise ValidationError(message)
+        try:
+            gpu_index = int(fields[0])
+        except ValueError as error:
+            message = "nvidia-smi returned an invalid GPU index"
+            raise ValidationError(message) from error
+        if gpu_index in selected:
+            gpu_uuids[gpu_index] = fields[1]
+    if set(gpu_uuids) != selected:
+        missing = sorted(selected - set(gpu_uuids))
+        message = f"selected GPUs disappeared from nvidia-smi: {missing}"
+        raise ValidationError(message)
+    return gpu_uuids
+
+
 def find_foreign_gpu_processes_pmon(
     selected_gpus: tuple[int, ...],
     *,
@@ -343,14 +384,7 @@ def serve_guarded(
         gpus: tuple[int, ...], root_pid: int
     ) -> tuple[ForeignGpuProcess, ...]:
         if not gpu_uuids:
-            devices, _applications = _query_nvidia()
-            gpu_uuids.update(
-                {
-                    device.index: device.uuid
-                    for device in devices
-                    if device.index in gpus
-                }
-            )
+            gpu_uuids.update(_query_gpu_uuids(gpus))
         return find_foreign_gpu_processes_pmon(
             gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
         )

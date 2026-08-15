@@ -11,6 +11,7 @@ import pytest
 from h3fast.benchmarks.guard import (
     ForeignGpuProcess,
     _health_ready,
+    _query_gpu_uuids,
     _query_with_timeout_retry,
     _signal_and_wait,
     find_foreign_gpu_processes,
@@ -115,6 +116,22 @@ def test_pmon_guard_filters_graphics_and_allows_descendants(
 
     assert [process.pid for process in result] == [300]
     assert result[0].used_memory_mib == 200
+
+
+def test_gpu_uuid_query_selects_requested_devices(monkeypatch) -> None:
+    output = "0, gpu-0\n1, gpu-1\n2, gpu-2\n"
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.shutil.which", lambda _name: "/usr/bin/nvidia-smi"
+    )
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, output, ""),
+    )
+
+    assert _query_gpu_uuids((1, 2)) == {1: "gpu-1", 2: "gpu-2"}
+
+    with pytest.raises(ValidationError, match="disappeared"):
+        _query_gpu_uuids((3,))
 
 
 class _Process:
