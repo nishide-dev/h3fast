@@ -138,6 +138,23 @@ def test_benchmark_protocol_command(capsys) -> None:
     assert json.loads(capsys.readouterr().out)["status"] == "draft"
 
 
+def test_benchmark_quality_set_command_reports_committed_blockers(capsys) -> None:
+    status = main(
+        [
+            "benchmark",
+            "check-quality-set",
+            "--record",
+            "benchmarks/quality/formal-quality-set.json",
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert output["ready"] is False
+    assert output["smoke_cases"] == 0
+    assert "approval:rights_reviewer:unassigned" in output["blockers"]
+
+
 def test_gpu_ids_parser_rejects_invalid_values() -> None:
     assert _gpu_ids("1,2") == (1, 2)
     with pytest.raises(argparse.ArgumentTypeError):

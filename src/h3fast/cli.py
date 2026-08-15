@@ -13,6 +13,7 @@ from h3fast import __version__
 from h3fast.benchmarks import (
     build_quality_reference,
     build_singularity_launch,
+    check_formal_quality_set,
     check_quality,
     load_runtime_settings,
     run_case,
@@ -265,6 +266,12 @@ def _benchmark_check_quality(args: argparse.Namespace) -> int:
     return 0 if report["status"] == "passed" else 1
 
 
+def _benchmark_check_quality_set(args: argparse.Namespace) -> int:
+    report = check_formal_quality_set(Path(args.record))
+    _write_json(report.to_dict())
+    return 0 if report.ready else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -453,6 +460,13 @@ def build_parser() -> argparse.ArgumentParser:
     quality_check.add_argument("--ffmpeg", default="ffmpeg")
     quality_check.add_argument("--ffprobe", default="ffprobe")
     quality_check.set_defaults(handler=_benchmark_check_quality)
+
+    quality_set_check = benchmark_subparsers.add_parser(
+        "check-quality-set",
+        help="Exit successfully only when the formal quality-set record is approved",
+    )
+    quality_set_check.add_argument("--record", required=True)
+    quality_set_check.set_defaults(handler=_benchmark_check_quality_set)
     return parser
 
 

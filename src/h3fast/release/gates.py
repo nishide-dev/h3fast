@@ -5,13 +5,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import TYPE_CHECKING
+from pathlib import Path
 from urllib.parse import urlparse
 
+from h3fast.benchmarks.quality_sets import check_formal_quality_set
 from h3fast.exceptions import ValidationError
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 REQUIRED_APPROVAL_ROLES = frozenset(
     {"legal_reviewer", "release_approver", "schema_owner"}
@@ -47,6 +45,7 @@ _APPROVAL_FIELDS = frozenset({"state", "owner", "deadline", "approved_at", "evid
 _CHECK_FIELDS = frozenset(
     {"id", "description", "status", "owner", "deadline", "evidence"}
 )
+_FORMAL_QUALITY_SET_PATH = "benchmarks/quality/formal-quality-set.json"
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,6 +273,18 @@ def check_release_gate(path: Path) -> ReleaseGateReport:
             message = f"duplicate release check id: {check_id}"
             raise ValidationError(message)
         seen.add(check_id)
+        if (
+            check_id == "formal-quality-set"
+            and check_status == "passed"
+            and isinstance(value, dict)
+            and _FORMAL_QUALITY_SET_PATH in value["evidence"]
+            and not check_formal_quality_set(Path(_FORMAL_QUALITY_SET_PATH)).ready
+        ):
+            message = (
+                "formal-quality-set release check cannot pass while its committed "
+                "record is incomplete"
+            )
+            raise ValidationError(message)
         if check_status == "blocked":
             blockers.append(f"check:{check_id}:blocked")
             if owner is None:

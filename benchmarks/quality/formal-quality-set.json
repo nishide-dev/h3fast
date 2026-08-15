@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "set_id": "h3fast-phase0-formal-quality-v1",
+  "status": "incomplete",
+  "updated_at": "2026-08-16",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/14",
+  "requirements": {
+    "smoke_min_cases": 10,
+    "regression_min_cases": 50,
+    "minimum_distinct_languages": 2,
+    "required_tasks": ["t2va", "fl2va", "ref2va"],
+    "required_durations_seconds": [4, 5, 10, 15],
+    "required_aspect_ratios": ["landscape", "square", "portrait"],
+    "required_languages": ["ja"],
+    "required_subject_tags": ["face", "hands", "text", "product", "multiple-people"],
+    "required_motion_tags": ["dynamic", "static", "camera-movement"],
+    "required_audio_tags": ["dialogue", "environment", "music", "near-silent"],
+    "required_reference_modalities": ["none", "image", "video", "audio", "mixed"],
+    "required_metric_families": [
+      "prompt-adherence",
+      "perceptual-video",
+      "temporal-consistency",
+      "audio-quality",
+      "av-sync",
+      "human-pairwise"
+    ]
+  },
+  "selection": {
+    "method": null,
+    "registry_uri": null,
+    "registry_sha256": null,
+    "exclusions_reviewed": false,
+    "exclusions": [],
+    "known_failures_reviewed": false,
+    "known_failures": []
+  },
+  "approvals": {
+    "quality_owner": {
+      "state": "unassigned",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "approved_at": null,
+      "evidence": []
+    },
+    "rights_reviewer": {
+      "state": "unassigned",
+      "owner": null,
+      "deadline": "2026-08-31",
+      "approved_at": null,
+      "evidence": []
+    }
+  },
+  "metrics": [
+    {
+      "family": "prompt-adherence",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "perceptual-video",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "temporal-consistency",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "audio-quality",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "av-sync",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "human-pairwise",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "version": null,
+      "budget": null,
+      "evidence": []
+    }
+  ],
+  "cases": [],
+  "limitations": [
+    "No prompt text, reference media, generated media, or model artifact is stored in this record.",
+    "This incomplete inventory is not evidence of quality equivalence, losslessness, or support-tier readiness.",
+    "The single-case exact decoded-artifact gate remains limited to placement-only regression testing."
+  ]
+}

@@ -8,6 +8,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
+- prompt/mediaを含めないformal quality-set contractとfail-closed検査
 - 承認前にfail closedするmachine-readable release gate
 - CPU-only環境でimport可能な単一Python package
 
@@ -19,7 +20,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 BYOWはH3の重みを再配布しない方式ですが、MiniMax H3 Community Licenseの地域・用途・Output等の制限を免除するものではありません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
-Initial Runtimeは現在公開承認されていません。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、全体のmachine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
+Initial Runtimeは現在公開承認されていません。一次資料とsource boundaryは[`docs/compliance/h3-license-boundary-review.md`](docs/compliance/h3-license-boundary-review.md)、未確認regionは[`compliance/territories/initial-runtime.json`](compliance/territories/initial-runtime.json)、formal quality setは[`benchmarks/quality/formal-quality-set.json`](benchmarks/quality/formal-quality-set.json)、全体のmachine-readable stateは[`compliance/release-gates/initial-runtime.json`](compliance/release-gates/initial-runtime.json)を参照してください。
 
 ## Development setup
 
@@ -72,6 +73,13 @@ benchmark protocolの構造を検証します。
 ```bash
 uv run h3fast benchmark validate-protocol benchmarks/protocol.yaml
 uv run h3fast benchmark validate-protocol benchmarks/protocol-baseline20.yaml
+```
+
+formal quality setの件数、層化coverage、rights evidence、metric plan、approvalを検査します。現在のrecordはprompt本文やmediaを含まず、caseと承認が未登録のため終了code 1を返します。不正または矛盾するrecordは終了code 2です。
+
+```bash
+uv run h3fast benchmark check-quality-set \
+  --record benchmarks/quality/formal-quality-set.json
 ```
 
 `benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。
@@ -161,7 +169,7 @@ uv run h3fast benchmark check-quality \
 
 上記は採用した40層candidateへreferenceを適用した検証済みcommandです。baselineを再測定する場合はsuiteとprotocolの両方を20層用へ切り替えます。
 
-このgateは固定1 caseのplacement-only回帰検出に限定します。10件以上のsmoke set、50件以上のregression set、知覚品質指標、一般的なlossless性やSupport Tierを示しません。referenceとcandidateは同じ`ffmpeg`／`ffprobe` versionを使用する必要があります。
+このgateは固定1 caseのplacement-only回帰検出に限定します。formal quality-set recordの存在だけでも、10件以上のsmoke set、50件以上のregression set、知覚品質指標、一般的なlossless性やSupport Tierを示しません。referenceとcandidateは同じ`ffmpeg`／`ffprobe` versionを使用する必要があります。
 
 ## Quality checks
 

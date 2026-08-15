@@ -49,6 +49,7 @@
         "video_decode_format",
         "audio_decode_format",
         "scope",
+        "formal_quality_set_path",
         "formal_quality_set_ready"
       ],
       "properties": {
@@ -60,6 +61,7 @@
         "video_decode_format": { "const": "rgb24" },
         "audio_decode_format": { "const": "pcm_s16le" },
         "scope": { "type": "string", "minLength": 1 },
+        "formal_quality_set_path": { "type": "string", "minLength": 1 },
         "formal_quality_set_ready": { "type": "boolean" }
       }
     },

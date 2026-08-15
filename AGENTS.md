@@ -24,6 +24,8 @@ The Initial Runtime release source of truth is `compliance/release-gates/initial
 
 Territory evidence is recorded separately in `compliance/territories/initial-runtime.json`. Do not infer physical location from timezone, IP geolocation, runner labels, or repository hosting alone. Keep unknown locations and legal classifications explicit, and require `h3fast compliance check-territories` before changing the release gate's `territory-approval` check to `passed`.
 
+Formal quality-set readiness is recorded in `benchmarks/quality/formal-quality-set.json`. The committed record is intentionally `incomplete` and contains no prompt text or media. Do not set `formal_quality_set_ready` or the release gate to passed until the case registry, 10/50 minimums, required coverage, per-case rights evidence, metric plans, and named rights/quality approvals all pass `h3fast benchmark check-quality-set`.
+
 ## Source of truth
 
 - `docs/spec.md` defines product scope, phases, compliance requirements, artifact formats, benchmark policy, and release gates.

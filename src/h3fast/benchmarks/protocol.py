@@ -5,12 +5,11 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
+from typing import cast
 
+from h3fast.benchmarks.quality_sets import check_formal_quality_set
 from h3fast.exceptions import ValidationError
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 IMMUTABLE_REVISION_PATTERN = re.compile(r"[0-9a-f]{40}")
 
@@ -140,6 +139,7 @@ def validate_protocol(path: Path) -> ProtocolReport:
             "video_decode_format",
             "audio_decode_format",
             "scope",
+            "formal_quality_set_path",
         ):
             _non_empty_string(quality.get(field), f"quality.{field}")
         if quality.get("method") != "exact-decoded-artifact-v1":
@@ -156,9 +156,23 @@ def validate_protocol(path: Path) -> ProtocolReport:
         ):
             msg = "benchmark protocol quality baseline requires at least three runs"
             raise ValidationError(msg)
-        if not isinstance(quality.get("formal_quality_set_ready"), bool):
+        formal_ready = quality.get("formal_quality_set_ready")
+        if not isinstance(formal_ready, bool):
             msg = "benchmark protocol formal_quality_set_ready must be boolean"
             raise ValidationError(msg)
+        if formal_ready:
+            formal_path = Path(
+                _non_empty_string(
+                    quality.get("formal_quality_set_path"),
+                    "quality.formal_quality_set_path",
+                )
+            )
+            if not check_formal_quality_set(formal_path).ready:
+                msg = (
+                    "benchmark protocol formal_quality_set_ready requires an "
+                    "approved formal quality-set record"
+                )
+                raise ValidationError(msg)
 
     if status == "ready":
         revision = base_model.get("revision")

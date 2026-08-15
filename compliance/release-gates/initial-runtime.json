@@ -74,10 +74,11 @@
       "id": "formal-quality-set",
       "description": "Approve rights-reviewed 10-case smoke and 50-case regression sets",
       "status": "blocked",
-      "owner": null,
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
-        "docs/spec.md#24-未解決事項"
+        "benchmarks/quality/formal-quality-set.json",
+        "https://github.com/nishide-dev/h3fast/issues/14"
       ]
     },
     {
