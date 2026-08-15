@@ -78,7 +78,7 @@
       "deadline": "2026-08-31",
       "evidence": [
         "benchmarks/quality/formal-quality-set.json",
-        "https://github.com/nishide-dev/h3fast/issues/14"
+        "https://github.com/nishide-dev/h3fast/issues/16"
       ]
     },
     {
