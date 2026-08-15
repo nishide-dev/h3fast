@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/territory-inventory.schema.json",
+  "title": "H3Fast territory evidence inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "inventory_id",
+    "status",
+    "updated_at",
+    "source_issue",
+    "license_evidence",
+    "legal_approval",
+    "flows"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "inventory_id": { "const": "initial-runtime-territories" },
+    "status": { "enum": ["incomplete", "approved"] },
+    "updated_at": { "type": "string", "format": "date" },
+    "source_issue": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "license_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_revision",
+        "license_sha256",
+        "applicable_territory",
+        "evidence"
+      ],
+      "properties": {
+        "base_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "license_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "applicable_territory": { "type": "string", "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "legal_approval": { "$ref": "#/$defs/approval" },
+    "flows": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/flow" }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "owner", "deadline", "approved_at", "evidence"],
+      "properties": {
+        "state": { "enum": ["unassigned", "pending", "approved"] },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "deadline": { "type": "string", "format": "date" },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "location_scope",
+        "country_codes",
+        "territory_assessment",
+        "h3_relation",
+        "decision",
+        "written_license",
+        "operator",
+        "owner",
+        "deadline",
+        "evidence",
+        "notes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "description": { "type": "string", "minLength": 1 },
+        "location_scope": { "enum": ["unknown", "countries", "global"] },
+        "country_codes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "uniqueItems": true
+        },
+        "territory_assessment": {
+          "enum": [
+            "unknown",
+            "within-applicable",
+            "includes-excluded",
+            "not-applicable"
+          ]
+        },
+        "h3_relation": {
+          "enum": [
+            "none",
+            "materials",
+            "h3-works",
+            "output",
+            "both",
+            "undetermined"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "unknown",
+            "approved-under-community-license",
+            "approved-with-written-license",
+            "not-applicable"
+          ]
+        },
+        "written_license": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "operator": { "type": ["string", "null"], "minLength": 1 },
+        "owner": { "type": ["string", "null"], "minLength": 1 },
+        "deadline": { "type": "string", "format": "date" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

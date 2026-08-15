@@ -22,6 +22,8 @@ Avoid speculative support for multiple GPU vendors, task families, quantization 
 
 The Initial Runtime release source of truth is `compliance/release-gates/initial-runtime.json`. It is intentionally `blocked`. Do not mark an approval or check as complete without the named owner, timestamp, and evidence required by its schema and semantic validator. A release workflow must require `h3fast release check` to exit successfully; ordinary development CI must validate the blocked record without pretending a release is approved.
 
+Territory evidence is recorded separately in `compliance/territories/initial-runtime.json`. Do not infer physical location from timezone, IP geolocation, runner labels, or repository hosting alone. Keep unknown locations and legal classifications explicit, and require `h3fast compliance check-territories` before changing the release gate's `territory-approval` check to `passed`.
+
 ## Source of truth
 
 - `docs/spec.md` defines product scope, phases, compliance requirements, artifact formats, benchmark policy, and release gates.

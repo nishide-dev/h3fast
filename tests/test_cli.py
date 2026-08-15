@@ -115,6 +115,22 @@ def test_release_check_reports_committed_blockers(capsys) -> None:
     assert "approval:legal_reviewer:unassigned" in output["blockers"]
 
 
+def test_compliance_check_territories_reports_committed_blockers(capsys) -> None:
+    status = main(
+        [
+            "compliance",
+            "check-territories",
+            "--record",
+            "compliance/territories/initial-runtime.json",
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert output["ready"] is False
+    assert "legal-approval:unassigned" in output["blockers"]
+
+
 def test_benchmark_protocol_command(capsys) -> None:
     status = main(["benchmark", "validate-protocol", "benchmarks/protocol.yaml"])
 

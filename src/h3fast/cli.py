@@ -21,6 +21,7 @@ from h3fast.benchmarks import (
     serve_guarded,
     validate_protocol,
 )
+from h3fast.compliance import check_territory_inventory
 from h3fast.diagnostics import run_doctor
 from h3fast.exceptions import H3FastError
 from h3fast.manifest import inspect_snapshot, verify_model_artifact
@@ -77,6 +78,12 @@ def _verify_model(args: argparse.Namespace) -> int:
 
 def _release_check(args: argparse.Namespace) -> int:
     report = check_release_gate(Path(args.record))
+    _write_json(report.to_dict())
+    return 0 if report.ready else 1
+
+
+def _compliance_check_territories(args: argparse.Namespace) -> int:
+    report = check_territory_inventory(Path(args.record))
     _write_json(report.to_dict())
     return 0 if report.ready else 1
 
@@ -313,6 +320,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     release_check.add_argument("--record", required=True)
     release_check.set_defaults(handler=_release_check)
+
+    compliance = subparsers.add_parser(
+        "compliance",
+        help="Validate compliance evidence without inferring legal approval",
+    )
+    compliance_subparsers = compliance.add_subparsers(
+        dest="compliance_command", required=True
+    )
+    territory_check = compliance_subparsers.add_parser(
+        "check-territories",
+        help="Exit successfully only when every required territory flow is approved",
+    )
+    territory_check.add_argument("--record", required=True)
+    territory_check.set_defaults(handler=_compliance_check_territories)
 
     benchmark = subparsers.add_parser(
         "benchmark",

@@ -8,7 +8,7 @@
 - Release approver: Unassigned
 - Target decision date: 2026-08-31 (provisional)
 
-この文書はengineering inventoryと一次資料の記録であり、法的助言または公開承認ではない。承認状態のsource of truthは[`compliance/release-gates/initial-runtime.json`](../../compliance/release-gates/initial-runtime.json)とし、ownerまたはevidenceがない項目を推測で承認済みに変更しない。
+この文書はengineering inventoryと一次資料の記録であり、法的助言または公開承認ではない。承認状態のsource of truthは[`compliance/release-gates/initial-runtime.json`](../../compliance/release-gates/initial-runtime.json)、region evidenceは[`compliance/territories/initial-runtime.json`](../../compliance/territories/initial-runtime.json)とし、ownerまたはevidenceがない項目を推測で承認済みに変更しない。
 
 ## Pinned primary sources
 
@@ -63,6 +63,12 @@ License本文から、release設計に直接関係する事項を次のように
 
 IP geolocation、checkbox、HF gate、timezoneは法的所在地や実利用地の十分な証明として扱わない。
 
+GitHubの公式資料では、GitHub.com dataは既定で米国に保存される。現行CIのstandard Ubuntu runnerはAzure上で動作するが、`runs-on: ubuntu-latest`は特定regionの証明にならず、公開されるIP rangeも多数かつ更新される。現行workflowはH3をdownloadせず、H3 Materials、Output、benchmark artifactをuploadしないが、H3Fast sourceとdocumentationがH3 Worksに該当しないというlegal判断が完了するまで、米国storageとglobal source accessを`not_applicable`にしない。
+
+- [GitHub Enterprise Cloud with data residency](https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/about-github-enterprise-cloud-with-data-residency)
+- [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+- [GitHub Actions artifact and log retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization)
+
 ## Required decisions
 
 Legal reviewerとrelease approverは、少なくとも次をevidence URL、decision timestamp、適用範囲とともにrecordへ記録する。
@@ -73,4 +79,4 @@ Legal reviewerとrelease approverは、少なくとも次をevidence URL、decis
 4. License Q&Aの見出しとLicense本文のterritory表現差をどの根拠で解釈するか。
 5. `h3fast`名称、MiniMax H3表示、NOTICE、downstream termsへ必要な対応。
 
-これらが未承認の間、`h3fast release check --record compliance/release-gates/initial-runtime.json`は終了code 1を返す。終了codeを無視したreleaseを行わない。
+これらが未承認の間、`h3fast compliance check-territories --record compliance/territories/initial-runtime.json`と`h3fast release check --record compliance/release-gates/initial-runtime.json`は終了code 1を返す。終了codeを無視したreleaseを行わない。

@@ -7,6 +7,26 @@ import pytest
 from jsonschema import Draft202012Validator
 
 SCHEMAS = tuple(sorted(Path("schemas").glob("*.schema.json")))
+COMPLIANCE_RECORDS = (
+    Path("compliance/release-gates/initial-runtime.json"),
+    Path("compliance/territories/initial-runtime.json"),
+)
+
+
+def _evidence_values(value: object) -> tuple[str, ...]:
+    found: list[str] = []
+    pending = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, dict):
+            for key, item in current.items():
+                if key == "evidence" and isinstance(item, list):
+                    found.extend(value for value in item if isinstance(value, str))
+                else:
+                    pending.append(item)
+        elif isinstance(current, list):
+            pending.extend(current)
+    return tuple(found)
 
 
 @pytest.mark.parametrize("schema_path", SCHEMAS, ids=lambda path: path.name)
@@ -42,3 +62,30 @@ def test_committed_release_gate_matches_schema() -> None:
     Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
     ).validate(record)
+
+
+def test_committed_territory_inventory_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/territory-inventory.schema.json").read_text(encoding="utf-8")
+    )
+    inventory = json.loads(
+        Path("compliance/territories/initial-runtime.json").read_text(encoding="utf-8")
+    )
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(inventory)
+
+
+@pytest.mark.parametrize("record_path", COMPLIANCE_RECORDS, ids=lambda path: path.name)
+def test_committed_compliance_local_evidence_exists(record_path: Path) -> None:
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+
+    missing = sorted(
+        evidence
+        for evidence in _evidence_values(record)
+        if not evidence.startswith("https://")
+        and not Path(evidence.split("#", 1)[0]).is_file()
+    )
+
+    assert missing == []
