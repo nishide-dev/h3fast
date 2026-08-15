@@ -57,6 +57,7 @@ def _result(index: int) -> BenchmarkResult:
             "peak_memory_mib": float(index + 1000),
             "media_contract": {"size": "1344x768", "seconds": "5.166667"},
             "performance": {
+                "sglang_commit": "6eb941a34cb100b708a42ed1d26d2bdefafbd01e",
                 "pipeline_total_seconds": float(index + 8),
                 "stages": [
                     {

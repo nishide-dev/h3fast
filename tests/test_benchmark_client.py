@@ -16,6 +16,8 @@ from h3fast.benchmarks.client import (
 )
 from h3fast.exceptions import ValidationError
 
+_SGLANG_COMMIT = "6eb941a34cb100b708a42ed1d26d2bdefafbd01e"
+
 
 def test_run_case_records_hashes_without_prompt(tmp_path: Path, monkeypatch) -> None:
     responses = iter(
@@ -133,6 +135,7 @@ def test_run_case_records_server_performance_dump(tmp_path: Path, monkeypatch) -
                 json.dumps(
                     {
                         "request_id": "job-4",
+                        "commit_hash": _SGLANG_COMMIT,
                         "total_duration_ms": 1200,
                         "steps": [
                             {"name": "TextEncodingStage", "duration_ms": 200},
@@ -181,6 +184,7 @@ def test_run_case_records_server_performance_dump(tmp_path: Path, monkeypatch) -
         "seconds": "5.166667",
     }
     assert result.server["performance"]["pipeline_total_seconds"] == 1.2
+    assert result.server["performance"]["sglang_commit"] == _SGLANG_COMMIT
 
 
 def test_performance_dump_rejects_mismatched_job(tmp_path: Path) -> None:
@@ -189,6 +193,7 @@ def test_performance_dump_rejects_mismatched_job(tmp_path: Path) -> None:
         json.dumps(
             {
                 "request_id": "another-job",
+                "commit_hash": _SGLANG_COMMIT,
                 "total_duration_ms": 1,
                 "steps": [{"name": "stage", "duration_ms": 1}],
                 "denoise_steps_ms": [],
@@ -198,7 +203,30 @@ def test_performance_dump_rejects_mismatched_job(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValidationError, match="request id"):
-        _load_performance_dump(path, "expected-job")
+        _load_performance_dump(path, "expected-job", _SGLANG_COMMIT)
+
+
+def test_performance_dump_rejects_commit_mismatch_and_empty_denoise(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "metrics.json"
+    value = {
+        "request_id": "job",
+        "commit_hash": "0" * 40,
+        "total_duration_ms": 1,
+        "steps": [{"name": "stage", "duration_ms": 1}],
+        "denoise_steps_ms": [{"step": 0, "duration_ms": 1}],
+    }
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(ValidationError, match="SGLang commit"):
+        _load_performance_dump(path, "job", _SGLANG_COMMIT)
+
+    value["commit_hash"] = _SGLANG_COMMIT
+    value["denoise_steps_ms"] = []
+    path.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(ValidationError, match="non-empty"):
+        _load_performance_dump(path, "job", _SGLANG_COMMIT)
 
 
 def test_payload_restricts_server_performance_path() -> None:

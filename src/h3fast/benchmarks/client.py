@@ -64,13 +64,21 @@ class BenchmarkResult:
         }
 
 
-def _load_case(protocol_path: Path, case_id: str) -> tuple[str, dict[str, object]]:
+def _load_case(
+    protocol_path: Path, case_id: str
+) -> tuple[str, dict[str, object], str]:
     validate_protocol(protocol_path)
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    software = protocol["environment"]["software"]
+    sglang = software["sglang"]
+    if not isinstance(sglang, str) or not sglang.startswith("git:"):
+        message = "benchmark protocol must pin SGLang to a Git commit"
+        raise ValidationError(message)
+    sglang_commit = sglang.removeprefix("git:")
     cases = protocol["cases"]
     for value in cases:
         if isinstance(value, dict) and value.get("id") == case_id:
-            return str(protocol["protocol_id"]), value
+            return str(protocol["protocol_id"]), value, sglang_commit
     message = f"benchmark case is not defined: {case_id}"
     raise ValidationError(message)
 
@@ -184,7 +192,9 @@ def _nonnegative_number(value: object, field: str) -> float:
     return float(value)
 
 
-def _load_performance_dump(path: Path, job_id: str) -> dict[str, object]:
+def _load_performance_dump(
+    path: Path, job_id: str, expected_sglang_commit: str
+) -> dict[str, object]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -195,6 +205,9 @@ def _load_performance_dump(path: Path, job_id: str) -> dict[str, object]:
         raise ValidationError(message)
     if value.get("request_id") != job_id:
         message = "server performance dump request id does not match the video job"
+        raise ValidationError(message)
+    if value.get("commit_hash") != expected_sglang_commit:
+        message = "server performance dump SGLang commit does not match the protocol"
         raise ValidationError(message)
 
     stages_raw = value.get("steps")
@@ -218,8 +231,8 @@ def _load_performance_dump(path: Path, job_id: str) -> dict[str, object]:
         stages.append({"name": name, "seconds": duration_ms / 1000.0})
 
     denoise_raw = value.get("denoise_steps_ms")
-    if not isinstance(denoise_raw, list):
-        message = "server performance dump denoise_steps_ms must be an array"
+    if not isinstance(denoise_raw, list) or not denoise_raw:
+        message = "server performance dump denoise_steps_ms must be non-empty"
         raise ValidationError(message)
     denoise_seconds: list[float] = []
     for index, step in enumerate(denoise_raw):
@@ -235,6 +248,7 @@ def _load_performance_dump(path: Path, job_id: str) -> dict[str, object]:
         )
 
     return {
+        "sglang_commit": expected_sglang_commit,
         "pipeline_total_seconds": _nonnegative_number(
             value.get("total_duration_ms"), "total_duration_ms"
         )
@@ -249,6 +263,7 @@ def _server_metadata(
     *,
     performance_dump_path: Path | None,
     job_id: str,
+    expected_sglang_commit: str,
 ) -> dict[str, object]:
     server: dict[str, object] = {}
     if "inference_time_s" in status:
@@ -264,7 +279,9 @@ def _server_metadata(
     if isinstance(size, str) and size and isinstance(seconds, str) and seconds:
         server["media_contract"] = {"size": size, "seconds": seconds}
     if performance_dump_path is not None:
-        server["performance"] = _load_performance_dump(performance_dump_path, job_id)
+        server["performance"] = _load_performance_dump(
+            performance_dump_path, job_id, expected_sglang_commit
+        )
     return server
 
 
@@ -284,7 +301,7 @@ def run_case(
         message = "poll interval and timeout must be positive"
         raise ValidationError(message)
     endpoint = _validate_endpoint(endpoint)
-    protocol_id, case = _load_case(protocol_path, case_id)
+    protocol_id, case, expected_sglang_commit = _load_case(protocol_path, case_id)
     if (server_perf_dump_path is None) != (performance_dump_path is None):
         message = "server and host performance dump paths must be supplied together"
         raise ValidationError(message)
@@ -345,6 +362,7 @@ def run_case(
             status_response,
             performance_dump_path=performance_dump_path,
             job_id=job_id,
+            expected_sglang_commit=expected_sglang_commit,
         ),
     )
     result_path = output_dir / f"{protocol_id}-{case_id}.json"
