@@ -14,6 +14,7 @@ from h3fast.benchmarks.guard import (
     _query_with_timeout_retry,
     _signal_and_wait,
     find_foreign_gpu_processes,
+    find_foreign_gpu_processes_pmon,
     serve_guarded,
 )
 from h3fast.benchmarks.launch import LaunchPlan
@@ -84,6 +85,36 @@ def test_find_foreign_gpu_processes_rejects_invalid_application(monkeypatch) -> 
 
     with pytest.raises(ValidationError, match="invalid compute process"):
         find_foreign_gpu_processes((1,), allowed_root_pid=100)
+
+
+def test_pmon_guard_filters_graphics_and_allows_descendants(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _status(tmp_path, 100, 1)
+    _status(tmp_path, 200, 100)
+    _status(tmp_path, 300, 1)
+    output = """# gpu pid type fb ccpm command
+1 200 C 100 0 server-worker
+1 300 C+G 200 0 foreign-worker
+1 400 G 50 0 graphics-only
+"""
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.shutil.which", lambda _name: "/usr/bin/nvidia-smi"
+    )
+    monkeypatch.setattr(
+        "h3fast.benchmarks.guard.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, output, ""),
+    )
+
+    result = find_foreign_gpu_processes_pmon(
+        (1,),
+        allowed_root_pid=100,
+        gpu_uuids={1: "gpu-1"},
+        proc_root=tmp_path,
+    )
+
+    assert [process.pid for process in result] == [300]
+    assert result[0].used_memory_mib == 200
 
 
 class _Process:

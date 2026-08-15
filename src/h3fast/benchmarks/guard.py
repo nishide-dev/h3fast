@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -118,6 +119,87 @@ def find_foreign_gpu_processes(
                         used_memory_mib=used_memory,
                     )
                 )
+    return tuple(foreign)
+
+
+def _query_pmon(
+    selected_gpus: tuple[int, ...],
+) -> dict[int, list[tuple[int, str, int]]]:
+    executable = shutil.which("nvidia-smi")
+    if executable is None:
+        message = "nvidia-smi is required for the GPU guard"
+        raise ValidationError(message)
+    result = subprocess.run(  # noqa: S603
+        [
+            executable,
+            "pmon",
+            "-i",
+            ",".join(str(index) for index in selected_gpus),
+            "-c",
+            "1",
+            "-s",
+            "m",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "unknown nvidia-smi pmon failure"
+        message = f"nvidia-smi pmon failed: {detail}"
+        raise ValidationError(message)
+    applications = {index: [] for index in selected_gpus}
+    for line in result.stdout.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        fields = line.split(maxsplit=5)
+        if len(fields) != 6:
+            message = "nvidia-smi pmon returned an unexpected process row"
+            raise ValidationError(message)
+        gpu_raw, pid_raw, process_type, memory_raw, _ccpm, process_name = fields
+        try:
+            gpu_index = int(gpu_raw)
+            pid = int(pid_raw)
+            used_memory_mib = int(memory_raw)
+        except ValueError as error:
+            message = "nvidia-smi pmon returned invalid process data"
+            raise ValidationError(message) from error
+        if gpu_index not in applications:
+            message = "nvidia-smi pmon returned an unselected GPU"
+            raise ValidationError(message)
+        if "C" not in process_type:
+            continue
+        applications[gpu_index].append((pid, process_name, used_memory_mib))
+    return applications
+
+
+def find_foreign_gpu_processes_pmon(
+    selected_gpus: tuple[int, ...],
+    *,
+    allowed_root_pid: int,
+    gpu_uuids: dict[int, str],
+    proc_root: Path = Path("/proc"),
+) -> tuple[ForeignGpuProcess, ...]:
+    """Return foreign compute processes using the lightweight pmon interface."""
+    if set(gpu_uuids) != set(selected_gpus):
+        message = "GPU guard UUID map does not match the selected GPUs"
+        raise ValidationError(message)
+    applications = _query_pmon(selected_gpus)
+    foreign: list[ForeignGpuProcess] = []
+    for gpu_index, values in applications.items():
+        for pid, process_name, used_memory_mib in values:
+            if _is_descendant(pid, allowed_root_pid, proc_root):
+                continue
+            foreign.append(
+                ForeignGpuProcess(
+                    gpu_index=gpu_index,
+                    gpu_uuid=gpu_uuids[gpu_index],
+                    pid=pid,
+                    process_name=process_name,
+                    used_memory_mib=used_memory_mib,
+                )
+            )
     return tuple(foreign)
 
 
@@ -255,11 +337,25 @@ def serve_guarded(
     report_path.unlink(missing_ok=True)
     if lifecycle_path is not None:
         lifecycle_path.unlink(missing_ok=True)
-    query = foreign_process_query or (
-        lambda gpus, root_pid: find_foreign_gpu_processes(
-            gpus, allowed_root_pid=root_pid
+    gpu_uuids: dict[int, str] = {}
+
+    def default_query(
+        gpus: tuple[int, ...], root_pid: int
+    ) -> tuple[ForeignGpuProcess, ...]:
+        if not gpu_uuids:
+            devices, _applications = _query_nvidia()
+            gpu_uuids.update(
+                {
+                    device.index: device.uuid
+                    for device in devices
+                    if device.index in gpus
+                }
+            )
+        return find_foreign_gpu_processes_pmon(
+            gpus, allowed_root_pid=root_pid, gpu_uuids=gpu_uuids
         )
-    )
+
+    query = foreign_process_query or default_query
     started_at = datetime.now(UTC)
     started_monotonic = time.monotonic()
     try:
