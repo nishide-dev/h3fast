@@ -1,10 +1,10 @@
 # H3 license and source boundary review
 
 - Review date: 2026-08-16 (Asia/Tokyo)
-- Status: Independent-code classification accepted; H3-use approval blocked
+- Status: Independent-code classification accepted; Japan-local H3-use scope approved
 - Tracking: [Issue #11](https://github.com/nishide-dev/h3fast/issues/11)
 - Coordination owner: `nishide-dev`
-- Legal reviewer: Unassigned
+- H3-use reviewer: `nishide-dev` (project-owner self-attestation; not external legal advice)
 - Release approver: Unassigned
 - Target decision date: 2026-08-31 (provisional)
 
@@ -53,13 +53,13 @@ License本文から、release設計に直接関係する事項を次のように
 
 | Location or flow | Current evidence | Decision |
 |---|---|---|
-| Developer location used to access or run H3 | timezone情報だけでは物理所在地を証明できない | Blocked |
-| GPU benchmark host | hardware evidenceはあるが物理所在地・運用主体の記録なし | Blocked |
+| Developer location used to access or run H3 | project ownerがdevelopment machineとremote access元をJapanと申告 | Approved for declared Japan-local scope |
+| GPU benchmark host | hardware evidenceに加え、project ownerがphysical countryをJapan、operatorを`nishide-dev`と申告 | Approved for declared Japan-local scope |
 | CPU-only GitHub Actions runner | H3をdownload、import、実行せず合成fixtureだけを扱う | Not applicable |
 | H3Fast source/artifact storage | 独立Apache-2.0成果物だけを保存する | Not applicable |
-| Local benchmark Output storage | repository外であること以外の所在地・access control記録なし | Blocked |
+| Local benchmark Output storage | Japan-local research environmentに保持し、Gitと第三者accessから除外 | Approved for declared Japan-local scope |
 | Public source/package distribution | H3 Worksを含まない独立codeだけを配布する | Not applicable |
-| H3 runtime users and Output use | 対象利用者、所在地、実行地、Output利用地が未定 | Blocked |
+| H3 runtime and Output use | `nishide-dev`によるJapan内のlocal実行・確認に限定し、第三者提供なし | Approved for declared Japan-local scope |
 
 IP geolocation、checkbox、HF gate、timezoneは法的所在地や実利用地の十分な証明として扱わない。
 
@@ -69,14 +69,15 @@ GitHubの公式資料では、GitHub.com dataは既定で米国に保存され�
 - [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 - [GitHub Actions artifact and log retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization)
 
-## Remaining H3-use decisions
+## Approved H3-use scope and re-review conditions
 
-H3-related flowのownerと必要なreviewerは、少なくとも次をevidence URL、decision timestamp、適用範囲とともにrecordへ記録する。
+現行approvalのsource of truthは[ADR 0007](../decisions/0007-japan-local-h3-use-scope.md)と[project-owner declaration](https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328)である。Japan内の宣言済みmachine/storageにおける`nishide-dev`のsingle-operator local researchだけを対象とする。
 
-1. H3 snapshotへaccessするdevelopment host、GPU host、storage、実行、Output利用のregionがApplicable Territoryと整合するか。
-2. Excluded Territoryが含まれる場合、MiniMaxの個別書面licenseが必要か、その承認記録は何か。
-3. License Q&Aの見出しとLicense本文のterritory表現差をどの根拠で解釈するか。
-4. H3 Worksを組み込むservice、派生成果物、Output、downstream termsへ必要な対応。
-5. `H3Fast`名称が公式製品・提携製品との誤認を生まないための表示とtrademark対応。
+次の変更前にはinventoryを`incomplete`へ戻して再reviewする。
 
-これらが未承認の間、`h3fast compliance check-territories --record compliance/territories/initial-runtime.json`は終了code 1を返し、H3-related flowを新たに実行・提供する判断へ使用してはならない。独立codeの`h3fast release check`はterritory inventoryと別であり、quality、reproducibility、supply-chain等のremaining blockerだけで判定する。
+- Japan外からのaccess、実行、storageまたはOutput表示
+- third-party access、Hosted Service、public demoまたはremote API
+- H3 Works、Model Derivative、weight、benchmark artifactまたはOutputの提供・配布
+- operator、machine、storage providerまたはphysical countryの変更
+
+`h3fast compliance check-territories --record compliance/territories/initial-runtime.json`の成功はこの限定scopeだけを承認し、独立codeのrelease、formal quality、Support Tier、derivative distributionまたはserviceを承認しない。

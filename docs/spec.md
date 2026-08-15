@@ -65,7 +65,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Manifest検証 | 実装済み | `h3fast_manifest.json`とper-file checksumのfail-closed検証 |
 | 診断 | 実装済み | Pythonとoptional SGLangの診断。GPU初期化やmodel downloadは行わない |
 | Release gate | 実装済み・blocked | 独立Initial Runtimeのrequired checkとrelease/schema approvalをrecord化。全承認前は終了code 1 |
-| Territory inventory | 実装済み・incomplete | source/CPU CI/package accessを対象外と明示し、H3 access・GPU・実行・Output flowはregion、operator、H3関係をrecord化。H3-related flowにunknown/未承認があれば終了code 1 |
+| Territory inventory | Japan-local scope承認済み | `nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchに限定。第三者提供、service、Japan外利用または環境変更は再review |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
 | Formal quality set | contract/compiler実装済み・incomplete | private registryからprompt/path/mediaを除いたdigest metadataをatomic生成し、10/50件、coverage、rights、metric、approvalを検査。実registryは未登録 |
@@ -218,12 +218,12 @@ MiniMax H3 Community Licenseの`Materials`はMiniMaxが公開したH3本体とDo
 
 独立codeのrelease stateは[`compliance/release-gates/initial-runtime.json`](../compliance/release-gates/initial-runtime.json)へ記録する。`h3fast release check`はcode boundary、quality、reproducibility、supply chain、notice、support target、converter、GPU E2E、public benchmarkおよびrelease/schema approvalが完了した場合だけ成功する。H3 territory approvalはこのcode-only release判定のrequired checkにしない。
 
-H3 snapshotへのaccess、保存、変換、GPU実行、Output利用またはH3 Worksを組み込むserviceのregion stateは[`compliance/territories/initial-runtime.json`](../compliance/territories/initial-runtime.json)へ記録する。`h3fast compliance check-territories`はH3-related flowのregion、operator、owner、evidenceと必要なapprovalが揃った場合だけ成功する。source storage、H3を扱わないCPU CI、global source/package accessは`h3_relation: none`、`decision: not-applicable`とする。
+H3 snapshotへのaccess、保存、変換、GPU実行、Output利用またはH3 Worksを組み込むserviceのregion stateは[`compliance/territories/initial-runtime.json`](../compliance/territories/initial-runtime.json)へ記録する。`h3fast compliance check-territories`はH3-related flowのregion、operator、owner、evidenceと必要なapprovalが揃った場合だけ成功する。現行approvalは[ADR 0007](decisions/0007-japan-local-h3-use-scope.md)に従い、`nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchだけを対象とする。第三者access、Hosted Service、derivative/Output配布、Japan外利用、operator/machine/storage変更前にはrecordを`incomplete`へ戻す。source storage、H3を扱わないCPU CI、global source/package accessは`h3_relation: none`、`decision: not-applicable`とする。
 
 H3 Works、Model Derivative、またはそれらを組み込んだ製品・サービスを第三者へ提供する前には、該当する次の項目を満たす。
 
 - [x] 利用するH3ライセンス版のURL、取得日、SHA-256を記録した
-- [ ] H3-related flowのApplicable Territoryと実行・配布先の整合性を確認した
+- [x] 現行Japan-local H3-related flowのApplicable Territoryと実行・保存・Output利用地の整合性をowner申告で確認した
 - [ ] 対象成果物がModel Derivativeに該当する前提でレビューした
 - [x] 公開runtimeへMiniMax Materialsをコピーしていないかengineering inventoryを実施した
 - [x] 現行の独立source、wheel、schema、CLIおよびmetadataをApache-2.0境界へ分類した
@@ -234,7 +234,7 @@ H3 Works、Model Derivative、またはそれらを組み込んだ製品・サ�
 - [ ] 商用表示要件をUI/APIドキュメントに反映した
 - [ ] 売上条件に該当する可能性を財務・法務担当が確認した
 - [ ] 除外地域の利用者に対する個別許諾の有無を記録した
-- [ ] H3 access、GPU、H3 artifact storage、実行およびOutput利用の各地域を確認した
+- [x] 現行local scopeのH3 access、GPU、H3 artifact storage、実行およびOutput利用をJapanとして確認した
 - [ ] downstream利用者を拘束する条件と、その提示・同意記録方法を確認した
 
 ### 4.3 HF Gated Modelの位置付け
@@ -1864,7 +1864,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 ### 20.5 License
 
 - [ ] 最新原文とhashを取得
-- [ ] 地域レビュー
+- [x] 現行Japan-local single-operator research scopeの地域レビュー
 - [ ] 派生物レビュー
 - [ ] 商用条件レビュー
 - [ ] MiniMax許可文書を必要に応じて保管
@@ -1876,7 +1876,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 | Phase | 2026-08-16時点の状態 | 次のgate |
 |---|---|---|
-| Phase 0 | 独立code境界は解決、H3-use/quality blockerあり | H3-use territory、formal 10/50 case population/rights、owner/deadline |
+| Phase 0 | 独立code境界とJapan-local H3-use scopeは解決、quality blockerあり | formal 10/50 case population/rights、owner/deadline |
 | Phase 1A | 内部technical path実装済み | clean machineでGPU baseline再現、package release確認 |
 | Phase 1B | 最初のplacement最適化を実測・採用済み | clean machine再現、formal quality、release supply chain |
 | Phase 2以降 | 未着手 | Phase 0とInitial Runtime release gateの完了 |
@@ -2148,9 +2148,9 @@ reported peak GPU memory最大値は23,376 MiBから35,696 MiBへ12,320 MiB（52
 
 ## 24. 未解決事項
 
-Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次のBlockerを決定する必要がある。Issue [#11](https://github.com/nishide-dev/h3fast/issues/11)でH3-use complianceを追跡し、release approverとschema ownerは未指名である。独立code境界は[ADR 0006](decisions/0006-independent-code-license-boundary.md)で決定済みとし、H3-use approvalと混同しない。
+Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次のBlockerを決定する必要がある。Issue [#11](https://github.com/nishide-dev/h3fast/issues/11)のH3-use complianceはJapan-local single-operator researchに限定して[ADR 0007](decisions/0007-japan-local-h3-use-scope.md)で解決した。release approverとschema ownerは未指名であり、独立code境界は[ADR 0006](decisions/0006-independent-code-license-boundary.md)で決定済みとする。
 
-1. **Blocker for H3 use / tracked in #11:** H3へaccessするdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useのlocation、operator、owner、decisionが残る。満たさない場合に個別licenseを取得するか。timezone、IP判定、HF gateだけを適合証拠にしない。このblockerは独立source、CPU CIまたはcode-only package配布をblockしない。
+1. **Resolved for current H3 use / tracked in #11:** `nishide-dev`によるJapan-local single-operator researchとしてdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useをowner申告とともに承認した。第三者access、Hosted Service、derivative/Output配布、Japan外利用またはoperator/machine/storage変更前にはinventoryを`incomplete`へ戻す。この承認は独立sourceのreleaseや将来のH3-use scopeを承認しない。
 2. **Resolved for independent code:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、CLI、wheelおよび独自documentationはApache-2.0境界へ分類した。将来BYOW converterへ公式code、configurationまたはDocumentationを取り込む場合は再reviewする。
 3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。Issue #14でformal quality-set schema、validator、空の`incomplete` recordを実装し、private registryからredacted metadataをatomic生成するcompilerも追加した。実case registry、10件以上のsmoke metadata、50件以上のregression metadata、rights approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
@@ -2168,6 +2168,6 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 16. native CUDA/C++ extensionが必要になった場合のdistribution名とbuild backend。
 17. Public Runtime release前にdependency/license scan、secret scan、artifact notice検証をどのCIで必須化するか。
 18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
-19. **Partially resolved:** independent-code classification ownerは`nishide-dev`とした。H3-use compliance owner、release approver、schema ownerと正式deadlineはIssue #11で未決定。
+19. **Partially resolved:** independent-code classification ownerと限定H3-use compliance ownerは`nishide-dev`とした。release approver、schema ownerと正式deadlineは未決定。
 
-次の作業順序は、(1) Issue #16でrecordへ項目11を含む権利review済み10/50 caseとmetric planを登録して実測、(2) 項目18のclean-machine再現、(3) 項目17のrelease supply-chain gate、(4) release/schema ownerの決定とする。H3-related runを追加する前には項目1も解決する。これらのrelease check完了前にPublic Runtime releaseまたはSupport Tier付与へ進まず、H3-use gate完了前にPhase 2 derivative配布へ進まない。
+次の作業順序は、(1) Issue #16でrecordへ項目11を含む権利review済み10/50 caseとmetric planを登録して実測、(2) 項目18のclean-machine再現、(3) 項目17のrelease supply-chain gate、(4) release/schema ownerの決定とする。H3-related runは項目1の限定scope内だけで行い、scope変更前に再reviewする。これらのrelease check完了前にPublic Runtime releaseまたはSupport Tier付与へ進まず、別途承認するまでPhase 2 derivative配布へ進まない。

@@ -1,5 +1,7 @@
 # ADR 0006: Separate independent code from H3-use licensing
 
+> **Operational state update:** H3-use territory inventoryのJapan-local限定承認は[ADR 0007](0007-japan-local-h3-use-scope.md)で行った。本ADRの独立code境界は引き続き有効である。
+
 - Status: Accepted
 - Date: 2026-08-16
 - Owner: `nishide-dev`
@@ -43,6 +45,6 @@ H3Fastが所有し独立実装したsource、schema、CLI、wheel、sdist、合�
 
 ## Consequences
 
-GitHub source storage、global source access、CPU-only Actionsおよびcode-only package accessはterritory inventoryで`not-applicable`になる。H3を実際に扱うdevelopment host、GPU host、runtime execution、Output storageおよびOutput useは未確認のまま残り、territory checkは終了code 1を返す。
+GitHub source storage、global source access、CPU-only Actionsおよびcode-only package accessはterritory inventoryで`not-applicable`になる。本ADR採択時に未確認だったdevelopment host、GPU host、runtime execution、Output storageおよびOutput useは、後続のADR 0007でJapan-local single-operator researchに限定して承認した。
 
 Initial Runtime releaseはterritory approvalではblockしないが、quality set、clean-machine reproduction、supply-chain、artifact notice、support target、converterおよびGPU E2E等のrelease gateは引き続き満たす必要がある。

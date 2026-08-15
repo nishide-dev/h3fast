@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "inventory_id": "initial-runtime-territories",
-  "status": "incomplete",
+  "status": "approved",
   "updated_at": "2026-08-16",
   "source_issue": "https://github.com/nishide-dev/h3fast/issues/11",
   "license_evidence": {
@@ -14,47 +14,56 @@
     ]
   },
   "legal_approval": {
-    "state": "unassigned",
-    "owner": null,
+    "state": "approved",
+    "owner": "nishide-dev (project-owner self-attestation)",
     "deadline": "2026-08-31",
-    "approved_at": null,
-    "evidence": []
+    "approved_at": "2026-08-16T03:44:25+09:00",
+    "evidence": [
+      "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328",
+      "docs/decisions/0007-japan-local-h3-use-scope.md"
+    ]
   },
   "flows": [
     {
       "id": "development-host",
-      "description": "Developer workstation or remote workspace used for H3Fast and local H3 work",
-      "location_scope": "unknown",
-      "country_codes": [],
-      "territory_assessment": "unknown",
+      "description": "Japan-local developer workstation and remote workspace used for H3Fast and local H3 work",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
       "h3_relation": "h3-works",
-      "decision": "unknown",
+      "decision": "approved-under-community-license",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
-        "docs/compliance/h3-license-boundary-review.md"
+        "docs/compliance/h3-license-boundary-review.md",
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
-      "notes": "Asia/Tokyo timezone does not prove the physical country or operating entity."
+      "notes": "The project owner declared both the development machine and remote access origin to be in Japan. Approval is limited to the declared single-operator local-research scope."
     },
     {
       "id": "gpu-benchmark-host",
-      "description": "GPU host used for the fixed H3 baseline and resident-layer candidate",
-      "location_scope": "unknown",
-      "country_codes": [],
-      "territory_assessment": "unknown",
+      "description": "Japan-local GPU host used for the fixed H3 baseline and resident-layer candidate",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
       "h3_relation": "both",
-      "decision": "unknown",
+      "decision": "approved-under-community-license",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
         "docs/experiments/0003-rtx6000-ada-measured-baseline.md",
-        "docs/experiments/0005-rtx6000-ada-resident40.md"
+        "docs/experiments/0005-rtx6000-ada-resident40.md",
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
-      "notes": "Hardware and runtime evidence exists, but physical country and operator are not recorded."
+      "notes": "The project owner declared the GPU machine and its operator to be in Japan. This approval does not cover remote execution from or access by an Excluded Territory."
     },
     {
       "id": "github-actions",
@@ -116,20 +125,23 @@
     },
     {
       "id": "benchmark-output-storage",
-      "description": "Repository-external storage for generated media and raw benchmark bundles",
-      "location_scope": "unknown",
-      "country_codes": [],
-      "territory_assessment": "unknown",
+      "description": "Japan-local repository-external storage for generated media and raw benchmark bundles",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
       "h3_relation": "output",
-      "decision": "unknown",
+      "decision": "approved-under-community-license",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
-        "docs/compliance/artifact-register.md"
+        "docs/compliance/artifact-register.md",
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
-      "notes": "Git exclusion is verified, but storage country, operator, retention, and access controls are not recorded."
+      "notes": "H3 snapshot, benchmark artifacts, and Outputs remain in the declared Japan-local research environment and are excluded from Git and third-party access."
     },
     {
       "id": "public-source-distribution",
@@ -168,37 +180,41 @@
     },
     {
       "id": "runtime-execution",
-      "description": "Countries where users will execute H3 and the H3Fast runtime",
-      "location_scope": "unknown",
-      "country_codes": [],
-      "territory_assessment": "unknown",
+      "description": "Current single-operator local execution of H3 and the H3Fast runtime in Japan",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
       "h3_relation": "h3-works",
-      "decision": "unknown",
+      "decision": "approved-under-community-license",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
-        "https://github.com/nishide-dev/h3fast/issues/11"
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
-      "notes": "BYOW does not establish the user's execution country or license rights."
+      "notes": "Approval covers only nishide-dev executing locally in Japan. Public BYOW users, Hosted Services, and third-party access require a new territory review."
     },
     {
       "id": "output-use",
-      "description": "Countries where generated H3 Outputs will be stored, displayed, or otherwise used",
-      "location_scope": "unknown",
-      "country_codes": [],
-      "territory_assessment": "unknown",
+      "description": "Current local storage, review, and use of generated H3 Outputs in Japan",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
       "h3_relation": "output",
-      "decision": "unknown",
+      "decision": "approved-under-community-license",
       "written_license": null,
-      "operator": null,
-      "owner": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
       "deadline": "2026-08-31",
       "evidence": [
-        "https://github.com/nishide-dev/h3fast/issues/11"
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
-      "notes": "Output storage, display, distribution, and downstream-use countries have not been declared."
+      "notes": "Outputs are kept for local research in Japan and are not provided to Third Parties. Distribution, public display, or use outside this scope requires reopening the gate."
     }
   ]
 }
