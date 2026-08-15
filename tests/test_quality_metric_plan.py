@@ -210,6 +210,20 @@ def test_metric_plan_rejects_moving_or_unpinned_implementation(
     with pytest.raises(ValidationError, match="exact name==version"):
         check_quality_metric_plan(_write_plan(tmp_path, plan))
 
+    plan = _approve(_plan())
+    implementation = _metrics(plan)[0]["implementation"]
+    assert isinstance(implementation, dict)
+    implementation["dependencies"] = ["python==*"]
+    with pytest.raises(ValidationError, match="exact name==version"):
+        check_quality_metric_plan(_write_plan(tmp_path, plan))
+
+    plan = _approve(_plan())
+    implementation = _metrics(plan)[0]["implementation"]
+    assert isinstance(implementation, dict)
+    implementation["dependencies"] = ["metric-lib@main"]
+    with pytest.raises(ValidationError, match="40/64-character-revision"):
+        check_quality_metric_plan(_write_plan(tmp_path, plan))
+
 
 def test_metric_plan_rejects_nonexact_budget_and_insecure_evidence(
     tmp_path: Path,

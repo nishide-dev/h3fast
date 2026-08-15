@@ -102,6 +102,7 @@ _REQUIRED_INPUTS_BY_FAMILY = {
             "candidate-audio",
             "candidate-video",
             "human-ballot",
+            "prompt",
         }
     ),
     "perceptual-video": frozenset({"baseline-video", "candidate-video"}),
@@ -109,7 +110,7 @@ _REQUIRED_INPUTS_BY_FAMILY = {
     "temporal-consistency": frozenset({"baseline-video", "candidate-video"}),
 }
 _REVISION_PATTERN = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})")
-_PIN_PATTERN = re.compile(r"[A-Za-z0-9_.-]+(?:==|@)[^\s]+")
+_DEPENDENCY_NAME_PATTERN = re.compile(r"[A-Za-z0-9_.-]+")
 _VERSION_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+_-]*")
 _PLACEHOLDER_PATTERN = re.compile(
     r"(?:^|[=:@/_-])(?:head|latest|main|master|stable|tested-version)(?:$|[=:@/_-])",
@@ -265,10 +266,22 @@ def _validate_implementation(value: object, family: str) -> None:
         minimum=1,
     )
     for dependency in dependencies:
-        if not _PIN_PATTERN.fullmatch(dependency) or _PLACEHOLDER_PATTERN.search(
-            dependency
-        ):
-            message = f"metric {family!r} dependency must use an exact name==version or name@revision pin"
+        valid = False
+        if "==" in dependency:
+            name, version_pin = dependency.split("==", maxsplit=1)
+            valid = bool(
+                _DEPENDENCY_NAME_PATTERN.fullmatch(name)
+                and _VERSION_PATTERN.fullmatch(version_pin)
+                and not _PLACEHOLDER_PATTERN.search(version_pin)
+            )
+        elif "@" in dependency:
+            name, revision_pin = dependency.split("@", maxsplit=1)
+            valid = bool(
+                _DEPENDENCY_NAME_PATTERN.fullmatch(name)
+                and _REVISION_PATTERN.fullmatch(revision_pin)
+            )
+        if not valid:
+            message = f"metric {family!r} dependency must use exact name==version or name@40/64-character-revision pin"
             raise ValidationError(message)
     inputs = _strings(
         value["inputs"], f"metric {family!r} implementation.inputs", minimum=1
