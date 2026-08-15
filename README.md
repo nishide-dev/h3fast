@@ -8,7 +8,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
-- private registryからprompt/pathを除いたmetadataを生成するformal quality compilerとfail-closed検査
+- private registryからprompt/pathを除いたmetadataを生成するformal quality compiler、local-only review workflow、fail-closed検査
 - 承認前にfail closedするmachine-readable release gate
 - CPU-only環境でimport可能な単一Python package
 
@@ -92,6 +92,24 @@ uv run h3fast benchmark compile-quality-registry \
 ```
 
 private registryのschemaは[`schemas/private-quality-registry.schema.json`](schemas/private-quality-registry.schema.json)です。registry、prompt、reference asset、per-case digestを含むcandidate formal recordをrights/quality approval前にcommitまたはuploadしてはなりません。全体registry digestだけのattestationは[`schemas/quality-registry-attestation.schema.json`](schemas/quality-registry-attestation.schema.json)に従い、本文、path、mediaを含めません。
+
+権利・選定reviewは、まずregistryと全caseの内容にdigest拘束されたlocal-only checklistを生成します。生成物は[`schemas/private-quality-review.schema.json`](schemas/private-quality-review.schema.json)に従いますが、per-case digestを含むためprivate registryと同様にcommit、upload、CI artifact化してはいけません。reviewerは元registryのpromptとreference assetを実際に確認し、selection 3項目と全caseの`rights_decision` / `selection_decision`、HTTPS evidence、`reviewed_at`を編集します。
+
+```bash
+uv run h3fast benchmark prepare-quality-review \
+  --registry /secure/h3fast/quality.private-quality-registry.json \
+  --reviewer <reviewer-id> \
+  --output /secure/h3fast/quality.private-quality-review.json
+```
+
+全判断が承認済みの場合だけ、新しいreviewed private registryを生成します。入力registryやreview fileは上書きせず、`pending` / `rejected`、stale digest、evidence不足では終了code 1または2となり出力しません。commandの実行は人手reviewの代替ではありません。
+
+```bash
+uv run h3fast benchmark apply-quality-review \
+  --registry /secure/h3fast/quality.private-quality-registry.json \
+  --review /secure/h3fast/quality.private-quality-review.json \
+  --output /secure/h3fast/quality.reviewed.private-quality-registry.json
+```
 
 `benchmarks/protocol.yaml`は実測で採用した40層resident設定です。`benchmarks/protocol-baseline20.yaml`は固定Phase 1A baselineと、メモリ不足時に明示的に選ぶrollback設定です。launch、guard、suiteはprotocolの実効値を共有し、server lifecycleとsuite bundleへ記録します。
 

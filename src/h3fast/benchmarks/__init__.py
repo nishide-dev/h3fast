@@ -13,7 +13,10 @@ from h3fast.benchmarks.protocol import (
 from h3fast.benchmarks.quality import build_quality_reference, check_quality
 from h3fast.benchmarks.quality_registry import (
     QualityRegistryCompileReport,
+    QualityRegistryReviewReport,
+    apply_quality_registry_review,
     compile_quality_registry,
+    prepare_quality_registry_review,
 )
 from h3fast.benchmarks.quality_sets import (
     FormalQualitySetReport,
@@ -30,13 +33,16 @@ __all__ = [
     "PreflightReport",
     "ProtocolReport",
     "QualityRegistryCompileReport",
+    "QualityRegistryReviewReport",
     "RuntimeSettings",
+    "apply_quality_registry_review",
     "build_quality_reference",
     "build_singularity_launch",
     "check_formal_quality_set",
     "check_quality",
     "compile_quality_registry",
     "load_runtime_settings",
+    "prepare_quality_registry_review",
     "run_case",
     "run_preflight",
     "run_suite",

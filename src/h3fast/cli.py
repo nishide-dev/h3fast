@@ -11,12 +11,14 @@ from pathlib import Path
 
 from h3fast import __version__
 from h3fast.benchmarks import (
+    apply_quality_registry_review,
     build_quality_reference,
     build_singularity_launch,
     check_formal_quality_set,
     check_quality,
     compile_quality_registry,
     load_runtime_settings,
+    prepare_quality_registry_review,
     run_case,
     run_preflight,
     run_suite,
@@ -284,6 +286,26 @@ def _benchmark_compile_quality_registry(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_prepare_quality_review(args: argparse.Namespace) -> int:
+    report = prepare_quality_registry_review(
+        Path(args.registry),
+        Path(args.output),
+        reviewer=args.reviewer,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
+def _benchmark_apply_quality_review(args: argparse.Namespace) -> int:
+    report = apply_quality_registry_review(
+        Path(args.registry),
+        Path(args.review),
+        Path(args.output),
+    )
+    _write_json(report.to_dict())
+    return 0 if report.ready else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -492,6 +514,24 @@ def build_parser() -> argparse.ArgumentParser:
     quality_registry_compile.add_argument("--registry-uri", required=True)
     quality_registry_compile.add_argument("--output", required=True)
     quality_registry_compile.set_defaults(handler=_benchmark_compile_quality_registry)
+
+    quality_review_prepare = benchmark_subparsers.add_parser(
+        "prepare-quality-review",
+        help="Create a local-only rights and selection review checklist",
+    )
+    quality_review_prepare.add_argument("--registry", required=True)
+    quality_review_prepare.add_argument("--reviewer", required=True)
+    quality_review_prepare.add_argument("--output", required=True)
+    quality_review_prepare.set_defaults(handler=_benchmark_prepare_quality_review)
+
+    quality_review_apply = benchmark_subparsers.add_parser(
+        "apply-quality-review",
+        help="Apply a complete local review to a new private registry",
+    )
+    quality_review_apply.add_argument("--registry", required=True)
+    quality_review_apply.add_argument("--review", required=True)
+    quality_review_apply.add_argument("--output", required=True)
+    quality_review_apply.set_defaults(handler=_benchmark_apply_quality_review)
     return parser
 
 

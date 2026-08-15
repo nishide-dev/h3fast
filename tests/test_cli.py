@@ -218,6 +218,88 @@ def test_benchmark_compile_quality_registry_command(tmp_path, capsys) -> None:
     assert "Private prompt" not in output.read_text(encoding="utf-8")
 
 
+def test_benchmark_quality_review_commands_fail_closed_until_approved(
+    tmp_path, capsys
+) -> None:
+    registry = tmp_path / "quality.private-quality-registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "registry_id": "h3fast-phase0-formal-quality-v1",
+                "updated_at": "2026-08-16",
+                "selection": {
+                    "method": "Project-authored case.",
+                    "exclusions_reviewed": False,
+                    "public_exclusions": [],
+                    "known_failures_reviewed": False,
+                    "public_known_failures": [],
+                },
+                "cases": [
+                    {
+                        "id": "smoke-001",
+                        "split": "smoke",
+                        "prompt": "Private prompt",
+                        "seed": 1,
+                        "task": "t2va",
+                        "duration_seconds": 5,
+                        "aspect_ratio": "landscape",
+                        "languages": ["en"],
+                        "subject_tags": ["product"],
+                        "motion_tags": ["static"],
+                        "audio_tags": ["near-silent"],
+                        "references": [],
+                        "rights_status": "unreviewed",
+                        "rights_evidence": [],
+                        "public_notes": "Pending rights review.",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    review = tmp_path / "quality.private-quality-review.json"
+
+    prepare_status = main(
+        [
+            "benchmark",
+            "prepare-quality-review",
+            "--registry",
+            str(registry),
+            "--reviewer",
+            "test-reviewer",
+            "--output",
+            str(review),
+        ]
+    )
+    prepare_report = json.loads(capsys.readouterr().out)
+
+    assert prepare_status == 0
+    assert prepare_report["pending_cases"] == 1
+    assert str(tmp_path) not in json.dumps(prepare_report)
+    assert "Private prompt" not in json.dumps(prepare_report)
+
+    output = tmp_path / "reviewed.private-quality-registry.json"
+    apply_status = main(
+        [
+            "benchmark",
+            "apply-quality-review",
+            "--registry",
+            str(registry),
+            "--review",
+            str(review),
+            "--output",
+            str(output),
+        ]
+    )
+    apply_report = json.loads(capsys.readouterr().out)
+
+    assert apply_status == 1
+    assert apply_report["ready"] is False
+    assert apply_report["pending_cases"] == 1
+    assert not output.exists()
+
+
 def test_gpu_ids_parser_rejects_invalid_values() -> None:
     assert _gpu_ids("1,2") == (1, 2)
     with pytest.raises(argparse.ArgumentTypeError):
