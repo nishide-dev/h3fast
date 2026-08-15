@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "attestation_id": "h3fast-phase0-formal-quality-registry-v1",
+  "registry_id": "h3fast-phase0-formal-quality-v1",
+  "registry_sha256": "37a16b466969df19d0bba0f9954ab1af5e344b5cc9ec569e9ded78befd97aa64",
+  "created_at": "2026-08-16T03:57:52+09:00",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "selection_method": "Deterministic stratified schedule across the required Phase 0 task, duration, aspect, language, subject, motion, audio, and reference categories.",
+  "counts": {
+    "smoke": 10,
+    "regression": 50,
+    "total": 60
+  },
+  "rights_review": "pending",
+  "private_artifacts": {
+    "storage": "repository-external",
+    "committed": false,
+    "uploaded": false
+  },
+  "redaction": {
+    "prompt_text_present": false,
+    "reference_paths_present": false,
+    "media_present": false
+  },
+  "limitations": [
+    "This attestation identifies a local candidate registry by digest; it does not publish or approve the registry contents.",
+    "Case rights, selection exclusions, known failures, metric plans, set approvals, and GPU evaluation remain pending."
+  ]
+}
