@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "plan_id": "h3fast-phase0-formal-quality-metrics-v1",
+  "status": "draft",
+  "updated_at": "2026-08-16",
+  "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
+  "quality_profile": "exact",
+  "evaluation": {
+    "baseline_repetitions": 3,
+    "candidate_repetitions": 3,
+    "statistics": ["p5", "p50", "p95", "worst-case"],
+    "comparison": "baseline-self-envelope-v1",
+    "family_aggregation": "independent-all-must-pass",
+    "missing_observation_policy": "fail"
+  },
+  "metrics": [
+    {
+      "family": "prompt-adherence",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "perceptual-video",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "temporal-consistency",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "audio-quality",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "av-sync",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    },
+    {
+      "family": "human-pairwise",
+      "state": "unassigned",
+      "owner": null,
+      "implementation": null,
+      "budget": null,
+      "evidence": []
+    }
+  ],
+  "limitations": [
+    "This draft fixes evaluation semantics but does not select or approve metric implementations.",
+    "No quality budget is approved until baseline self-variation is measured on the formal case set.",
+    "A passing metric plan does not replace case rights review, set approval, or GPU evaluation."
+  ]
+}

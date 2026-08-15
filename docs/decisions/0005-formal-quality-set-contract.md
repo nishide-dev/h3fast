@@ -26,6 +26,7 @@
 - `h3fast benchmark compile-quality-registry`はprivate registryとassetをhashし、公開recordへprompt本文、local path、mediaを含めずatomicに出力し、set-level承認を引き継がない
 - `h3fast benchmark prepare-quality-review`はregistry/content digestへ拘束されたlocal-only checklistを生成し、`apply-quality-review`は全selection・case判断とHTTPS evidenceが揃った場合だけ新しいprivate registryへ承認状態を適用する
 - review instanceはper-case digestを含むためGit/CI artifactへ追加せず、commandの実行をreviewerによる実質確認の代替にしない
+- 6 metric familyの詳細な反復、統計、implementation identity、dependency pin、score方向、budget、非相殺規則は[ADR 0008](0008-formal-quality-metric-plan.md)の独立planで固定する
 
 `h3fast benchmark check-quality-set`は、承認済みrecordだけ終了code 0、正当だが未完了のrecordは1、schemaまたは意味上矛盾するrecordは2を返す。
 

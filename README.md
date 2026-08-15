@@ -8,7 +8,7 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 - 派生成果物manifestとchecksumの検証
 - Python、SGLang、GPU環境の診断
 - 再現可能なbenchmark protocol、GPU preflight、非同期benchmark client
-- private registryからprompt/pathを除いたmetadataを生成するformal quality compiler、local-only review workflow、fail-closed検査
+- private registryからprompt/pathを除いたmetadataを生成するformal quality compiler、local-only review workflow、6-family metric plan検査
 - 承認前にfail closedするmachine-readable release gate
 - CPU-only環境でimport可能な単一Python package
 
@@ -81,6 +81,15 @@ formal quality setの件数、層化coverage、rights evidence、metric plan、a
 uv run h3fast benchmark check-quality-set \
   --record benchmarks/quality/formal-quality-set.json
 ```
+
+formal quality評価で必須となる6 metric familyのmethod、version、immutable revision、dependency pin、score方向、baseline envelope budget、evidenceを検査します。committed planは評価規則だけを固定した`draft`で、全familyが`unassigned`のため終了code 1を返します。これはmetric実装、owner、budgetまたは品質承認の完了を意味しません。
+
+```bash
+uv run h3fast benchmark check-quality-metric-plan \
+  --plan benchmarks/quality/formal-quality-metric-plan.json
+```
+
+planはbaseline/candidate各3反復、p5/p50/p95/worst-case、familyごとのbaseline自己変動envelope、欠損時fail、全family独立合格を要求します。映像metricの合格でaudio qualityまたはA/V syncの失敗を相殺できません。契約は[`schemas/quality-metric-plan.schema.json`](schemas/quality-metric-plan.schema.json)、draft recordは[`formal-quality-metric-plan.json`](benchmarks/quality/formal-quality-metric-plan.json)を参照してください。
 
 権利review対象のpromptとreference assetはGit管理外のprivate registryへ置き、公開可能なdigest metadataだけを生成します。compilerはprompt本文、asset path、media本体を出力へコピーせず、reference assetをSHA-256で固定します。`--registry-uri`には権限制御されたregistryまたはprompt/mediaを含まないdigest attestationのimmutable HTTPS identityを指定し、出力はまず一時fileでsemantic validationしてからatomicに置換します。
 

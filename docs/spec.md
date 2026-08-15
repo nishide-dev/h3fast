@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.13（Phase 0 private review workflow実装、rights/metric/release blockerあり）
+- **状態:** Draft v0.14（Phase 0 metric plan contract実装、rights/metric selection/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -68,7 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | Japan-local scope承認済み | `nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchに限定。第三者提供、service、Japan外利用または環境変更は再review |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
-| Formal quality set | 60-case candidate attest・private review workflow実装済み、incomplete | Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成し、registry全体digestのみ公開。review decision、per-case metadata、rights、metric、approval、GPU評価は未完了 |
+| Formal quality set | 60-case candidate attest・private review workflow・metric plan contract実装済み、incomplete | Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成し、registry全体digestのみ公開。review decision、per-case metadata、metric選定/承認、set approval、GPU評価は未完了 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -1530,6 +1530,17 @@ prompt本文とreference assetのlocal pathを含む入力は[`schemas/private-q
 
 `h3fast benchmark apply-quality-review`は、source registry digestとreview対象content digestが一致し、全selection判断と全caseのrights/selection判断が`approved`で、各caseにHTTPS rights evidenceがある場合だけ、承認済み状態を持つ新しいprivate registryをatomicに出力する。`pending`または`rejected`が一つでもある場合は終了code 1とし、reviewed registryを生成しない。command生成物やoperator実行そのものを人手の権利判断として扱わず、reviewerによる実質確認をMUSTとする。
 
+6 metric familyの計画は[`benchmarks/quality/formal-quality-metric-plan.json`](../benchmarks/quality/formal-quality-metric-plan.json)と[`schemas/quality-metric-plan.schema.json`](../schemas/quality-metric-plan.schema.json)で固定する。`h3fast benchmark check-quality-metric-plan`は、次を満たす場合だけ終了code 0を返す。
+
+- prompt adherence、perceptual video、temporal consistency、audio quality、A/V sync、人手pairwiseが重複なく1件ずつ存在する
+- 各familyにowner、version、immutable revision、entrypoint、exact dependency pin、入力、score方向、budget、HTTPS evidenceがある
+- baseline/candidateを各3反復し、p5/p50/p95/worst-caseを記録する
+- exact profileはbaseline自己変動envelope外へのabsolute/relative toleranceを0とする
+- 全familyを独立判定し、映像の合格でaudioまたはA/V syncの失敗を相殺しない
+- observation欠損はfailとし、各familyでformal set全caseの100% coverageを要求する
+
+committed metric planは意図的に`draft`かつ全family `unassigned`とする。これは評価規則だけを固定し、外部metric、model、閾値、ownerまたはquality approvalを推測しないためである。method選定後も、固定baseline上の自己変動を実測し、implementationとbudgetのevidenceをreviewするまで`approved`へ変更してはならない。設計判断は[`docs/decisions/0008-formal-quality-metric-plan.md`](decisions/0008-formal-quality-metric-plan.md)に記録する。
+
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
 - 横長、正方形、縦長
@@ -1881,7 +1892,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 | Phase | 2026-08-16時点の状態 | 次のgate |
 |---|---|---|
-| Phase 0 | 独立code境界とJapan-local H3-use scopeは解決、60-case candidate attest・private review workflow実装済み | candidate rights/selection decision、metric plan、owner/deadline |
+| Phase 0 | 独立code境界とJapan-local H3-use scopeは解決、60-case candidate attest・private review workflow・metric plan contract実装済み | candidate rights/selection decision、metric method/owner/budget approval |
 | Phase 1A | 内部technical path実装済み | clean machineでGPU baseline再現、package release確認 |
 | Phase 1B | 最初のplacement最適化を実測・採用済み | clean machine再現、formal quality、release supply chain |
 | Phase 2以降 | 未着手 | Phase 0とInitial Runtime release gateの完了 |
@@ -1906,7 +1917,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
 
-2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約とprivate registry compilerを追加し、Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestをattestした。さらにregistry/content digestへ拘束したlocal-only rights/selection review workflowを実装した。per-case decision、metadataのcommit、set approval、metric planとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約とprivate registry compilerを追加し、Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestをattestした。さらにregistry/content digestへ拘束したlocal-only rights/selection review workflowと、6 familyを独立判定するformal metric plan contractを実装した。per-case decision、metadataのcommit、metric method/owner/budget approval、set approvalとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2157,7 +2168,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 
 1. **Resolved for current H3 use / tracked in #11:** `nishide-dev`によるJapan-local single-operator researchとしてdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useをowner申告とともに承認した。第三者access、Hosted Service、derivative/Output配布、Japan外利用またはoperator/machine/storage変更前にはinventoryを`incomplete`へ戻す。この承認は独立sourceのreleaseや将来のH3-use scopeを承認しない。
 2. **Resolved for independent code:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、CLI、wheelおよび独自documentationはApache-2.0境界へ分類した。将来BYOW converterへ公式code、configurationまたはDocumentationを取り込む場合は再reviewする。
-3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema/compilerに加え、Git外の10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestと件数をattestし、digest拘束されたprivate review workflowを実装した。per-case decision/metadataのcommit、rights/selection approval、知覚・audio・semantic A/V metric実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema/compilerに加え、Git外の10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestと件数をattestし、digest拘束されたprivate review workflowと6-family metric plan contractを実装した。per-case decision/metadataのcommit、rights/selection approval、metric method/owner/budget approval、知覚・audio・semantic A/V実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。

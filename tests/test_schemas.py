@@ -12,6 +12,7 @@ COMPLIANCE_RECORDS = (
     Path("compliance/territories/initial-runtime.json"),
 )
 FORMAL_QUALITY_SET = Path("benchmarks/quality/formal-quality-set.json")
+QUALITY_METRIC_PLAN = Path("benchmarks/quality/formal-quality-metric-plan.json")
 QUALITY_REGISTRY_ATTESTATION = Path(
     "benchmarks/quality/formal-quality-registry-attestation.json"
 )
@@ -90,6 +91,17 @@ def test_committed_formal_quality_set_matches_schema() -> None:
     Draft202012Validator(
         schema, format_checker=Draft202012Validator.FORMAT_CHECKER
     ).validate(record)
+
+
+def test_committed_quality_metric_plan_matches_schema() -> None:
+    schema = json.loads(
+        Path("schemas/quality-metric-plan.schema.json").read_text(encoding="utf-8")
+    )
+    plan = json.loads(QUALITY_METRIC_PLAN.read_text(encoding="utf-8"))
+
+    Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(plan)
 
 
 def test_committed_quality_registry_attestation_matches_schema() -> None:
