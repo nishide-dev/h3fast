@@ -69,7 +69,8 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
-| Public wheel / OCI / Hosted API | 未公開・未実装 | release、供給網、security、license gate未完了 |
+| Public wheel | build可能・未公開 | release、供給網、license gate未完了 |
+| OCI / Hosted API | 未実装・未公開 | securityを含む各release gate未完了 |
 
 実装監査の詳細は[`docs/audits/0001-phase1b-completion.md`](audits/0001-phase1b-completion.md)を参照する。
 
