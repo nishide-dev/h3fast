@@ -224,6 +224,213 @@ def test_cli_scores_perceptual_video(tmp_path: Path, backbone_dir, capsys) -> No
     assert str(tmp_path) not in json.dumps(output)
 
 
+def test_pinned_backbone_constants_are_consistent() -> None:
+    from h3fast.benchmarks.perceptual_video import ALEXNET_BACKBONE_SHA256
+
+    assert (
+        ALEXNET_BACKBONE_SHA256
+        == "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02"
+    )
+    assert f"alexnet-owt-{ALEXNET_BACKBONE_SHA256[:8]}.pth" == ALEXNET_BACKBONE_FILENAME
+
+
+def test_cli_uses_pinned_digest_by_default(
+    tmp_path: Path, backbone_dir, capsys
+) -> None:
+    from h3fast.cli import main
+
+    root, _digest = backbone_dir
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+
+    status = main(
+        [
+            "benchmark",
+            "score-perceptual-video",
+            "--baseline",
+            str(baseline),
+            "--candidate",
+            str(candidate),
+            "--backbone-dir",
+            str(root),
+        ]
+    )
+
+    assert status == 2
+    assert "digest" in capsys.readouterr().err
+
+
+def test_missing_scoring_dependencies_fail_closed(
+    tmp_path: Path, backbone_dir, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+
+    monkeypatch.setitem(sys.modules, "torch", None)
+    root, digest = backbone_dir
+    with pytest.raises(ValidationError, match="quality-metrics"):
+        score_perceptual_video(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+        )
+
+
+def test_corrupt_checkpoint_fails_closed_and_restores_hub_dir(
+    tmp_path: Path,
+) -> None:
+    import torch.hub
+
+    root = tmp_path / "hub"
+    (root / "checkpoints").mkdir(parents=True)
+    checkpoint = root / "checkpoints" / ALEXNET_BACKBONE_FILENAME
+    checkpoint.write_bytes(b"not a checkpoint")
+    digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+    hub_dir_before = torch.hub.get_dir()
+
+    with pytest.raises(ValidationError, match="could not be constructed"):
+        score_perceptual_video(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+        )
+    assert torch.hub.get_dir() == hub_dir_before
+
+
+def test_construction_must_not_add_checkpoint_files(
+    tmp_path: Path, backbone_dir, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import lpips
+
+    root, digest = backbone_dir
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+    real_lpips = lpips.LPIPS
+
+    def downloading_lpips(*args: object, **kwargs: object):
+        (root / "checkpoints" / "downloaded.pth").write_bytes(b"downloaded")
+        return real_lpips(*args, **kwargs)
+
+    monkeypatch.setattr(lpips, "LPIPS", downloading_lpips)
+    try:
+        with pytest.raises(ValidationError, match="unexpected"):
+            score_perceptual_video(
+                baseline,
+                candidate,
+                backbone_dir=root,
+                expected_backbone_sha256=digest,
+            )
+    finally:
+        (root / "checkpoints" / "downloaded.pth").unlink(missing_ok=True)
+
+
+def test_rejects_non_video_and_missing_inputs(tmp_path: Path, backbone_dir) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+
+    with pytest.raises(ValidationError, match="ffprobe failed"):
+        _score(baseline, tmp_path / "missing.mkv", backbone_dir)
+
+    audio_only = tmp_path / "audio.mkv"
+    subprocess.run(  # noqa: S603
+        [  # noqa: S607
+            "ffmpeg",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=1",
+            "-c:a",
+            "flac",
+            str(audio_only),
+        ],
+        check=True,
+    )
+    with pytest.raises(ValidationError, match="no video stream"):
+        _score(baseline, audio_only, backbone_dir)
+
+
+def test_decode_failure_on_longer_stream_reports_decode_error(
+    tmp_path: Path, backbone_dir
+) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+    frame_bytes = _WIDTH * _HEIGHT * 3
+    fake_ffmpeg = tmp_path / "fake-ffmpeg"
+    fake_ffmpeg.write_text(
+        "#!/bin/sh\n"
+        'input=""\n'
+        'previous=""\n'
+        'for argument in "$@"; do\n'
+        '  if [ "$previous" = "-i" ]; then input="$argument"; fi\n'
+        '  previous="$argument"\n'
+        "done\n"
+        'case "$input" in\n'
+        f"  *baseline*) head -c {frame_bytes * 5} /dev/zero;"
+        ' echo "synthetic baseline decode failure" >&2; exit 1;;\n'
+        f"  *) head -c {frame_bytes * 3} /dev/zero; exit 0;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    fake_ffmpeg.chmod(0o700)
+    root, digest = backbone_dir
+
+    with pytest.raises(ValidationError, match="decode failed"):
+        score_perceptual_video(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+            ffmpeg=str(fake_ffmpeg),
+        )
+
+
+def test_non_finite_distance_fails_closed(
+    tmp_path: Path, backbone_dir, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import torch
+
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+
+    monkeypatch.setattr(
+        "h3fast.benchmarks.perceptual_video._load_lpips_model",
+        lambda *_args, **_kwargs: lambda *_inputs: torch.tensor(float("nan")),
+    )
+    root, digest = backbone_dir
+    with pytest.raises(ValidationError, match="non-finite"):
+        score_perceptual_video(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+        )
+
+
+def test_zero_frames_fail_closed(
+    tmp_path: Path, backbone_dir, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _frames(0))
+    candidate = _encode(tmp_path / "candidate.mkv", _frames(0))
+
+    monkeypatch.setattr(
+        "h3fast.benchmarks.perceptual_video._decoded_frames",
+        lambda *_args, **_kwargs: (frame for frame in ()),
+    )
+    root, digest = backbone_dir
+    with pytest.raises(ValidationError, match="no decodable frames"):
+        score_perceptual_video(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+        )
+
+
 def test_package_import_stays_torch_free() -> None:
     code = (
         "import sys; import h3fast.benchmarks; "

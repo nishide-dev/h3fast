@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import pickle
 import subprocess
 import tempfile
 import warnings
+import zipfile
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -18,7 +21,7 @@ from h3fast.benchmarks.quality import _resolve_executable, tool_version
 from h3fast.exceptions import ValidationError
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from pathlib import Path
 
 PERCEPTUAL_VIDEO_METHOD_ID = "lpips-alex-0.1.4-v1"
@@ -40,6 +43,7 @@ class PerceptualVideoReport:
     mean_lpips: float
     max_lpips: float
     backbone_sha256: str
+    torch_num_threads: int
     lpips_version: str
     torch_version: str
     ffmpeg_version: str
@@ -55,6 +59,7 @@ class PerceptualVideoReport:
             "mean_lpips": self.mean_lpips,
             "max_lpips": self.max_lpips,
             "backbone_sha256": self.backbone_sha256,
+            "torch_num_threads": self.torch_num_threads,
             "lpips_version": self.lpips_version,
             "torch_version": self.torch_version,
             "ffmpeg_version": self.ffmpeg_version,
@@ -72,7 +77,7 @@ def _verify_backbone(backbone_dir: Path, expected_sha256: str) -> Path:
             while chunk := handle.read(1 << 20):
                 digest.update(chunk)
     except OSError as error:
-        message = "pinned LPIPS backbone checkpoint could not be read"
+        message = f"pinned LPIPS backbone checkpoint could not be read: {error}"
         raise ValidationError(message) from error
     if digest.hexdigest() != expected_sha256:
         message = "pinned LPIPS backbone checkpoint digest does not match"
@@ -80,11 +85,25 @@ def _verify_backbone(backbone_dir: Path, expected_sha256: str) -> Path:
     return checkpoint
 
 
+def _import_scoring_dependencies() -> None:
+    try:
+        import lpips  # noqa: F401
+        import torch  # noqa: F401
+    except ImportError as error:
+        message = (
+            "perceptual-video scoring requires the quality-metrics dependency "
+            f"group (torch, torchvision, lpips): {error}"
+        )
+        raise ValidationError(message) from error
+
+
 def _load_lpips_model(backbone_dir: Path, expected_sha256: str):
-    _verify_backbone(backbone_dir, expected_sha256)
+    checkpoint = _verify_backbone(backbone_dir, expected_sha256)
     import torch
     import torch.hub
 
+    checkpoint_dir = checkpoint.parent
+    files_before = set(checkpoint_dir.iterdir())
     previous_hub_dir = torch.hub.get_dir()
     torch.hub.set_dir(str(backbone_dir))
     try:
@@ -99,11 +118,25 @@ def _load_lpips_model(backbone_dir: Path, expected_sha256: str):
                 module=r"torchvision\.models\._utils",
             )
             model = lpips.LPIPS(net="alex", verbose=False)
-    except (OSError, RuntimeError, ValueError) as error:
-        message = "pinned LPIPS model could not be constructed offline"
+    except (
+        OSError,
+        RuntimeError,
+        ValueError,
+        EOFError,
+        KeyError,
+        pickle.UnpicklingError,
+        zipfile.BadZipFile,
+    ) as error:
+        message = f"pinned LPIPS model could not be constructed offline: {error}"
         raise ValidationError(message) from error
     finally:
         torch.hub.set_dir(previous_hub_dir)
+    if set(checkpoint_dir.iterdir()) != files_before:
+        message = (
+            "LPIPS model construction unexpectedly added checkpoint files;"
+            " the verified backbone was not the one loaded"
+        )
+        raise ValidationError(message)
     model.eval()
     for parameter in model.parameters():
         parameter.requires_grad_(False)
@@ -190,13 +223,14 @@ def _require_matching_contract(
 
 def _decoded_frames(
     path: Path, ffmpeg: str, *, width: int, height: int
-) -> Iterator[bytes]:
+) -> Generator[bytes, None, None]:
     executable = _resolve_executable(ffmpeg)
     command = [
         executable,
         "-nostdin",
         "-v",
         "error",
+        "-xerror",
         "-i",
         str(path),
         "-map",
@@ -230,7 +264,11 @@ def _decoded_frames(
                 if len(frame) != frame_bytes:
                     process.kill()
                     process.wait()
-                    message = "ffmpeg video decode returned a truncated frame"
+                    errors.seek(0)
+                    detail = errors.read().decode("utf-8", errors="replace").strip()
+                    message = "ffmpeg video decode returned a truncated frame" + (
+                        f": {detail}" if detail else ""
+                    )
                     raise ValidationError(message)
                 yield frame
             return_code = process.wait(timeout=_DECODE_TIMEOUT_SECONDS)
@@ -269,6 +307,8 @@ def score_perceptual_video(
     ffprobe: str = "ffprobe",
 ) -> PerceptualVideoReport:
     """Score frame-aligned LPIPS between a baseline and a candidate video."""
+    _import_scoring_dependencies()
+    ffmpeg_version = tool_version(ffmpeg)
     baseline_media = _probe_video(baseline_path, ffprobe)
     candidate_media = _probe_video(candidate_path, ffprobe)
     _require_matching_contract(baseline_media, candidate_media)
@@ -286,22 +326,48 @@ def score_perceptual_video(
     candidate_frames = _decoded_frames(
         candidate_path, ffmpeg, width=width, height=height
     )
+    previous_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
     try:
         with torch.no_grad():
-            for baseline_frame, candidate_frame in zip(
-                baseline_frames, candidate_frames, strict=True
-            ):
-                distance = model(
-                    _frame_tensor(baseline_frame, width=width, height=height),
-                    _frame_tensor(candidate_frame, width=width, height=height),
-                )
+            while True:
+                baseline_frame = next(baseline_frames, None)
+                candidate_frame = next(candidate_frames, None)
+                if baseline_frame is None and candidate_frame is None:
+                    break
+                if baseline_frame is None or candidate_frame is None:
+                    remaining = (
+                        candidate_frames if baseline_frame is None else baseline_frames
+                    )
+                    # Drain the longer stream so its own ffmpeg exit-code
+                    # check runs and a decode failure is reported as such.
+                    for _ in remaining:
+                        pass
+                    message = (
+                        "baseline and candidate videos have mismatched frame count"
+                    )
+                    raise ValidationError(message)
+                try:
+                    distance = model(
+                        _frame_tensor(baseline_frame, width=width, height=height),
+                        _frame_tensor(candidate_frame, width=width, height=height),
+                    )
+                except (RuntimeError, ValueError) as error:
+                    message = f"LPIPS forward pass failed: {error}"
+                    raise ValidationError(message) from error
                 value = float(distance.reshape(()).item())
+                if not math.isfinite(value):
+                    message = (
+                        f"LPIPS produced a non-finite distance at frame {frame_count}"
+                    )
+                    raise ValidationError(message)
                 frame_count += 1
                 total += value
                 worst = max(worst, value)
-    except ValueError as error:
-        message = "baseline and candidate videos have mismatched frame count"
-        raise ValidationError(message) from error
+    finally:
+        torch.set_num_threads(previous_threads)
+        baseline_frames.close()
+        candidate_frames.close()
     if frame_count == 0:
         message = "baseline and candidate videos contain no decodable frames"
         raise ValidationError(message)
@@ -314,7 +380,8 @@ def score_perceptual_video(
         mean_lpips=total / frame_count,
         max_lpips=worst,
         backbone_sha256=expected_backbone_sha256,
+        torch_num_threads=1,
         lpips_version=str(getattr(lpips, "__version__", "0.1.4")),
         torch_version=str(torch.__version__),
-        ffmpeg_version=tool_version(ffmpeg),
+        ffmpeg_version=ffmpeg_version,
     )
