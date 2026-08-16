@@ -45,4 +45,4 @@ budgetとapproval evidenceは自己変動測定後に別PRでreviewし、6 famil
 
 2026-08-16にoffline A/B media presentation runner(`stage-human-pairwise`)とselection記録CLI(`record-human-pairwise`)を追加し、private media manifest契約でmediaのdigest検証とblind staging(相対参照のみの`index.html`を含む)を固定した。synthetic mediaによる60-case pilotで、assignment keyを参照しない知覚代理判定がground truthと全件一致し、blind割当・復号・集計をend-to-endで検証した([experiment 0006](../experiments/0006-human-pairwise-pilot.md))。
 
-ただしreview policy(reviewer数、conflict handling、single-reviewer acceptability)、GPU実出力によるformal実測、immutable implementation evidenceは未完了である。このためhuman-pairwiseはcandidateのままとし、formal metric planを`planned`へ変更しない。次はreview policyを承認した上で、固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。
+review policyは[ADR 0010](0010-human-pairwise-review-policy.md)でsingle-reviewer運用として承認した。ただしGPU実出力によるformal実測とimmutable implementation evidenceは未完了である。このためhuman-pairwiseはcandidateのままとし、formal metric planを`planned`へ変更しない。次は固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。
