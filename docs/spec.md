@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.18（Phase 0 human ballot contract実装済み、metric実測/release blockerあり）
+- **状態:** Draft v0.19（Phase 0 human-pairwise presentation runner/pilot実施済み、metric実測/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -68,7 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | Japan-local scope承認済み | `nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchに限定。第三者提供、service、Japan外利用または環境変更は再review |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
-| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessmentとhuman ballot contractを実装したが、presentation runner、metric実測/承認、formal set approval、GPU評価は未完了 |
+| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessment、human ballot contract、offline presentation runnerを実装しsynthetic-media pilotを完了したが、human review policy、metric実測/承認、formal set approval、GPU評価は未完了 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -1549,9 +1549,11 @@ committed metric planは意図的に`draft`かつ全family `unassigned`とする
 
 human-pairwise candidateは[`schemas/private-human-pairwise-ballot.schema.json`](../schemas/private-human-pairwise-ballot.schema.json)と[`schemas/private-human-pairwise-assignment.schema.json`](../schemas/private-human-pairwise-assignment.schema.json)でlocal-only contractを固定する。`prepare-human-pairwise`はformal set bytesのSHA-256へ60 caseを拘束し、A/B assignmentをcaseごとにrandomizeしてballotとassignment keyを別fileへ0600で新規作成する。seedは32文字以上かつgroup/otherから読めないlocal fileだけから読み、CLI引数、ballotまたはstdoutへ含めない。assignmentはsalt付きcommitmentとseed digestを持ち、review完了までreviewerへ開示しない。
 
-`check-human-pairwise`はcompleted ballot、assignment file digest、全commitment、formal set digest、全caseの固定順coverageを検証する。欠損、abstain、重複、改ざんまたはstale assignmentは終了code 2とし、aggregateにはbaseline/candidate win、tieと`(candidate_wins - baseline_wins) / case_count`だけを出力する。prompt、media、local path、seed、assignmentまたはper-case判断をstdoutへ出力しない。ballot、assignment、seedはGit、CI artifact、共有logへ追加してはならない。
+blind media提示は`stage-human-pairwise`が行う。case_idをbaseline/candidate media fileへ対応付けるprivate media manifestを[`schemas/private-human-pairwise-media.schema.json`](../schemas/private-human-pairwise-media.schema.json)で固定し、pending ballot、assignment digest、ballotとassignment双方のcommitment相互一致、manifestのformal set digest、全media fileのSHA-256、pair内suffixの一致と英数字構成を検証してから、assignment keyに従い`<case_id>/a.<ext>`・`b.<ext>`を新規staging directory(0700)へcopyする。同梱する`index.html`は相対参照のみで、prompt、source識別子、absolute path、外部リソースを含めない。検証またはcopyの失敗時はstagingを残さず、filesystem失敗も終了code 2へ正規化する。
 
-このcontract/scorerだけではblind media提示を実行できず、formal human evaluationまたはquality approvalを意味しない。offline presentation runner、pilot、reviewer policy、immutable implementation revisionとformal evidenceが揃うまでhuman-pairwiseはcandidate、formal metric planは`unassigned`のままとする。
+selectionは`record-human-pairwise`がcaseごとに記録する。pending ballotだけを対象とし、重複case、不正なselection値、group/otherから読めるballot/assignmentを拒否し、記録済みcaseの変更には明示flagを要求し、全case記録時にのみ`completed`と完了時刻を原子的に設定する(0600維持)。ballot schemaはselection入力済みcaseと未入力caseが混在する記録途中のpending状態を許容する。`check-human-pairwise`はcompleted ballot、assignment file digest、全commitment、formal set digest、全caseの固定順coverageを検証する。欠損、abstain、重複、改ざんまたはstale assignmentは終了code 2とし、aggregateにはbaseline/candidate win、tieと`(candidate_wins - baseline_wins) / case_count`だけを出力する。prompt、media、local path、seed、assignmentまたはper-case判断をstdoutへ出力しない。ballot、assignment、seed、media manifest、stagingはGit、CI artifact、共有logへ追加してはならない。
+
+2026-08-16に、Git外のsynthetic media 60 caseでprepare→stage→record→checkの全工程pilotを完了した。assignment keyを参照しない知覚代理判定が全60 caseでground truthと一致し、blind割当・復号・集計を検証した([`docs/experiments/0006-human-pairwise-pilot.md`](experiments/0006-human-pairwise-pilot.md))。これはworkflow検証でありformal human evaluationまたはquality approvalではない。reviewer policy、GPU実出力によるformal実測、immutable implementation revisionとformal evidenceが揃うまでhuman-pairwiseはcandidate、formal metric planは`unassigned`のままとする。
 
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
@@ -1904,7 +1906,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 
 | Phase | 2026-08-16時点の状態 | 次のgate |
 |---|---|---|
-| Phase 0 | 独立code境界、Japan-local H3-use scope、60-case rights/selection reviewとredacted metadata登録は解決。metric plan、6-family candidate assessment、human ballot/scorer contract実装済み | offline presentation runner、metric adapter/owner/budget approvalと実測、formal set approval |
+| Phase 0 | 独立code境界、Japan-local H3-use scope、60-case rights/selection reviewとredacted metadata登録は解決。metric plan、6-family candidate assessment、human ballot/scorer contract、offline presentation runnerとsynthetic-media pilot実施済み | human review policy、metric adapter/owner/budget approvalと実測、formal set approval |
 | Phase 1A | 内部technical path実装済み | clean machineでGPU baseline再現、package release確認 |
 | Phase 1B | 最初のplacement最適化を実測・採用済み | clean machine再現、formal quality、release supply chain |
 | Phase 2以降 | 未着手 | Phase 0とInitial Runtime release gateの完了 |
@@ -1929,7 +1931,7 @@ Phase 0のローカル検証候補は、2×RTX 6000 Ada Generation 48GB、FL2VA/
 - local snapshotのrevisionとdigestを固定するBYOW検証経路
 - BF16 baseline bundle
 
-2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約とprivate registry compilerを追加し、Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestをattestした。さらにregistry/content digestへ拘束したlocal-only rights/selection review workflowと、6 familyを独立判定するformal metric plan contractを実装した。同日、`nishide-dev`が60件すべてのrights/selection、selection method、exclusions、known failuresをreviewし、aggregate承認証跡を記録した。immutable evidenceをprivate registryへ適用し、review済み60件のredacted metadataと全required coverageをformal recordへ登録した。続いて6 familyの候補、固定revision、license scope、採用条件とblockerをcandidate assessmentへ記録し、human-pairwiseのprivate ballot/key schema、blind assignment commitment、欠損時failとaggregate scorerを実装した。offline presentation runner、metric owner/budget approval、formal set approvalとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
+2026-08-15時点で、固定runtimeと2×RTX 6000 Adaにおけるwarmup 1回・測定3回のlocal BF16 baseline bundleは作成済みである。支配stageはdenoiseと特定し、単一`smoke-001`のplacement-only exact quality gateも実測済みである。2026-08-16に10/50件の正式quality set契約とprivate registry compilerを追加し、Git外に10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestをattestした。さらにregistry/content digestへ拘束したlocal-only rights/selection review workflowと、6 familyを独立判定するformal metric plan contractを実装した。同日、`nishide-dev`が60件すべてのrights/selection、selection method、exclusions、known failuresをreviewし、aggregate承認証跡を記録した。immutable evidenceをprivate registryへ適用し、review済み60件のredacted metadataと全required coverageをformal recordへ登録した。続いて6 familyの候補、固定revision、license scope、採用条件とblockerをcandidate assessmentへ記録し、human-pairwiseのprivate ballot/key schema、blind assignment commitment、欠損時failとaggregate scorerを実装した。同日、offline A/B presentation runner(media manifest検証、blind staging、selection記録CLI)を追加し、synthetic mediaによる60-case pilotでprepare→stage→record→checkの全工程を検証した。human review policy、metric owner/budget approval、formal set approvalとGPU実測は未完了である。clean machineでの再現、formal setの承認・実測、公開可否の確認は完了条件として残る。
 
 完了条件:
 
@@ -2180,7 +2182,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 
 1. **Resolved for current H3 use / tracked in #11:** `nishide-dev`によるJapan-local single-operator researchとしてdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useをowner申告とともに承認した。第三者access、Hosted Service、derivative/Output配布、Japan外利用またはoperator/machine/storage変更前にはinventoryを`incomplete`へ戻す。この承認は独立sourceのreleaseや将来のH3-use scopeを承認しない。
 2. **Resolved for independent code:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、CLI、wheelおよび独自documentationはApache-2.0境界へ分類した。将来BYOW converterへ公式code、configurationまたはDocumentationを取り込む場合は再reviewする。
-3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema/compilerに加え、Git外の10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestと件数をattestし、digest拘束されたprivate review workflowと6-family metric plan contractを実装した。`nishide-dev`による60件すべてのrights/selection review、immutable evidenceのprivate registry適用、redacted per-case metadataとcoverageの登録も完了した。6-family candidate assessmentへ候補、固定revision、license scopeと採用条件を記録し、human-pairwise ballot/key/scorer contractを実装した。offline presentation runner、metric adapter/owner/budget approval、formal set approval、知覚・audio・semantic A/V実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
+3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema/compilerに加え、Git外の10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestと件数をattestし、digest拘束されたprivate review workflowと6-family metric plan contractを実装した。`nishide-dev`による60件すべてのrights/selection review、immutable evidenceのprivate registry適用、redacted per-case metadataとcoverageの登録も完了した。6-family candidate assessmentへ候補、固定revision、license scopeと採用条件を記録し、human-pairwise ballot/key/scorer contract、offline presentation runnerとsynthetic-media pilotを実施した。human review policy、metric adapter/owner/budget approval、formal set approval、知覚・audio・semantic A/V実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
 4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
@@ -2198,4 +2200,4 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 18. 固定20層baselineと40層candidateをclean machineで再現し、host固有状態を排除できるか。
 19. **Partially resolved:** independent-code classification ownerと限定H3-use compliance ownerは`nishide-dev`とした。release approver、schema ownerと正式deadlineは未決定。
 
-次の作業順序は、(1) Issue #16でhuman-pairwise offline presentation runnerとpilotを実装し、candidate assessmentに従いmetric adapterを1 familyずつ追加してbaseline自己変動とfixed 20/40-layerを実測しformal setを承認、(2) 項目18のclean-machine再現、(3) 項目17のrelease supply-chain gate、(4) release/schema ownerの決定とする。H3-related runは項目1の限定scope内だけで行い、scope変更前に再reviewする。これらのrelease check完了前にPublic Runtime releaseまたはSupport Tier付与へ進まず、別途承認するまでPhase 2 derivative配布へ進まない。
+次の作業順序は、(1) Issue #16でhuman review policyを承認し、candidate assessmentに従いmetric adapterを1 familyずつ追加してbaseline自己変動とfixed 20/40-layerを実測しformal setを承認、(2) 項目18のclean-machine再現、(3) 項目17のrelease supply-chain gate、(4) release/schema ownerの決定とする。H3-related runは項目1の限定scope内だけで行い、scope変更前に再reviewする。これらのrelease check完了前にPublic Runtime releaseまたはSupport Tier付与へ進まず、別途承認するまでPhase 2 derivative配布へ進まない。

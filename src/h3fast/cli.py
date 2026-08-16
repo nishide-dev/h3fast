@@ -22,10 +22,12 @@ from h3fast.benchmarks import (
     load_runtime_settings,
     prepare_human_pairwise_ballot,
     prepare_quality_registry_review,
+    record_human_pairwise_selection,
     run_case,
     run_preflight,
     run_suite,
     serve_guarded,
+    stage_human_pairwise_presentation,
     validate_protocol,
 )
 from h3fast.compliance import check_territory_inventory
@@ -336,6 +338,29 @@ def _benchmark_check_human_pairwise(args: argparse.Namespace) -> int:
     return 0 if report.complete else 1
 
 
+def _benchmark_stage_human_pairwise(args: argparse.Namespace) -> int:
+    report = stage_human_pairwise_presentation(
+        Path(args.formal_set),
+        Path(args.ballot),
+        Path(args.assignment),
+        Path(args.media_manifest),
+        Path(args.staging_dir),
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
+def _benchmark_record_human_pairwise(args: argparse.Namespace) -> int:
+    report = record_human_pairwise_selection(
+        Path(args.ballot),
+        case_id=args.case,
+        selection=args.selection,
+        overwrite=args.overwrite,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -590,6 +615,27 @@ def build_parser() -> argparse.ArgumentParser:
     human_pairwise_check.add_argument("--ballot", required=True)
     human_pairwise_check.add_argument("--assignment", required=True)
     human_pairwise_check.set_defaults(handler=_benchmark_check_human_pairwise)
+
+    human_pairwise_stage = benchmark_subparsers.add_parser(
+        "stage-human-pairwise",
+        help="Stage digest-verified blinded A/B media with a local index page",
+    )
+    human_pairwise_stage.add_argument("--formal-set", required=True)
+    human_pairwise_stage.add_argument("--ballot", required=True)
+    human_pairwise_stage.add_argument("--assignment", required=True)
+    human_pairwise_stage.add_argument("--media-manifest", required=True)
+    human_pairwise_stage.add_argument("--staging-dir", required=True)
+    human_pairwise_stage.set_defaults(handler=_benchmark_stage_human_pairwise)
+
+    human_pairwise_record = benchmark_subparsers.add_parser(
+        "record-human-pairwise",
+        help="Record one reviewer selection on a pending private ballot",
+    )
+    human_pairwise_record.add_argument("--ballot", required=True)
+    human_pairwise_record.add_argument("--case", required=True)
+    human_pairwise_record.add_argument("--selection", required=True)
+    human_pairwise_record.add_argument("--overwrite", action="store_true")
+    human_pairwise_record.set_defaults(handler=_benchmark_record_human_pairwise)
     return parser
 
 

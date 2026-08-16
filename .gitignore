@@ -80,6 +80,7 @@ Thumbs.db
 *.private-human-pairwise-ballot.json
 *.private-human-pairwise-assignment.json
 *.private-human-pairwise-seed
+*.private-human-pairwise-media.json
 
 # Local credentials and environment files
 .env
