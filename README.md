@@ -182,7 +182,7 @@ uv run h3fast benchmark score-prompt-adherence \
   --model-dir /secure/h3fast/siglip2-base-patch16-256
 ```
 
-formal 60 caseの生成は`run-formal-cases`で行います。private reviewed registryをcommitted formal quality setへ拘束(prompt digest・seed・task・duration・aspect ratioの一致をfail-closedで検証)し、pinned protocolの固定生成parameterでcaseごとにguarded serverへ送信します。repetitionごとにper-case resultとmediaをGit外へ保存し、artifact digest検証つきresumeで中断再開できます。出力されるrun manifestはprompt・pathを含みません。
+formal caseの生成は`run-formal-cases`で行います(現時点はt2va caseのみ。fl2va/ref2vaはunsupported errorになります)。private reviewed registryをcommitted formal quality setへ拘束(prompt digest・seed・task・duration・aspect ratioの一致をfail-closedで検証)し、pinned protocolの固定生成parameterでcaseごとにguarded serverへ送信します。repetitionごとにper-case resultとmediaをGit外へ保存し、artifact digest検証つきresumeで中断再開できます。出力されるrun manifestはprompt・pathを含みません。
 
 ```bash
 uv run h3fast benchmark run-formal-cases \
