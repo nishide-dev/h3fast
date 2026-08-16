@@ -283,6 +283,48 @@ def _server_metadata(
     return server
 
 
+def _protocol_identity(protocol_path: Path) -> tuple[str, str]:
+    validate_protocol(protocol_path)
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    software = protocol["environment"]["software"]
+    sglang = software["sglang"]
+    if not isinstance(sglang, str) or not sglang.startswith("git:"):
+        message = "benchmark protocol must pin SGLang to a Git commit"
+        raise ValidationError(message)
+    return str(protocol["protocol_id"]), sglang.removeprefix("git:")
+
+
+def run_supplied_case(
+    protocol_path: Path,
+    case: dict[str, object],
+    *,
+    endpoint: str,
+    output_dir: Path,
+    poll_interval: float = 1.0,
+    timeout: float = 7200.0,
+) -> BenchmarkResult:
+    """Run one externally supplied case under the pinned protocol runtime."""
+    if poll_interval <= 0 or timeout <= 0:
+        message = "poll interval and timeout must be positive"
+        raise ValidationError(message)
+    endpoint = _validate_endpoint(endpoint)
+    protocol_id, expected_sglang_commit = _protocol_identity(protocol_path)
+    case_id = case.get("id")
+    if not isinstance(case_id, str) or not case_id:
+        message = "supplied benchmark case must define a non-empty id"
+        raise ValidationError(message)
+    return _execute_case(
+        protocol_id,
+        case_id,
+        case,
+        expected_sglang_commit,
+        endpoint=endpoint,
+        output_dir=output_dir,
+        poll_interval=poll_interval,
+        timeout=timeout,
+    )
+
+
 def run_case(
     protocol_path: Path,
     *,
@@ -305,6 +347,33 @@ def run_case(
         raise ValidationError(message)
     if performance_dump_path is not None:
         performance_dump_path.unlink(missing_ok=True)
+    return _execute_case(
+        protocol_id,
+        case_id,
+        case,
+        expected_sglang_commit,
+        endpoint=endpoint,
+        output_dir=output_dir,
+        poll_interval=poll_interval,
+        timeout=timeout,
+        server_perf_dump_path=server_perf_dump_path,
+        performance_dump_path=performance_dump_path,
+    )
+
+
+def _execute_case(
+    protocol_id: str,
+    case_id: str,
+    case: dict[str, object],
+    expected_sglang_commit: str,
+    *,
+    endpoint: str,
+    output_dir: Path,
+    poll_interval: float,
+    timeout: float,
+    server_perf_dump_path: str | None = None,
+    performance_dump_path: Path | None = None,
+) -> BenchmarkResult:
     payload, prompt_sha256 = _payload(case, server_perf_dump_path=server_perf_dump_path)
     started_wall = datetime.now(UTC)
     started_monotonic = time.monotonic()

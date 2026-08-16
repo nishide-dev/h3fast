@@ -24,6 +24,7 @@ from h3fast.benchmarks import (
     prepare_quality_registry_review,
     record_human_pairwise_selection,
     run_case,
+    run_formal_cases,
     run_preflight,
     run_suite,
     score_perceptual_video,
@@ -375,6 +376,22 @@ def _benchmark_score_perceptual_video(args: argparse.Namespace) -> int:
         ),
         ffmpeg=args.ffmpeg,
         ffprobe=args.ffprobe,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
+def _benchmark_run_formal_cases(args: argparse.Namespace) -> int:
+    report = run_formal_cases(
+        Path(args.protocol),
+        Path(args.registry),
+        Path(args.formal_set),
+        endpoint=args.endpoint,
+        output_dir=Path(args.output_dir),
+        repetition_id=args.repetition,
+        split=args.split,
+        poll_interval=args.poll_interval,
+        timeout=args.timeout,
     )
     _write_json(report.to_dict())
     return 0
@@ -737,6 +754,21 @@ def build_parser() -> argparse.ArgumentParser:
     prompt_adherence.add_argument("--ffmpeg", default="ffmpeg")
     prompt_adherence.add_argument("--ffprobe", default="ffprobe")
     prompt_adherence.set_defaults(handler=_benchmark_score_prompt_adherence)
+
+    formal_cases = benchmark_subparsers.add_parser(
+        "run-formal-cases",
+        help="Generate formal-case media for one repetition with digest binding",
+    )
+    formal_cases.add_argument("--protocol", default="benchmarks/protocol.yaml")
+    formal_cases.add_argument("--registry", required=True)
+    formal_cases.add_argument("--formal-set", required=True)
+    formal_cases.add_argument("--endpoint", required=True)
+    formal_cases.add_argument("--output-dir", required=True)
+    formal_cases.add_argument("--repetition", required=True)
+    formal_cases.add_argument("--split", default=None)
+    formal_cases.add_argument("--poll-interval", type=float, default=1.0)
+    formal_cases.add_argument("--timeout", type=float, default=7200.0)
+    formal_cases.set_defaults(handler=_benchmark_run_formal_cases)
     return parser
 
 
