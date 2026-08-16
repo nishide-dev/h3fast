@@ -106,8 +106,8 @@
         "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
       ],
       "blockers": [
-        "The project-owned trajectory algorithm and metric entrypoint are not implemented.",
-        "LPIPS compatibility and bundled network-weight provenance remain unverified in the fixed runtime.",
+        "The pinned implementation has not been exercised with the formal media contract or fixed H3 runtime.",
+        "The AlexNet backbone checkpoint license and redistribution scope are unconfirmed; the digest-pinned file stays local-only.",
         "No baseline self-variation or quality-owner approval evidence exists."
       ],
       "sources": [

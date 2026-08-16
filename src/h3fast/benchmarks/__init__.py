@@ -43,6 +43,10 @@ from h3fast.benchmarks.quality_sets import (
     check_formal_quality_set,
 )
 from h3fast.benchmarks.suite import BenchmarkSuiteResult, run_suite
+from h3fast.benchmarks.temporal_consistency import (
+    TemporalConsistencyReport,
+    score_temporal_consistency,
+)
 
 __all__ = [
     "BenchmarkResult",
@@ -61,6 +65,7 @@ __all__ = [
     "QualityRegistryCompileReport",
     "QualityRegistryReviewReport",
     "RuntimeSettings",
+    "TemporalConsistencyReport",
     "apply_quality_registry_review",
     "build_quality_reference",
     "build_singularity_launch",
@@ -77,6 +82,7 @@ __all__ = [
     "run_preflight",
     "run_suite",
     "score_perceptual_video",
+    "score_temporal_consistency",
     "serve_guarded",
     "stage_human_pairwise_presentation",
     "validate_protocol",

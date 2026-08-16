@@ -163,6 +163,15 @@ uv run h3fast benchmark score-perceptual-video \
   --backbone-dir /secure/h3fast/quality-metrics-hub
 ```
 
+temporal-consistencyは同じ契約・backbone・依存groupを共有し、各動画の隣接frame間LPIPS列(trajectory)のstep差を比較します。scene cutは除外されず、candidateが保持したcutは相殺されます。2 frame未満の入力は拒否します。
+
+```bash
+uv run h3fast benchmark score-temporal-consistency \
+  --baseline /secure/h3fast/outputs/smoke-001-baseline.mp4 \
+  --candidate /secure/h3fast/outputs/smoke-001-candidate.mp4 \
+  --backbone-dir /secure/h3fast/quality-metrics-hub
+```
+
 ```bash
 uv run h3fast benchmark check-human-pairwise \
   --formal-set benchmarks/quality/formal-quality-set.json \
