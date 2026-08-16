@@ -22,10 +22,12 @@ _RATE = 8
 _FRAME_BYTES = _WIDTH * _HEIGHT * 3
 
 
-def _static_frames(count: int = _FRAMES, *, flicker: int = 0) -> bytes:
+def _static_frames(
+    count: int = _FRAMES, *, flicker: int = 0, seed: int = 20260816
+) -> bytes:
     import numpy as np
 
-    generator = np.random.default_rng(20260816)
+    generator = np.random.default_rng(seed)
     frame = generator.integers(0, 256, size=(1, _HEIGHT, _WIDTH, 3), dtype=np.int16)
     frames = np.repeat(frame, count, axis=0)
     if flicker:
@@ -39,7 +41,7 @@ def _static_frames(count: int = _FRAMES, *, flicker: int = 0) -> bytes:
     return np.clip(frames, 0, 255).astype(np.uint8).tobytes()
 
 
-def _cut_frames(*, preserve_cut: bool) -> bytes:
+def _cut_frames(*, cut_index: int | None) -> bytes:
     import numpy as np
 
     first = np.random.default_rng(1).integers(
@@ -48,13 +50,15 @@ def _cut_frames(*, preserve_cut: bool) -> bytes:
     second = np.random.default_rng(2).integers(
         0, 256, size=(1, _HEIGHT, _WIDTH, 3), dtype=np.uint8
     )
-    half = _FRAMES // 2
-    if preserve_cut:
-        frames = np.concatenate(
-            [np.repeat(first, half, axis=0), np.repeat(second, half, axis=0)]
-        )
-    else:
+    if cut_index is None:
         frames = np.repeat(first, _FRAMES, axis=0)
+    else:
+        frames = np.concatenate(
+            [
+                np.repeat(first, cut_index, axis=0),
+                np.repeat(second, _FRAMES - cut_index, axis=0),
+            ]
+        )
     return frames.tobytes()
 
 
@@ -115,8 +119,8 @@ def _score(baseline: Path, candidate: Path, backbone: tuple[Path, str]):
 def test_identical_videos_have_zero_trajectory_delta(
     tmp_path: Path, backbone_dir
 ) -> None:
-    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(preserve_cut=True))
-    candidate = _encode(tmp_path / "candidate.mkv", _cut_frames(preserve_cut=True))
+    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(cut_index=_FRAMES // 2))
+    candidate = _encode(tmp_path / "candidate.mkv", _cut_frames(cut_index=_FRAMES // 2))
 
     report = _score(baseline, candidate, backbone_dir)
 
@@ -134,14 +138,16 @@ def test_static_scenes_score_zero_and_flicker_scores_higher(
     tmp_path: Path, backbone_dir
 ) -> None:
     static_a = _encode(tmp_path / "static-a.mkv", _static_frames())
-    static_b = _encode(tmp_path / "static-b.mkv", _static_frames())
+    static_b = _encode(tmp_path / "static-b.mkv", _static_frames(seed=41))
     flicker = _encode(tmp_path / "flicker.mkv", _static_frames(flicker=24))
 
     static_report = _score(static_a, static_b, backbone_dir)
     flicker_report = _score(static_a, flicker, backbone_dir)
 
     assert static_report.baseline_mean_step_lpips == 0.0
+    assert static_report.candidate_mean_step_lpips == 0.0
     assert static_report.mean_abs_trajectory_delta == 0.0
+    assert static_report.max_abs_trajectory_delta == 0.0
     assert flicker_report.mean_abs_trajectory_delta > 0.0
     assert flicker_report.candidate_mean_step_lpips > 0.0
 
@@ -149,9 +155,9 @@ def test_static_scenes_score_zero_and_flicker_scores_higher(
 def test_removed_cut_scores_higher_than_preserved_cut(
     tmp_path: Path, backbone_dir
 ) -> None:
-    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(preserve_cut=True))
-    preserved = _encode(tmp_path / "preserved.mkv", _cut_frames(preserve_cut=True))
-    removed = _encode(tmp_path / "removed.mkv", _cut_frames(preserve_cut=False))
+    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(cut_index=_FRAMES // 2))
+    preserved = _encode(tmp_path / "preserved.mkv", _cut_frames(cut_index=_FRAMES // 2))
+    removed = _encode(tmp_path / "removed.mkv", _cut_frames(cut_index=None))
 
     preserved_report = _score(baseline, preserved, backbone_dir)
     removed_report = _score(baseline, removed, backbone_dir)
@@ -164,8 +170,92 @@ def test_removed_cut_scores_higher_than_preserved_cut(
     )
 
 
+def test_moved_cut_surfaces_as_delta(tmp_path: Path, backbone_dir) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(cut_index=3))
+    moved = _encode(tmp_path / "moved.mkv", _cut_frames(cut_index=5))
+
+    report = _score(baseline, moved, backbone_dir)
+
+    assert report.mean_abs_trajectory_delta > 0.0
+    assert report.max_abs_trajectory_delta > 0.0
+
+
+def test_two_frame_videos_have_single_step(tmp_path: Path, backbone_dir) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _static_frames(count=2))
+    candidate = _encode(tmp_path / "candidate.mkv", _static_frames(count=2, flicker=24))
+
+    report = _score(baseline, candidate, backbone_dir)
+
+    assert report.frame_count == 2
+    assert report.step_count == 1
+    assert report.mean_abs_trajectory_delta == report.max_abs_trajectory_delta
+    assert report.baseline_mean_step_lpips == 0.0
+    assert report.candidate_mean_step_lpips > 0.0
+
+
+def test_longer_failing_stream_reports_decode_error_not_mismatch(
+    tmp_path: Path, backbone_dir
+) -> None:
+    baseline = _encode(tmp_path / "baseline.mkv", _static_frames())
+    candidate = _encode(tmp_path / "candidate.mkv", _static_frames())
+    fake_ffmpeg = tmp_path / "fake-ffmpeg-asymmetric"
+    fake_ffmpeg.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "-version" ]; then echo "fake-ffmpeg version 0"; exit 0; fi\n'
+        'input=""\n'
+        'previous=""\n'
+        'for argument in "$@"; do\n'
+        '  if [ "$previous" = "-i" ]; then input="$argument"; fi\n'
+        '  previous="$argument"\n'
+        "done\n"
+        'case "$input" in\n'
+        f"  *baseline*) head -c {_FRAME_BYTES * 5} /dev/zero;"
+        ' echo "synthetic baseline decode failure" >&2; exit 1;;\n'
+        f"  *) head -c {_FRAME_BYTES * 3} /dev/zero; exit 0;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    fake_ffmpeg.chmod(0o700)
+    root, digest = backbone_dir
+
+    with pytest.raises(ValidationError, match="decode failed"):
+        score_temporal_consistency(
+            baseline,
+            candidate,
+            backbone_dir=root,
+            expected_backbone_sha256=digest,
+            ffmpeg=str(fake_ffmpeg),
+        )
+
+
+def test_cli_uses_pinned_digest_by_default(
+    tmp_path: Path, backbone_dir, capsys
+) -> None:
+    from h3fast.cli import main
+
+    root, _digest = backbone_dir
+    baseline = _encode(tmp_path / "baseline.mkv", _static_frames())
+    candidate = _encode(tmp_path / "candidate.mkv", _static_frames())
+
+    status = main(
+        [
+            "benchmark",
+            "score-temporal-consistency",
+            "--baseline",
+            str(baseline),
+            "--candidate",
+            str(candidate),
+            "--backbone-dir",
+            str(root),
+        ]
+    )
+
+    assert status == 2
+    assert "digest" in capsys.readouterr().err
+
+
 def test_scores_are_deterministic(tmp_path: Path, backbone_dir) -> None:
-    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(preserve_cut=True))
+    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(cut_index=_FRAMES // 2))
     candidate = _encode(tmp_path / "candidate.mkv", _static_frames(flicker=8))
 
     first = _score(baseline, candidate, backbone_dir)
@@ -241,8 +331,8 @@ def test_cli_scores_temporal_consistency(tmp_path: Path, backbone_dir, capsys) -
     from h3fast.cli import main
 
     root, digest = backbone_dir
-    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(preserve_cut=True))
-    candidate = _encode(tmp_path / "candidate.mkv", _cut_frames(preserve_cut=False))
+    baseline = _encode(tmp_path / "baseline.mkv", _cut_frames(cut_index=_FRAMES // 2))
+    candidate = _encode(tmp_path / "candidate.mkv", _cut_frames(cut_index=None))
 
     status = main(
         [
