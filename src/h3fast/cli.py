@@ -27,6 +27,7 @@ from h3fast.benchmarks import (
     run_preflight,
     run_suite,
     score_perceptual_video,
+    score_prompt_adherence,
     score_temporal_consistency,
     serve_guarded,
     stage_human_pairwise_presentation,
@@ -35,7 +36,7 @@ from h3fast.benchmarks import (
 from h3fast.benchmarks.perceptual_video import ALEXNET_BACKBONE_SHA256
 from h3fast.compliance import check_territory_inventory
 from h3fast.diagnostics import run_doctor
-from h3fast.exceptions import H3FastError
+from h3fast.exceptions import H3FastError, ValidationError
 from h3fast.manifest import inspect_snapshot, verify_model_artifact
 from h3fast.release import check_release_gate
 
@@ -379,6 +380,36 @@ def _benchmark_score_perceptual_video(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_score_prompt_adherence(args: argparse.Namespace) -> int:
+    from h3fast.benchmarks.prompt_adherence import SIGLIP2_MODEL_FILE_SHA256S
+
+    manifest: dict[str, str] = dict(SIGLIP2_MODEL_FILE_SHA256S)
+    if args.model_manifest is not None:
+        try:
+            loaded = json.loads(Path(args.model_manifest).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            message = f"SigLIP2 file manifest could not be read: {error}"
+            raise ValidationError(message) from error
+        if not isinstance(loaded, dict) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in loaded.items()
+        ):
+            message = "SigLIP2 file manifest must map file names to digests"
+            raise ValidationError(message)
+        manifest = loaded
+    report = score_prompt_adherence(
+        Path(args.video),
+        prompt_file=Path(args.prompt_file),
+        expected_prompt_sha256=args.expected_prompt_sha256,
+        model_dir=Path(args.model_dir),
+        expected_file_sha256s=manifest,
+        ffmpeg=args.ffmpeg,
+        ffprobe=args.ffprobe,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
 def _benchmark_score_temporal_consistency(args: argparse.Namespace) -> int:
     report = score_temporal_consistency(
         Path(args.baseline),
@@ -693,6 +724,19 @@ def build_parser() -> argparse.ArgumentParser:
     temporal_consistency.add_argument("--ffmpeg", default="ffmpeg")
     temporal_consistency.add_argument("--ffprobe", default="ffprobe")
     temporal_consistency.set_defaults(handler=_benchmark_score_temporal_consistency)
+
+    prompt_adherence = benchmark_subparsers.add_parser(
+        "score-prompt-adherence",
+        help="Score SigLIP2 prompt adherence of one video with a private prompt",
+    )
+    prompt_adherence.add_argument("--video", required=True)
+    prompt_adherence.add_argument("--prompt-file", required=True)
+    prompt_adherence.add_argument("--expected-prompt-sha256", required=True)
+    prompt_adherence.add_argument("--model-dir", required=True)
+    prompt_adherence.add_argument("--model-manifest", default=None)
+    prompt_adherence.add_argument("--ffmpeg", default="ffmpeg")
+    prompt_adherence.add_argument("--ffprobe", default="ffprobe")
+    prompt_adherence.set_defaults(handler=_benchmark_score_prompt_adherence)
     return parser
 
 

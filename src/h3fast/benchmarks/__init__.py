@@ -20,6 +20,10 @@ from h3fast.benchmarks.perceptual_video import (
     score_perceptual_video,
 )
 from h3fast.benchmarks.preflight import PreflightReport, run_preflight
+from h3fast.benchmarks.prompt_adherence import (
+    PromptAdherenceReport,
+    score_prompt_adherence,
+)
 from h3fast.benchmarks.protocol import (
     ProtocolReport,
     RuntimeSettings,
@@ -60,6 +64,7 @@ __all__ = [
     "LaunchPlan",
     "PerceptualVideoReport",
     "PreflightReport",
+    "PromptAdherenceReport",
     "ProtocolReport",
     "QualityMetricPlanReport",
     "QualityRegistryCompileReport",
@@ -82,6 +87,7 @@ __all__ = [
     "run_preflight",
     "run_suite",
     "score_perceptual_video",
+    "score_prompt_adherence",
     "score_temporal_consistency",
     "serve_guarded",
     "stage_human_pairwise_presentation",

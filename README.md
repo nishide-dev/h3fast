@@ -172,6 +172,16 @@ uv run h3fast benchmark score-temporal-consistency \
   --backbone-dir /secure/h3fast/quality-metrics-hub
 ```
 
+prompt-adherenceはpinned SigLIP2 snapshot(`google/siglip2-base-patch16-256` revision `3f9f96cb…`)を使用します。利用者が7 fileをlocal directoryへ取得すると、adapterがSHA-256 manifestで全fileを検証してからoffline loadします(自動downloadなし)。prompt本文はgroup/otherから読めないprivate fileで供給し、formal caseの`prompt_sha256`とbytes一致しない場合は実行しません。出力にprompt本文やpathは含まれません。
+
+```bash
+uv run h3fast benchmark score-prompt-adherence \
+  --video /secure/h3fast/outputs/smoke-001-candidate.mp4 \
+  --prompt-file /secure/h3fast/prompts/smoke-001.txt \
+  --expected-prompt-sha256 <formal-case-prompt-sha256> \
+  --model-dir /secure/h3fast/siglip2-base-patch16-256
+```
+
 ```bash
 uv run h3fast benchmark check-human-pairwise \
   --formal-set benchmarks/quality/formal-quality-set.json \
