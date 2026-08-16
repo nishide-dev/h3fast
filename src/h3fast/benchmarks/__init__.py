@@ -1,6 +1,7 @@
 """Benchmark protocol, preflight, launch, and execution helpers."""
 
-from h3fast.benchmarks.client import BenchmarkResult, run_case
+from h3fast.benchmarks.client import BenchmarkResult, run_case, run_supplied_case
+from h3fast.benchmarks.formal_runner import FormalRunReport, run_formal_cases
 from h3fast.benchmarks.guard import ForeignGpuProcess, serve_guarded
 from h3fast.benchmarks.human_pairwise import (
     HumanPairwisePreparationReport,
@@ -57,6 +58,7 @@ __all__ = [
     "BenchmarkSuiteResult",
     "ForeignGpuProcess",
     "FormalQualitySetReport",
+    "FormalRunReport",
     "HumanPairwisePreparationReport",
     "HumanPairwiseRecordReport",
     "HumanPairwiseReport",
@@ -84,8 +86,10 @@ __all__ = [
     "prepare_quality_registry_review",
     "record_human_pairwise_selection",
     "run_case",
+    "run_formal_cases",
     "run_preflight",
     "run_suite",
+    "run_supplied_case",
     "score_perceptual_video",
     "score_prompt_adherence",
     "score_temporal_consistency",
