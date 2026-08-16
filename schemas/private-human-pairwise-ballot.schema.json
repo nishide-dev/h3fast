@@ -57,7 +57,7 @@
           "completed_at": { "type": "null" },
           "cases": {
             "items": {
-              "properties": { "selection": { "type": "null" } },
+              "properties": { "selection": { "enum": ["a", "b", "tie", null] } },
               "required": ["selection"]
             }
           }

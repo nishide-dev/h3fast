@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import html
 import json
 import os
+import re
 import shutil
+import stat
+import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -33,7 +37,22 @@ _MEDIA_MANIFEST_FIELDS = frozenset({"schema_version", "formal_set_sha256", "case
 _MEDIA_CASE_FIELDS = frozenset({"case_id", "baseline", "candidate"})
 _MEDIA_SOURCE_FIELDS = frozenset({"path", "sha256"})
 _SELECTIONS = frozenset({"a", "b", "tie"})
+_SUFFIX_PATTERN = re.compile(r"\.[A-Za-z0-9]+")
 _COPY_CHUNK_BYTES = 1 << 20
+
+
+def _require_private_file(path: Path, name: str) -> None:
+    try:
+        mode = stat.S_IMODE(path.stat().st_mode)
+    except FileNotFoundError as error:
+        message = f"{name} is missing"
+        raise ValidationError(message) from error
+    except OSError as error:
+        message = f"{name} could not be read"
+        raise ValidationError(message) from error
+    if mode & 0o077:
+        message = f"{name} must not be accessible by group or other users"
+        raise ValidationError(message)
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,9 +95,29 @@ class HumanPairwiseRecordReport:
         }
 
 
+def _validate_ballot_case(
+    case: object, index: int
+) -> tuple[dict[str, object], str, str]:
+    if not isinstance(case, dict):
+        message = f"human-pairwise ballot case {index} must be an object"
+        raise ValidationError(message)
+    _fields(case, _BALLOT_CASE_FIELDS, f"human-pairwise ballot case {index}")
+    case_id = _string(case["case_id"], f"human-pairwise ballot case {index} id")
+    commitment = _sha(
+        case["assignment_commitment_sha256"], f"ballot case {case_id} commitment"
+    )
+    selection = case["selection"]
+    if selection is not None and (
+        not isinstance(selection, str) or selection not in _SELECTIONS
+    ):
+        message = f"human-pairwise ballot case {case_id} has an invalid selection"
+        raise ValidationError(message)
+    return case, case_id, commitment
+
+
 def _validate_pending_ballot(
     ballot: dict[str, object], expected_ids: tuple[str, ...], formal_sha: str
-) -> str:
+) -> tuple[str, dict[str, str]]:
     _fields(ballot, _BALLOT_FIELDS, "human-pairwise ballot")
     if ballot["schema_version"] != "1.0":
         message = "human-pairwise ballot requires schema_version '1.0'"
@@ -95,17 +134,17 @@ def _validate_pending_ballot(
     if not isinstance(cases, list):
         message = "human-pairwise ballot cases must be an array"
         raise ValidationError(message)
-    seen: list[str] = []
+    commitments: dict[str, str] = {}
     for index, case in enumerate(cases):
-        if not isinstance(case, dict):
-            message = f"human-pairwise ballot case {index} must be an object"
+        _, case_id, commitment = _validate_ballot_case(case, index)
+        if case_id in commitments:
+            message = f"duplicate human-pairwise ballot case: {case_id}"
             raise ValidationError(message)
-        _fields(case, _BALLOT_CASE_FIELDS, f"human-pairwise ballot case {index}")
-        seen.append(_string(case["case_id"], f"human-pairwise ballot case {index} id"))
-    if tuple(seen) != expected_ids:
+        commitments[case_id] = commitment
+    if tuple(commitments) != expected_ids:
         message = "human-pairwise ballot must cover every formal case in fixed order"
         raise ValidationError(message)
-    return ballot_id
+    return ballot_id, commitments
 
 
 def _validate_assignment(
@@ -114,6 +153,7 @@ def _validate_assignment(
     ballot: dict[str, object],
     *,
     ballot_id: str,
+    ballot_commitments: dict[str, str],
     expected_ids: tuple[str, ...],
     formal_sha: str,
 ) -> dict[str, str]:
@@ -154,6 +194,9 @@ def _validate_assignment(
         )
         if commitment != _canonical_commitment(ballot_id, case_id, a_source, salt):
             message = f"human-pairwise assignment commitment mismatch for {case_id}"
+            raise ValidationError(message)
+        if ballot_commitments.get(case_id) != commitment:
+            message = f"human-pairwise ballot commitment mismatch for {case_id}"
             raise ValidationError(message)
         a_sources[case_id] = a_source
     if tuple(a_sources) != expected_ids:
@@ -208,8 +251,12 @@ def _validate_media_manifest(
             raise ValidationError(message)
         baseline = _validate_media_source(case, "baseline", case_id, manifest_dir)
         candidate = _validate_media_source(case, "candidate", case_id, manifest_dir)
-        if baseline[0].suffix != candidate[0].suffix or not baseline[0].suffix:
-            message = f"media pair for {case_id} must share one non-empty file suffix"
+        if baseline[0].suffix != candidate[0].suffix or not _SUFFIX_PATTERN.fullmatch(
+            baseline[0].suffix
+        ):
+            message = (
+                f"media pair for {case_id} must share one alphanumeric file suffix"
+            )
             raise ValidationError(message)
         media[case_id] = {"baseline": baseline, "candidate": candidate}
     if tuple(media) != expected_ids:
@@ -227,13 +274,13 @@ def _copy_verified_media(source: Path, digest: str, target: Path, name: str) -> 
             while chunk := reader.read(_COPY_CHUNK_BYTES):
                 hasher.update(chunk)
                 writer.write(chunk)
+        target.chmod(0o600)
     except OSError as error:
         message = f"{name} could not be copied"
         raise ValidationError(message) from error
     if hasher.hexdigest() != digest:
         message = f"{name} digest does not match the media manifest"
         raise ValidationError(message)
-    target.chmod(0o600)
 
 
 def _presentation_index(ballot_id: str, staged: list[tuple[str, str]]) -> str:
@@ -290,8 +337,12 @@ def stage_human_pairwise_presentation(
     check_formal_quality_set(formal_set_path)
     formal_sha = _sha256(formal_raw)
     expected_ids = _case_ids(formal_set)
+    _require_private_file(ballot_path, "human-pairwise ballot")
     ballot, _ = _load_object(ballot_path, "human-pairwise ballot")
-    ballot_id = _validate_pending_ballot(ballot, expected_ids, formal_sha)
+    ballot_id, ballot_commitments = _validate_pending_ballot(
+        ballot, expected_ids, formal_sha
+    )
+    _require_private_file(assignment_path, "human-pairwise assignment")
     assignment, assignment_raw = _load_object(
         assignment_path, "human-pairwise assignment"
     )
@@ -300,6 +351,7 @@ def stage_human_pairwise_presentation(
         assignment_raw,
         ballot,
         ballot_id=ballot_id,
+        ballot_commitments=ballot_commitments,
         expected_ids=expected_ids,
         formal_sha=formal_sha,
     )
@@ -331,8 +383,16 @@ def stage_human_pairwise_presentation(
         index_path = staging_dir / "index.html"
         index_path.write_text(_presentation_index(ballot_id, staged), encoding="utf-8")
         index_path.chmod(0o600)
-    except BaseException:
+    except BaseException as error:
         shutil.rmtree(staging_dir, ignore_errors=True)
+        if staging_dir.exists():
+            sys.stderr.write(
+                "warning: the staging directory could not be fully removed;"
+                " delete it manually before retrying\n"
+            )
+        if isinstance(error, OSError):
+            message = "staging directory could not be written"
+            raise ValidationError(message) from error
         raise
     return HumanPairwiseStagingReport(
         ballot_id=ballot_id,
@@ -354,7 +414,8 @@ def _replace_private_json(path: Path, value: dict[str, object]) -> None:
         Path(temporary).replace(path)
     except OSError as error:
         if temporary is not None:
-            Path(temporary).unlink(missing_ok=True)
+            with contextlib.suppress(OSError):
+                Path(temporary).unlink(missing_ok=True)
         message = "private ballot could not be updated"
         raise ValidationError(message) from error
 
@@ -371,6 +432,7 @@ def record_human_pairwise_selection(
     if selection not in _SELECTIONS:
         message = "selection must be one of: a, b, tie"
         raise ValidationError(message)
+    _require_private_file(ballot_path, "human-pairwise ballot")
     ballot, _ = _load_object(ballot_path, "human-pairwise ballot")
     _fields(ballot, _BALLOT_FIELDS, "human-pairwise ballot")
     if ballot["schema_version"] != "1.0":
@@ -385,13 +447,15 @@ def record_human_pairwise_selection(
         message = "human-pairwise ballot cases must be an array"
         raise ValidationError(message)
     target: dict[str, object] | None = None
+    seen: set[str] = set()
     for index, case in enumerate(cases):
-        if not isinstance(case, dict):
-            message = f"human-pairwise ballot case {index} must be an object"
+        validated, current_id, _ = _validate_ballot_case(case, index)
+        if current_id in seen:
+            message = f"duplicate human-pairwise ballot case: {current_id}"
             raise ValidationError(message)
-        _fields(case, _BALLOT_CASE_FIELDS, f"human-pairwise ballot case {index}")
-        if case["case_id"] == case_id:
-            target = case
+        seen.add(current_id)
+        if current_id == case_id:
+            target = validated
     if target is None:
         message = f"human-pairwise ballot has unknown case: {case_id}"
         raise ValidationError(message)

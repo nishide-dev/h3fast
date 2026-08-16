@@ -145,7 +145,7 @@ uv run h3fast benchmark stage-human-pairwise \
   --staging-dir /secure/h3fast/pilot-001-staging
 ```
 
-reviewerは`index.html`をローカルブラウザで開いてAとBを視聴し、caseごとに`record-human-pairwise`で`a` / `b` / `tie`を記録します。記録済みcaseの変更は`--overwrite`が必須で、全case記録時にのみballotが`completed`へ遷移します。欠損、abstain、stale digest、commitment改ざん、case順序変更はfailします。aggregate出力にはper-case判断、seed、pathまたはmediaを含めません。
+reviewerは`index.html`をローカルブラウザで開いてAとBを視聴し、caseごとに`record-human-pairwise`で`a` / `b` / `tie`を記録します。ballotとassignmentがgroup/otherから読める場合、stage/recordは拒否します。記録済みcaseの変更は`--overwrite`が必須で、全case記録時にのみballotが`completed`へ遷移します。欠損、abstain、stale digest、commitment改ざん、case順序変更はfailします。aggregate出力にはper-case判断、seed、pathまたはmediaを含めません。
 
 ```bash
 uv run h3fast benchmark record-human-pairwise \

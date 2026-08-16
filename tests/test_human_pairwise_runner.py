@@ -63,7 +63,7 @@ def _build_media(tmp_path: Path) -> Path:
             data = f"{source} media for {case_id}\n".encode()
             path.write_bytes(data)
             entry[source] = {
-                "path": str(path),
+                "path": f"media/{case_id}-{source}.mp4",
                 "sha256": hashlib.sha256(data).hexdigest(),
             }
         cases.append(entry)
@@ -152,7 +152,7 @@ def test_stage_rejects_media_digest_mismatch_and_cleans_up(tmp_path: Path) -> No
     tampered = _read(manifest)
     first = _cases(tampered)[0]
     assert isinstance(first["baseline"], dict)
-    Path(str(first["baseline"]["path"])).write_bytes(b"tampered media\n")
+    (tmp_path / str(first["baseline"]["path"])).write_bytes(b"tampered media\n")
     staging = tmp_path / "staging"
 
     with pytest.raises(ValidationError, match="digest"):
@@ -191,10 +191,11 @@ def test_stage_rejects_unblinding_extension_mismatch(tmp_path: Path) -> None:
     value = _read(manifest)
     first = _cases(value)[0]
     assert isinstance(first["candidate"], dict)
-    old = Path(str(first["candidate"]["path"]))
-    renamed = old.with_suffix(".webm")
-    old.rename(renamed)
-    first["candidate"]["path"] = str(renamed)
+    old = tmp_path / str(first["candidate"]["path"])
+    old.rename(old.with_suffix(".webm"))
+    first["candidate"]["path"] = str(
+        Path(str(first["candidate"]["path"])).with_suffix(".webm")
+    )
     manifest.write_text(json.dumps(value), encoding="utf-8")
     staging = tmp_path / "staging"
 
@@ -328,3 +329,191 @@ def test_record_rejects_completed_ballot(tmp_path: Path) -> None:
         record_human_pairwise_selection(
             ballot, case_id="smoke-001", selection="a", overwrite=True
         )
+
+
+def _write_private(path: Path, value: dict[str, object]) -> None:
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    path.chmod(0o600)
+
+
+def _refresh_assignment_digest(ballot_path: Path, assignment_path: Path) -> None:
+    ballot = _read(ballot_path)
+    ballot["assignment_sha256"] = hashlib.sha256(
+        assignment_path.read_bytes()
+    ).hexdigest()
+    _write_private(ballot_path, ballot)
+
+
+def test_partially_recorded_pending_ballot_matches_schema(tmp_path: Path) -> None:
+    ballot, _assignment = _prepare(tmp_path)
+    ballot_schema = _read(Path("schemas/private-human-pairwise-ballot.schema.json"))
+
+    record_human_pairwise_selection(ballot, case_id="smoke-001", selection="a")
+
+    Draft202012Validator(
+        ballot_schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    ).validate(_read(ballot))
+
+
+def test_stage_rejects_assignment_tampering(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    staging = tmp_path / "staging"
+    assignment_value = _read(assignment)
+    case = _cases(assignment_value)[0]
+    case["a_source"] = "candidate" if case["a_source"] == "baseline" else "baseline"
+    _write_private(assignment, assignment_value)
+
+    with pytest.raises(ValidationError, match="assignment digest"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+
+    _refresh_assignment_digest(ballot, assignment)
+    with pytest.raises(ValidationError, match="assignment commitment mismatch"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+
+    ballot_value = _read(ballot)
+    case["assignment_commitment_sha256"] = hashlib.sha256(
+        "\0".join(
+            [
+                str(ballot_value["ballot_id"]),
+                str(case["case_id"]),
+                str(case["a_source"]),
+                str(case["salt"]),
+            ]
+        ).encode()
+    ).hexdigest()
+    _write_private(assignment, assignment_value)
+    _refresh_assignment_digest(ballot, assignment)
+    with pytest.raises(ValidationError, match="ballot commitment mismatch"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+    assert not staging.exists()
+
+
+def test_stage_rejects_stale_ballot_formal_digest(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    ballot_value = _read(ballot)
+    ballot_value["formal_set_sha256"] = "0" * 64
+    _write_private(ballot, ballot_value)
+
+    with pytest.raises(ValidationError, match="ballot formal-set digest"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, tmp_path / "staging"
+        )
+
+
+def test_stage_rejects_exposed_private_inputs(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    staging = tmp_path / "staging"
+
+    ballot.chmod(0o644)
+    with pytest.raises(ValidationError, match="group or other"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+
+    ballot.chmod(0o600)
+    assignment.chmod(0o644)
+    with pytest.raises(ValidationError, match="group or other"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+
+
+def test_stage_rejects_missing_media_file_and_cleans_up(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    staging = tmp_path / "staging"
+    first = _cases(_read(manifest))[0]
+    assert isinstance(first["baseline"], dict)
+    (tmp_path / str(first["baseline"]["path"])).unlink()
+
+    with pytest.raises(ValidationError, match="could not be copied"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, staging
+        )
+    assert not staging.exists()
+
+
+def test_stage_rejects_non_alphanumeric_suffix(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    value = _read(manifest)
+    first = _cases(value)[0]
+    for source in ("baseline", "candidate"):
+        entry = first[source]
+        assert isinstance(entry, dict)
+        old = tmp_path / str(entry["path"])
+        old.rename(old.with_name(old.stem + '.mp"4'))
+        entry["path"] = str(entry["path"]).replace(".mp4", '.mp"4')
+    manifest.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(ValidationError, match="suffix"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, ballot, assignment, manifest, tmp_path / "staging"
+        )
+
+
+def test_stage_wraps_filesystem_errors_as_validation(tmp_path: Path) -> None:
+    ballot, assignment = _prepare(tmp_path)
+    manifest = _build_media(tmp_path)
+    parent = tmp_path / "readonly"
+    parent.mkdir()
+    staging = parent / "staging"
+    parent.chmod(0o500)
+    try:
+        with pytest.raises(ValidationError, match="could not be written"):
+            stage_human_pairwise_presentation(
+                FORMAL_SET, ballot, assignment, manifest, staging
+            )
+    finally:
+        parent.chmod(0o700)
+    assert not staging.exists()
+
+
+def test_record_rejects_duplicate_or_corrupt_ballot_cases(tmp_path: Path) -> None:
+    ballot, _assignment = _prepare(tmp_path)
+    value = _read(ballot)
+    _cases(value)[1]["case_id"] = _cases(value)[0]["case_id"]
+    _write_private(ballot, value)
+    with pytest.raises(ValidationError, match="duplicate"):
+        record_human_pairwise_selection(ballot, case_id="smoke-003", selection="a")
+
+    ballot, _assignment = _prepare(tmp_path / "corrupt")
+    value = _read(ballot)
+    _cases(value)[1]["selection"] = "A"
+    _write_private(ballot, value)
+    with pytest.raises(ValidationError, match="selection"):
+        record_human_pairwise_selection(ballot, case_id="smoke-001", selection="a")
+
+
+def test_record_rejects_exposed_ballot_file(tmp_path: Path) -> None:
+    ballot, _assignment = _prepare(tmp_path)
+    ballot.chmod(0o644)
+
+    with pytest.raises(ValidationError, match="group or other"):
+        record_human_pairwise_selection(ballot, case_id="smoke-001", selection="a")
+
+
+def test_record_cleanup_failure_does_not_mask_validation_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ballot, _assignment = _prepare(tmp_path)
+
+    def raise_oserror(*_args: object, **_kwargs: object) -> None:
+        message = "operation not permitted"
+        raise OSError(message)
+
+    monkeypatch.setattr(Path, "chmod", raise_oserror)
+    monkeypatch.setattr(Path, "unlink", raise_oserror)
+    with pytest.raises(ValidationError, match="could not be updated"):
+        record_human_pairwise_selection(ballot, case_id="smoke-001", selection="a")
