@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishide-dev/h3fast/schemas/private-human-pairwise-media.schema.json",
+  "title": "H3Fast private human-pairwise media manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "formal_set_sha256", "cases"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "formal_set_sha256": { "$ref": "#/$defs/sha256" },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "baseline", "candidate"],
+      "properties": {
+        "case_id": { "type": "string", "pattern": "^(smoke|regression)-[0-9]{3}$" },
+        "baseline": { "$ref": "#/$defs/media" },
+        "candidate": { "$ref": "#/$defs/media" }
+      }
+    }
+  }
+}

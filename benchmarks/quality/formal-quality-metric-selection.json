@@ -206,13 +206,14 @@
         "Pilot the protocol, review reviewer burden and bias controls, and approve the final aggregation before formal scoring."
       ],
       "blockers": [
-        "The ballot/key schemas and aggregate scorer exist, but no offline A/B media presentation runner exists.",
         "Reviewer count, conflict handling, and single-reviewer acceptability are not approved.",
-        "No completed formal ballot, pilot evidence, immutable implementation revision, or quality-owner approval evidence exists."
+        "No completed formal ballot with GPU-generated media, immutable implementation revision, or quality-owner approval evidence exists.",
+        "The 2026-08-16 synthetic-media pilot validated the offline staging and recording workflow only and is not formal quality evidence."
       ],
       "sources": [
         "https://github.com/nishide-dev/h3fast/issues/16",
-        "https://github.com/nishide-dev/h3fast/blob/main/docs/spec.md"
+        "https://github.com/nishide-dev/h3fast/blob/main/docs/spec.md",
+        "https://github.com/nishide-dev/h3fast/blob/main/docs/experiments/0006-human-pairwise-pilot.md"
       ]
     }
   ],

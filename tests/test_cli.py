@@ -380,6 +380,143 @@ def test_benchmark_human_pairwise_commands_prepare_and_score(tmp_path, capsys) -
     assert str(tmp_path) not in json.dumps(check_output)
 
 
+def test_benchmark_human_pairwise_stage_and_record_commands(tmp_path, capsys) -> None:
+    import hashlib
+
+    formal_set = Path("benchmarks/quality/formal-quality-set.json")
+    ballot = tmp_path / "ballot.json"
+    assignment = tmp_path / "assignment.json"
+    seed = tmp_path / "seed.txt"
+    seed.write_text("test-only-secret-seed-with-32-characters", encoding="utf-8")
+    seed.chmod(0o600)
+    assert (
+        main(
+            [
+                "benchmark",
+                "prepare-human-pairwise",
+                "--formal-set",
+                str(formal_set),
+                "--ballot-id",
+                "cli-runner-001",
+                "--reviewer",
+                "reviewer-001",
+                "--randomization-seed-file",
+                str(seed),
+                "--ballot",
+                str(ballot),
+                "--assignment",
+                str(assignment),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    formal_cases = json.loads(formal_set.read_text(encoding="utf-8"))["cases"]
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    manifest_cases = []
+    for case in formal_cases:
+        entry = {"case_id": case["id"]}
+        for source in ("baseline", "candidate"):
+            path = media_dir / f"{case['id']}-{source}.mp4"
+            data = f"{source} {case['id']}\n".encode()
+            path.write_bytes(data)
+            entry[source] = {
+                "path": str(path),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        manifest_cases.append(entry)
+    manifest = tmp_path / "media-manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "formal_set_sha256": hashlib.sha256(
+                    formal_set.read_bytes()
+                ).hexdigest(),
+                "cases": manifest_cases,
+            }
+        ),
+        encoding="utf-8",
+    )
+    staging = tmp_path / "staging"
+
+    stage_status = main(
+        [
+            "benchmark",
+            "stage-human-pairwise",
+            "--formal-set",
+            str(formal_set),
+            "--ballot",
+            str(ballot),
+            "--assignment",
+            str(assignment),
+            "--media-manifest",
+            str(manifest),
+            "--staging-dir",
+            str(staging),
+        ]
+    )
+    stage_output = json.loads(capsys.readouterr().out)
+
+    assert stage_status == 0
+    assert stage_output["case_count"] == 60
+    assert stage_output["staged_file_count"] == 120
+    assert str(tmp_path) not in json.dumps(stage_output)
+    assert (staging / "index.html").is_file()
+
+    record_status = main(
+        [
+            "benchmark",
+            "record-human-pairwise",
+            "--ballot",
+            str(ballot),
+            "--case",
+            "smoke-001",
+            "--selection",
+            "a",
+        ]
+    )
+    record_output = json.loads(capsys.readouterr().out)
+
+    assert record_status == 0
+    assert record_output["recorded_count"] == 1
+    assert record_output["completed"] is False
+    assert str(tmp_path) not in json.dumps(record_output)
+
+    duplicate_status = main(
+        [
+            "benchmark",
+            "record-human-pairwise",
+            "--ballot",
+            str(ballot),
+            "--case",
+            "smoke-001",
+            "--selection",
+            "b",
+        ]
+    )
+    assert duplicate_status == 2
+
+    overwrite_status = main(
+        [
+            "benchmark",
+            "record-human-pairwise",
+            "--ballot",
+            str(ballot),
+            "--case",
+            "smoke-001",
+            "--selection",
+            "b",
+            "--overwrite",
+        ]
+    )
+    overwrite_output = json.loads(capsys.readouterr().out)
+    assert overwrite_status == 0
+    assert overwrite_output["recorded_count"] == 1
+
+
 def test_gpu_ids_parser_rejects_invalid_values() -> None:
     assert _gpu_ids("1,2") == (1, 2)
     with pytest.raises(argparse.ArgumentTypeError):

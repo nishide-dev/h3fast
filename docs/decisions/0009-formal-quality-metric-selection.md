@@ -1,6 +1,6 @@
 # ADR 0009: Formal quality metric candidate selection
 
-- **Status:** Candidate selection recorded; implementation and approval pending
+- **Status:** Candidate selection recorded; human-pairwise runner/pilot completed (2026-08-16); metric approval pending
 - **Date:** 2026-08-16
 - **Related:** [Issue #16](https://github.com/nishide-dev/h3fast/issues/16), [ADR 0008](0008-formal-quality-metric-plan.md)
 
@@ -43,4 +43,6 @@ budgetとapproval evidenceは自己変動測定後に別PRでreviewし、6 famil
 
 最初の実装対象として、native buildや未確定checkpointを必要としないproject-owned human ballot/key schema、blind assignment commitment、欠損時fail、aggregate scorerを追加した。seed、ballotとassignmentはprivate fileとして分離し、prompt、media、pathまたはper-case decisionをaggregate出力へ含めない。
 
-ただしoffline A/B media presentation runner、pilot、review policy、formal実測とimmutable implementation evidenceは未完了である。このためhuman-pairwiseはcandidateのままとし、formal metric planを`planned`へ変更しない。次はpresentation runnerとpilotを完了してから、固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。
+2026-08-16にoffline A/B media presentation runner(`stage-human-pairwise`)とselection記録CLI(`record-human-pairwise`)を追加し、private media manifest契約でmediaのdigest検証とblind staging(相対参照のみの`index.html`を含む)を固定した。synthetic mediaによる60-case pilotで、assignment keyを参照しない知覚代理判定がground truthと全件一致し、blind割当・復号・集計をend-to-endで検証した([experiment 0006](../experiments/0006-human-pairwise-pilot.md))。
+
+ただしreview policy(reviewer数、conflict handling、single-reviewer acceptability)、GPU実出力によるformal実測、immutable implementation evidenceは未完了である。このためhuman-pairwiseはcandidateのままとし、formal metric planを`planned`へ変更しない。次はreview policyを承認した上で、固定runtimeで依存を隔離してsmokeできる外部metricを1 familyずつ追加する。

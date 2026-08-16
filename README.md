@@ -134,7 +134,25 @@ uv run h3fast benchmark prepare-human-pairwise \
   --assignment /secure/h3fast/pilot-001.private-human-pairwise-assignment.json
 ```
 
-現在の実装はballot/key contractとaggregate scorerであり、A/B mediaを提示するrunnerではありません。別途blind presentationを行い、全caseの`selection`を`a` / `b` / `tie`で埋め、statusと完了時刻を更新した後に検証します。欠損、abstain、stale digest、commitment改ざん、case順序変更はfailします。aggregate出力にはper-case判断、seed、pathまたはmediaを含めません。
+blind A/B提示は`stage-human-pairwise`で行います。case_idをbaseline/candidate media fileへ対応付けるprivate media manifest([`private-human-pairwise-media.schema.json`](schemas/private-human-pairwise-media.schema.json))を用意すると、全fileのSHA-256とcommitmentを検証した上で、assignment keyに従い`<case_id>/a.<ext>`・`b.<ext>`と相対参照のみの`index.html`を新規staging directoryへ配置します。manifest、media、stagingもGit、CI artifactまたは共有logへ追加しません。
+
+```bash
+uv run h3fast benchmark stage-human-pairwise \
+  --formal-set benchmarks/quality/formal-quality-set.json \
+  --ballot /secure/h3fast/pilot-001.private-human-pairwise-ballot.json \
+  --assignment /secure/h3fast/pilot-001.private-human-pairwise-assignment.json \
+  --media-manifest /secure/h3fast/pilot-001.private-human-pairwise-media.json \
+  --staging-dir /secure/h3fast/pilot-001-staging
+```
+
+reviewerは`index.html`をローカルブラウザで開いてAとBを視聴し、caseごとに`record-human-pairwise`で`a` / `b` / `tie`を記録します。記録済みcaseの変更は`--overwrite`が必須で、全case記録時にのみballotが`completed`へ遷移します。欠損、abstain、stale digest、commitment改ざん、case順序変更はfailします。aggregate出力にはper-case判断、seed、pathまたはmediaを含めません。
+
+```bash
+uv run h3fast benchmark record-human-pairwise \
+  --ballot /secure/h3fast/pilot-001.private-human-pairwise-ballot.json \
+  --case smoke-001 \
+  --selection a
+```
 
 ```bash
 uv run h3fast benchmark check-human-pairwise \

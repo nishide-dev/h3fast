@@ -8,6 +8,12 @@ from h3fast.benchmarks.human_pairwise import (
     check_human_pairwise_ballot,
     prepare_human_pairwise_ballot,
 )
+from h3fast.benchmarks.human_pairwise_runner import (
+    HumanPairwiseRecordReport,
+    HumanPairwiseStagingReport,
+    record_human_pairwise_selection,
+    stage_human_pairwise_presentation,
+)
 from h3fast.benchmarks.launch import LaunchPlan, build_singularity_launch
 from h3fast.benchmarks.preflight import PreflightReport, run_preflight
 from h3fast.benchmarks.protocol import (
@@ -40,7 +46,9 @@ __all__ = [
     "ForeignGpuProcess",
     "FormalQualitySetReport",
     "HumanPairwisePreparationReport",
+    "HumanPairwiseRecordReport",
     "HumanPairwiseReport",
+    "HumanPairwiseStagingReport",
     "LaunchPlan",
     "PreflightReport",
     "ProtocolReport",
@@ -59,9 +67,11 @@ __all__ = [
     "load_runtime_settings",
     "prepare_human_pairwise_ballot",
     "prepare_quality_registry_review",
+    "record_human_pairwise_selection",
     "run_case",
     "run_preflight",
     "run_suite",
     "serve_guarded",
+    "stage_human_pairwise_presentation",
     "validate_protocol",
 ]
