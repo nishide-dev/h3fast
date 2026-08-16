@@ -27,6 +27,7 @@ from h3fast.benchmarks import (
     run_preflight,
     run_suite,
     score_perceptual_video,
+    score_temporal_consistency,
     serve_guarded,
     stage_human_pairwise_presentation,
     validate_protocol,
@@ -378,6 +379,21 @@ def _benchmark_score_perceptual_video(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_score_temporal_consistency(args: argparse.Namespace) -> int:
+    report = score_temporal_consistency(
+        Path(args.baseline),
+        Path(args.candidate),
+        backbone_dir=Path(args.backbone_dir),
+        expected_backbone_sha256=(
+            args.expected_backbone_sha256 or ALEXNET_BACKBONE_SHA256
+        ),
+        ffmpeg=args.ffmpeg,
+        ffprobe=args.ffprobe,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -665,6 +681,18 @@ def build_parser() -> argparse.ArgumentParser:
     perceptual_video.add_argument("--ffmpeg", default="ffmpeg")
     perceptual_video.add_argument("--ffprobe", default="ffprobe")
     perceptual_video.set_defaults(handler=_benchmark_score_perceptual_video)
+
+    temporal_consistency = benchmark_subparsers.add_parser(
+        "score-temporal-consistency",
+        help="Compare adjacent-frame LPIPS trajectories of two aligned videos",
+    )
+    temporal_consistency.add_argument("--baseline", required=True)
+    temporal_consistency.add_argument("--candidate", required=True)
+    temporal_consistency.add_argument("--backbone-dir", required=True)
+    temporal_consistency.add_argument("--expected-backbone-sha256", default=None)
+    temporal_consistency.add_argument("--ffmpeg", default="ffmpeg")
+    temporal_consistency.add_argument("--ffprobe", default="ffprobe")
+    temporal_consistency.set_defaults(handler=_benchmark_score_temporal_consistency)
     return parser
 
 
