@@ -26,10 +26,12 @@ from h3fast.benchmarks import (
     run_case,
     run_preflight,
     run_suite,
+    score_perceptual_video,
     serve_guarded,
     stage_human_pairwise_presentation,
     validate_protocol,
 )
+from h3fast.benchmarks.perceptual_video import ALEXNET_BACKBONE_SHA256
 from h3fast.compliance import check_territory_inventory
 from h3fast.diagnostics import run_doctor
 from h3fast.exceptions import H3FastError
@@ -361,6 +363,21 @@ def _benchmark_record_human_pairwise(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_score_perceptual_video(args: argparse.Namespace) -> int:
+    report = score_perceptual_video(
+        Path(args.baseline),
+        Path(args.candidate),
+        backbone_dir=Path(args.backbone_dir),
+        expected_backbone_sha256=(
+            args.expected_backbone_sha256 or ALEXNET_BACKBONE_SHA256
+        ),
+        ffmpeg=args.ffmpeg,
+        ffprobe=args.ffprobe,
+    )
+    _write_json(report.to_dict())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the public command-line parser."""
     parser = argparse.ArgumentParser(
@@ -636,6 +653,18 @@ def build_parser() -> argparse.ArgumentParser:
     human_pairwise_record.add_argument("--selection", required=True)
     human_pairwise_record.add_argument("--overwrite", action="store_true")
     human_pairwise_record.set_defaults(handler=_benchmark_record_human_pairwise)
+
+    perceptual_video = benchmark_subparsers.add_parser(
+        "score-perceptual-video",
+        help="Score frame-aligned LPIPS between a baseline and a candidate video",
+    )
+    perceptual_video.add_argument("--baseline", required=True)
+    perceptual_video.add_argument("--candidate", required=True)
+    perceptual_video.add_argument("--backbone-dir", required=True)
+    perceptual_video.add_argument("--expected-backbone-sha256", default=None)
+    perceptual_video.add_argument("--ffmpeg", default="ffmpeg")
+    perceptual_video.add_argument("--ffprobe", default="ffprobe")
+    perceptual_video.set_defaults(handler=_benchmark_score_perceptual_video)
     return parser
 
 

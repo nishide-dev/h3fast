@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.20（Phase 0 human-pairwise single-reviewer policy承認済み、metric実測/release blockerあり）
+- **状態:** Draft v0.21（Phase 0 perceptual-video (LPIPS) adapter実装済み、metric実測/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -68,7 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | Japan-local scope承認済み | `nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchに限定。第三者提供、service、Japan外利用または環境変更は再review |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
-| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessment、human ballot contract、offline presentation runnerを実装しsynthetic-media pilotを完了し、single-reviewer policyを承認した（ADR 0010）が、metric実測/承認、formal set approval、GPU評価は未完了 |
+| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessment、human ballot contract、offline presentation runnerを実装しsynthetic-media pilotを完了し、single-reviewer policyを承認した（ADR 0010）。perceptual-video (LPIPS) adapterを実装したが、metric実測/承認、formal set approval、GPU評価は未完了 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -1554,6 +1554,8 @@ blind media提示は`stage-human-pairwise`が行う。case_idをbaseline/candida
 selectionは`record-human-pairwise`がcaseごとに記録する。pending ballotだけを対象とし、重複case、不正なselection値、group/otherから読めるballot/assignmentを拒否し、記録済みcaseの変更には明示flagを要求し、全case記録時にのみ`completed`と完了時刻を原子的に設定する(0600維持)。ballot schemaはselection入力済みcaseと未入力caseが混在する記録途中のpending状態を許容する。`check-human-pairwise`はcompleted ballot、assignment file digest、全commitment、formal set digest、全caseの固定順coverageを検証する。欠損、abstain、重複、改ざんまたはstale assignmentは終了code 2とし、aggregateにはbaseline/candidate win、tieと`(candidate_wins - baseline_wins) / case_count`だけを出力する。prompt、media、local path、seed、assignmentまたはper-case判断をstdoutへ出力しない。ballot、assignment、seed、media manifest、stagingはGit、CI artifact、共有logへ追加してはならない。
 
 2026-08-16に、Git外のsynthetic media 60 caseでprepare→stage→record→checkの全工程pilotを完了した。assignment keyを参照しない知覚代理判定が全60 caseでground truthと一致し、blind割当・復号・集計を検証した([`docs/experiments/0006-human-pairwise-pilot.md`](experiments/0006-human-pairwise-pilot.md))。これはworkflow検証でありformal human evaluationまたはquality approvalではない。review policyは[`docs/decisions/0010-human-pairwise-review-policy.md`](decisions/0010-human-pairwise-review-policy.md)で固定する。quality owner `nishide-dev`によるsingle-reviewer運用とし、blind stagingとmetadata非閲覧を必須、迷う場合は`tie`、completed ballotは不変で再実施は新ballotとする。GPU実出力によるformal実測、immutable implementation revisionとformal evidenceが揃うまでhuman-pairwiseはcandidate、formal metric planは`unassigned`のままとする。
+
+最初の外部metric adapterはperceptual-video (LPIPS)とする。`score-perceptual-video`は、依存を`quality-metrics` dependency group(lpips 0.1.4、torch 2.11.0 CPU wheel、torchvision 0.26.0)へ隔離し、packageのCPU importとwheelのruntime依存ゼロを維持する。AlexNet backbone checkpointは自動downloadせず、SHA-256 `7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02`へ固定したlocal fileだけを検証して読み込む。両入力はffmpegでRGB24へdecodeし、frame数・解像度・frame rateの完全一致をfail-closedで要求してtemporal resamplingを行わず、per-frame LPIPSのmeanとmax、使用digest、依存versionをreportへ記録する。同一入力→0、摂動単調性、決定性、契約不一致、checkpoint改ざんはcorrectness testで固定済みである。formal media contractと固定H3 runtimeでの実機確認、baseline自己変動、backbone checkpointのlicense scope確認が完了するまでcandidateのままとし、formal metric planは`unassigned`のまま変更しない。
 
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
