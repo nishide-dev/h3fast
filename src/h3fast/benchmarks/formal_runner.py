@@ -39,7 +39,7 @@ class FormalRunReport:
     protocol_id: str
     repetition_id: str
     case_count: int
-    completed_count: int
+    generated_count: int
     skipped_count: int
     manifest_sha256: str
 
@@ -50,7 +50,7 @@ class FormalRunReport:
             "protocol_id": self.protocol_id,
             "repetition_id": self.repetition_id,
             "case_count": self.case_count,
-            "completed_count": self.completed_count,
+            "generated_count": self.generated_count,
             "skipped_count": self.skipped_count,
             "manifest_sha256": self.manifest_sha256,
         }
@@ -160,7 +160,16 @@ def _record_artifact(record: dict[str, object]) -> dict[str, object] | None:
     return artifact
 
 
-def _reusable_result(result_path: Path) -> dict[str, object] | None:
+def _write_atomic_json(path: Path, value: dict[str, object]) -> None:
+    data = json.dumps(value, indent=2, sort_keys=True) + "\n"
+    temporary = path.with_suffix(".json.partial")
+    temporary.write_text(data, encoding="utf-8")
+    temporary.replace(path)
+
+
+def _reusable_result(
+    result_path: Path, formal_case: dict[str, object], protocol_id: str
+) -> dict[str, object] | None:
     from pathlib import Path as _Path
 
     if not result_path.is_file():
@@ -170,6 +179,12 @@ def _reusable_result(result_path: Path) -> dict[str, object] | None:
     except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         return None
     if not isinstance(value, dict):
+        return None
+    # A reused result must be bound to the same prompt digest and pinned
+    # protocol as the run being resumed, not merely self-consistent.
+    if value.get("prompt_sha256") != formal_case["prompt_sha256"]:
+        return None
+    if value.get("protocol_id") != protocol_id:
         return None
     artifact = _record_artifact(value)
     if artifact is None:
@@ -212,6 +227,7 @@ def run_formal_cases(
     output_dir: Path,
     repetition_id: str,
     split: str | None = None,
+    task: str = "t2va",
     poll_interval: float = 1.0,
     timeout: float = 7200.0,
 ) -> FormalRunReport:
@@ -222,6 +238,12 @@ def run_formal_cases(
     if split is not None and split not in _SPLITS:
         message = f"unknown formal split: {split}"
         raise ValidationError(message)
+    if task != "t2va":
+        # The pinned payload contract cannot express reference-conditioned
+        # generation yet; silently degrading fl2va/ref2va to t2va is the
+        # one thing this runner must never do.
+        message = f"unsupported formal task family for generation: {task}"
+        raise ValidationError(message)
     check_formal_quality_set(formal_set_path)
     formal_raw = formal_set_path.read_bytes()
     formal_set = json.loads(formal_raw)
@@ -231,8 +253,20 @@ def run_formal_cases(
     protocol_id, fixed = _protocol_template(protocol_path)
 
     selected = [
-        case for case in formal_cases if split is None or case["split"] == split
+        case
+        for case in formal_cases
+        if (split is None or case["split"] == split) and case["task"] == task
     ]
+    if not selected:
+        message = "no formal cases match the selected split and task"
+        raise ValidationError(message)
+    for case in selected:
+        if case["reference_asset_sha256s"]:
+            message = (
+                "reference-conditioned formal cases are not supported yet: "
+                f"{case['id']}"
+            )
+            raise ValidationError(message)
     repetition_dir = output_dir / repetition_id
     repetition_dir.mkdir(parents=True, exist_ok=True)
 
@@ -242,7 +276,7 @@ def run_formal_cases(
         case_id = str(formal_case["id"])
         registry_case = registry_cases[case_id]
         result_path = repetition_dir / f"{case_id}.result.json"
-        reused = _reusable_result(result_path)
+        reused = _reusable_result(result_path, formal_case, protocol_id)
         if reused is not None:
             skipped_count += 1
             entries.append(_manifest_entry(reused))
@@ -267,9 +301,7 @@ def run_formal_cases(
             message = f"executed prompt digest mismatch for {case_id}"
             raise ValidationError(message)
         record = result.to_dict()
-        result_path.write_text(
-            json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        _write_atomic_json(result_path, record)
         entries.append(_manifest_entry(record))
 
     manifest = {
@@ -277,6 +309,7 @@ def run_formal_cases(
         "protocol_id": protocol_id,
         "repetition_id": repetition_id,
         "split": split,
+        "task": task,
         "formal_set_sha256": hashlib.sha256(formal_raw).hexdigest(),
         "cases": entries,
     }
@@ -287,7 +320,7 @@ def run_formal_cases(
         protocol_id=protocol_id,
         repetition_id=repetition_id,
         case_count=len(selected),
-        completed_count=len(entries),
+        generated_count=len(entries) - skipped_count,
         skipped_count=skipped_count,
         manifest_sha256=hashlib.sha256(manifest_data.encode("utf-8")).hexdigest(),
     )
