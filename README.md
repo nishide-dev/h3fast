@@ -154,6 +154,15 @@ uv run h3fast benchmark record-human-pairwise \
   --selection a
 ```
 
+perceptual-video (LPIPS) metricは`quality-metrics` dependency group(lpips 0.1.4、torch 2.11.0 CPU wheel、torchvision 0.26.0)で隔離しています。`uv sync --locked --all-groups`で導入され、package本体のruntime依存とCPU importには影響しません。AlexNet backbone checkpointは自動downloadしません。利用者が[`alexnet-owt-7be5be79.pth`](https://download.pytorch.org/models/alexnet-owt-7be5be79.pth)を取得し、`<backbone-dir>/checkpoints/`へ配置してください。SHA-256 `7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02`と一致しない場合は実行しません。両動画はframe数・解像度・frame rateの完全一致が必要で、temporal resamplingは行いません。
+
+```bash
+uv run h3fast benchmark score-perceptual-video \
+  --baseline /secure/h3fast/outputs/smoke-001-baseline.mp4 \
+  --candidate /secure/h3fast/outputs/smoke-001-candidate.mp4 \
+  --backbone-dir /secure/h3fast/quality-metrics-hub
+```
+
 ```bash
 uv run h3fast benchmark check-human-pairwise \
   --formal-set benchmarks/quality/formal-quality-set.json \

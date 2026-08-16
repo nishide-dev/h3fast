@@ -72,13 +72,14 @@
         "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
       ],
       "blockers": [
-        "No H3Fast metric entrypoint or correctness test exists.",
         "The pinned implementation has not been exercised with the formal media contract or fixed H3 runtime.",
+        "The AlexNet backbone checkpoint license and redistribution scope are unconfirmed; the digest-pinned file stays local-only.",
         "No baseline self-variation or quality-owner approval evidence exists."
       ],
       "sources": [
         "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
-        "https://pypi.org/project/lpips/0.1.4/"
+        "https://pypi.org/project/lpips/0.1.4/",
+        "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth"
       ]
     },
     {

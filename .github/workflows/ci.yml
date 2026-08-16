@@ -62,6 +62,14 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-groups
 
+      - name: Ensure ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version | head -1
+
       - name: Run tests
         run: uv run pytest --cov=h3fast --cov-report=term-missing
 

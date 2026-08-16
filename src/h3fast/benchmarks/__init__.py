@@ -15,6 +15,10 @@ from h3fast.benchmarks.human_pairwise_runner import (
     stage_human_pairwise_presentation,
 )
 from h3fast.benchmarks.launch import LaunchPlan, build_singularity_launch
+from h3fast.benchmarks.perceptual_video import (
+    PerceptualVideoReport,
+    score_perceptual_video,
+)
 from h3fast.benchmarks.preflight import PreflightReport, run_preflight
 from h3fast.benchmarks.protocol import (
     ProtocolReport,
@@ -50,6 +54,7 @@ __all__ = [
     "HumanPairwiseReport",
     "HumanPairwiseStagingReport",
     "LaunchPlan",
+    "PerceptualVideoReport",
     "PreflightReport",
     "ProtocolReport",
     "QualityMetricPlanReport",
@@ -71,6 +76,7 @@ __all__ = [
     "run_case",
     "run_preflight",
     "run_suite",
+    "score_perceptual_video",
     "serve_guarded",
     "stage_human_pairwise_presentation",
     "validate_protocol",
