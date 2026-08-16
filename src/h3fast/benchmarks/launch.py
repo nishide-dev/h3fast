@@ -54,6 +54,7 @@ def build_singularity_launch(
     selected_gpus: tuple[int, ...],
     dit_layerwise_resident_layers: int,
     port: int = 30010,
+    master_port: int | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -78,6 +79,11 @@ def build_singularity_launch(
         raise ValidationError(message)
     if not (1 <= port <= 65535):
         message = "port must be between 1 and 65535"
+        raise ValidationError(message)
+    if master_port is not None and (
+        not (1 <= master_port <= 65535) or master_port == port
+    ):
+        message = "master port must be between 1 and 65535 and differ from port"
         raise ValidationError(message)
     if (
         not isinstance(dit_layerwise_resident_layers, int)
@@ -142,6 +148,9 @@ def build_singularity_launch(
         "false",
         "--port",
         str(port),
+        # A distinct rendezvous port allows two guarded servers on one
+        # host; it does not change the compute graph or schedule.
+        *(() if master_port is None else ("--master-port", str(master_port))),
     )
     return LaunchPlan(
         argv=argv,

@@ -64,6 +64,33 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert len(plan.ffprobe_adapter_sha256) == 64
     assert plan.to_dict()["shell_command"].startswith("/usr/bin/singularity exec")
     assert output.is_dir()
+    assert "--master-port" not in plan.argv
+
+    parallel = build_singularity_launch(
+        snapshot_path=snapshot,
+        runtime_image=image,
+        sglang_source=source,
+        ffprobe_adapter=adapter,
+        output_path=output,
+        selected_gpus=(1, 2),
+        dit_layerwise_resident_layers=40,
+        port=30011,
+        master_port=35011,
+    )
+    master_index = parallel.argv.index("--master-port")
+    assert parallel.argv[master_index + 1] == "35011"
+
+    with pytest.raises(ValidationError, match="master port"):
+        build_singularity_launch(
+            snapshot_path=snapshot,
+            runtime_image=image,
+            sglang_source=source,
+            ffprobe_adapter=adapter,
+            output_path=output,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=40,
+            master_port=70000,
+        )
 
 
 def test_build_singularity_launch_rejects_missing_runtime(

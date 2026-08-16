@@ -155,6 +155,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         selected_gpus=args.gpus,
         dit_layerwise_resident_layers=(runtime_settings.dit_layerwise_resident_layers),
         port=args.port,
+        master_port=args.master_port,
     )
     _write_json(plan.to_dict())
     return 0
@@ -190,6 +191,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         selected_gpus=args.gpus,
         dit_layerwise_resident_layers=(runtime_settings.dit_layerwise_resident_layers),
         port=args.port,
+        master_port=args.master_port,
     )
     serve_guarded(
         plan,
@@ -552,6 +554,7 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--ffprobe-adapter", default=_default_ffprobe_adapter())
     launch.add_argument("--server-output", required=True)
     launch.add_argument("--port", type=int, default=30010)
+    launch.add_argument("--master-port", type=int, default=None)
     launch.set_defaults(handler=_benchmark_plan_launch)
 
     guarded = benchmark_subparsers.add_parser(
@@ -573,6 +576,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write model-load-to-ready lifecycle metadata to this JSON path",
     )
     guarded.add_argument("--port", type=int, default=30010)
+    guarded.add_argument("--master-port", type=int, default=None)
     guarded.add_argument("--startup-timeout", type=float, default=3600.0)
     guarded.add_argument("--poll-interval", type=float, default=2.0)
     guarded.set_defaults(handler=_benchmark_serve_guarded)
