@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.24（Phase 0 formal case generation runner実装済み、metric実測/release blockerあり）
+- **状態:** Draft v0.25（Phase 0 formal case generation runner実装済み、metric実測/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1562,6 +1562,8 @@ temporal-consistencyはproject-owned契約`adjacent-frame-lpips-trajectory-v1`�
 prompt-adherenceは契約`siglip2-base-patch16-256-cosine-v1`で固定する。`score-prompt-adherence`は、pinned SigLIP2 snapshot(revision `3f9f96cb…`、7 fileのSHA-256 manifestで検証、自動downloadなし、manifest外のfile検出で拒否)をoffline loadし、最大16 frameを固定則で一様サンプリングして、L2正規化したtext/image featureのcosine類似度のmeanとminを出力する(higher-is-better)。prompt本文はgroup/otherから読めないprivate local fileとして供給し、そのbytesのSHA-256がformal caseの`prompt_sha256`と一致しない場合は拒否する。prompt本文、path、mediaはstdoutへ出力しない。pinned snapshotのconfigはmodel_type `siglip`(FixRes変種)であり、digest manifestが同一性を固定した上でarchitecture classを検証する。torch thread数1の決定性、非有限値fail、依存欠如の正規化はほかのadapterと同一契約である。pinned snapshotのoffline loadと意味的方向性(一致promptと不一致promptのscore分離)はlocal CPUで実機確認済みである。formal media contractと固定H3 runtimeでの確認、baseline自己変動が完了するまでcandidateのままとする。
 
 formal caseの生成は`run-formal-cases`が行う。private reviewed registry(group/other不可読)をcommitted formal quality setへfail-closedで拘束し、全60 caseの固定順一致、prompt本文のSHA-256とformal caseの`prompt_sha256`の一致、seed・task・duration・aspect ratioの一致を検証してから、pinned protocolのtemplate caseから固定生成parameter(short_edge、sigma_points、flow_shift、audio_flow_shift、conditions)を採り、caseごとのpayloadをguarded serverへ送る。repetitionごとのoutput directoryへper-case result(JSON)とmediaを保存し、artifact digest検証つきのresumeで中断再開できる。redactedなrun manifest(case_id、artifact名、SHA-256、size、経過時間のみ。prompt・digest・pathなし)を書き出し、これがmetric評価とhuman-pairwise media manifestの入力になる。現時点のpayload契約はt2vaだけを表現できるため、fl2va/ref2vaおよびreference asset付きcaseの選択は明示的にunsupported errorとする(silentなtask置換を行わない)。resumeは現在のformal case prompt digestとprotocol_idへ一致するresultだけを再利用する。stdoutへはcount・manifest digestだけを出力する。生成mediaはH3 OutputとしてGit外に保持し、承認済みJapan-local scope内でのみ実行する。
+
+同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒
