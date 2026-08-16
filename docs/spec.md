@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.22（Phase 0 perceptual-video / temporal-consistency adapter実装済み、metric実測/release blockerあり）
+- **状態:** Draft v0.23（Phase 0 3-family metric adapter実装済み、metric実測/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -68,7 +68,7 @@ BYOWは重みの再配布を避ける配布方式であり、H3を利用・変�
 | Territory inventory | Japan-local scope承認済み | `nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchに限定。第三者提供、service、Japan外利用または環境変更は再review |
 | Benchmark harness | 実装済み | 固定SGLang/SIF、preflight、guard、非同期T2VA client、stage集計、local bundle |
 | Quality gate | 限定実装 | 固定1 caseのplacement-only exact decoded artifact gate |
-| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessment、human ballot contract、offline presentation runnerを実装しsynthetic-media pilotを完了し、single-reviewer policyを承認した（ADR 0010）。perceptual-video (LPIPS)とtemporal-consistency (adjacent-frame LPIPS trajectory) adapterを実装したが、metric実測/承認、formal set approval、GPU評価は未完了 |
+| Formal quality set | 60-case rights metadata・metric candidate登録済み、incomplete | review済み10 smoke / 50 regressionのredacted metadata、coverage、immutable rights evidenceを登録。Rights reviewer承認済み、Quality ownerは`nishide-dev`へ割当済み。6-family candidate assessment、human ballot contract、offline presentation runnerを実装しsynthetic-media pilotを完了し、single-reviewer policyを承認した（ADR 0010）。perceptual-video (LPIPS)、temporal-consistency (adjacent-frame LPIPS trajectory)、prompt-adherence (SigLIP2) adapterを実装したが、metric実測/承認、formal set approval、GPU評価は未完了 |
 | 最初の最適化 | 実測済み | DiT resident 20→40層。40層を既定、20層を明示rollbackとする |
 | Converter / derivative weights | 未実装 | 法務・artifact分類・正式quality gate後の将来Phase |
 | H3Fast kernel / quantization / cache | 未実装 | profile根拠と個別correctness/quality benchmarkが必要 |
@@ -1558,6 +1558,8 @@ selectionは`record-human-pairwise`がcaseごとに記録する。pending ballot
 最初の外部metric adapterはperceptual-video (LPIPS)とする。`score-perceptual-video`は、依存を`quality-metrics` dependency group(lpips 0.1.4、torch 2.11.0 CPU wheel、torchvision 0.26.0)へ隔離し、packageのCPU importとwheelのruntime依存ゼロを維持する。AlexNet backbone checkpointは自動downloadせず、SHA-256 `7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02`へ固定したlocal fileだけを検証して読み込む。両入力はffmpegでRGB24へdecodeし、frame数・解像度・frame rateの完全一致をfail-closedで要求してtemporal resamplingを行わず、評価はtorch thread数1へ固定した単一process決定性で行い、per-frame LPIPSのmeanとmax、使用digest、thread数、依存versionをreportへ記録する。非有限値、decode失敗、構築中の予期しないcheckpoint追加、quality-metrics group欠如はValidationError(終了code 2)へ正規化する。同一入力→0、摂動単調性、単一process決定性、契約不一致、checkpoint改ざん・破損、decode失敗の帰属はcorrectness testで固定済みである。formal media contractと固定H3 runtimeでの実機確認、baseline自己変動、backbone checkpointのlicense scope確認が完了するまでcandidateのままとし、formal metric planは`unassigned`のまま変更しない。
 
 temporal-consistencyはproject-owned契約`adjacent-frame-lpips-trajectory-v1`で固定する。`score-temporal-consistency`は各動画の隣接frame間LPIPS列をtrajectoryとし、index対応するstepの絶対差のmeanとmaxを比較する(lower-is-better)。scene cutは除外せず、candidateが保持したcutは相殺され、消失・移動したcutはdeltaとして現れる。timestamp alignmentはperceptual-videoと同一契約(解像度・frame rate・frame数の完全一致、resamplingなし)で、2 frame未満の入力は拒否する。static scene→0、flicker/cut除去の検出、決定性、decode失敗の帰属、非有限値failはcorrectness testで固定済みである。同じbackbone checkpoint契約とquality-metrics groupを共有し、実機確認とbaseline自己変動が完了するまでcandidateのままとする。
+
+prompt-adherenceは契約`siglip2-base-patch16-256-cosine-v1`で固定する。`score-prompt-adherence`は、pinned SigLIP2 snapshot(revision `3f9f96cb…`、7 fileのSHA-256 manifestで検証、自動downloadなし、manifest外のfile検出で拒否)をoffline loadし、最大16 frameを固定則で一様サンプリングして、L2正規化したtext/image featureのcosine類似度のmeanとminを出力する(higher-is-better)。prompt本文はgroup/otherから読めないprivate local fileとして供給し、そのbytesのSHA-256がformal caseの`prompt_sha256`と一致しない場合は拒否する。prompt本文、path、mediaはstdoutへ出力しない。pinned snapshotのconfigはmodel_type `siglip`(FixRes変種)であり、digest manifestが同一性を固定した上でarchitecture classを検証する。torch thread数1の決定性、非有限値fail、依存欠如の正規化はほかのadapterと同一契約である。pinned snapshotのoffline loadと意味的方向性(一致promptと不一致promptのscore分離)はlocal CPUで実機確認済みである。formal media contractと固定H3 runtimeでの確認、baseline自己変動が完了するまでcandidateのままとする。
 
 - T2VA / FL2VA / Ref2VA
 - 4秒、5秒、10秒、15秒

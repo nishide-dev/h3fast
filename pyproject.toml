@@ -52,6 +52,7 @@ quality-metrics = [
     "lpips==0.1.4",
     "torch==2.11.0",
     "torchvision==0.26.0",
+    "transformers==5.14.1",
 ]
 
 [[tool.uv.index]]

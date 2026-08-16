@@ -38,8 +38,7 @@
         "Measure fixed-baseline self-variation on all 60 formal cases before assigning a budget."
       ],
       "blockers": [
-        "No H3Fast metric entrypoint or correctness test exists.",
-        "The pinned model and Transformers release have not been exercised in the fixed H3 runtime.",
+        "The pinned model and Transformers release have not been exercised with the formal media contract or fixed H3 runtime.",
         "No baseline self-variation or quality-owner approval evidence exists."
       ],
       "sources": [
