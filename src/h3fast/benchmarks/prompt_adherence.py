@@ -54,7 +54,6 @@ SIGLIP2_MODEL_FILE_SHA256S: dict[str, str] = {
 }
 _FRAME_SAMPLE_LIMIT = 16
 _TEXT_MAX_LENGTH = 64
-_WEIGHT_SUFFIXES = frozenset({".safetensors", ".bin", ".pth", ".pt", ".ckpt", ".gguf"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +122,9 @@ def _verify_model_dir(model_dir: Path, expected: Mapping[str, str]) -> None:
     if not expected:
         message = "SigLIP2 file manifest must not be empty"
         raise ValidationError(message)
+    if "model.safetensors" not in expected:
+        message = "SigLIP2 file manifest must include model.safetensors"
+        raise ValidationError(message)
     for name, digest in expected.items():
         target = model_dir / name
         if not target.is_file():
@@ -132,16 +134,40 @@ def _verify_model_dir(model_dir: Path, expected: Mapping[str, str]) -> None:
             message = f"pinned SigLIP2 file digest does not match: {name}"
             raise ValidationError(message)
     try:
-        entries = list(model_dir.iterdir())
+        actual = {
+            str(entry.relative_to(model_dir))
+            for entry in model_dir.rglob("*")
+            if entry.is_file()
+        }
     except OSError as error:
         message = f"SigLIP2 model directory could not be listed: {error}"
         raise ValidationError(message) from error
-    for entry in entries:
-        if entry.suffix.lower() in _WEIGHT_SUFFIXES and entry.name not in expected:
-            message = (
-                f"SigLIP2 model directory contains unexpected weights: {entry.name}"
-            )
-            raise ValidationError(message)
+    unexpected = sorted(actual - set(expected))
+    if unexpected:
+        message = (
+            "SigLIP2 model directory contains unexpected files: "
+            f"{', '.join(unexpected)}"
+        )
+        raise ValidationError(message)
+
+
+def _model_error_types() -> tuple[type[BaseException], ...]:
+    error_types: list[type[BaseException]] = [
+        OSError,
+        RuntimeError,
+        ValueError,
+        KeyError,
+        EOFError,
+        pickle.UnpicklingError,
+        zipfile.BadZipFile,
+    ]
+    try:
+        from safetensors import SafetensorError
+    except ImportError:
+        pass
+    else:
+        error_types.append(SafetensorError)
+    return tuple(error_types)
 
 
 def _load_siglip2(model_dir: Path, expected: Mapping[str, str]):
@@ -157,16 +183,7 @@ def _load_siglip2(model_dir: Path, expected: Mapping[str, str]):
             # The pinned FixRes SigLIP2 snapshot declares model_type
             # "siglip"; the digest manifest fixes the loaded identity.
             model = AutoModel.from_pretrained(model_dir, local_files_only=True)
-            processor = AutoProcessor.from_pretrained(model_dir, local_files_only=True)
-    except (
-        OSError,
-        RuntimeError,
-        ValueError,
-        KeyError,
-        EOFError,
-        pickle.UnpicklingError,
-        zipfile.BadZipFile,
-    ) as error:
+    except _model_error_types() as error:
         message = f"pinned SigLIP2 model could not be constructed offline: {error}"
         raise ValidationError(message) from error
     if not isinstance(model, (SiglipModel, Siglip2Model)):
@@ -175,6 +192,13 @@ def _load_siglip2(model_dir: Path, expected: Mapping[str, str]):
             f"{type(model).__name__}"
         )
         raise ValidationError(message)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            processor = AutoProcessor.from_pretrained(model_dir, local_files_only=True)
+    except _model_error_types() as error:
+        message = f"pinned SigLIP2 processor could not be constructed offline: {error}"
+        raise ValidationError(message) from error
     model.eval()
     for parameter in model.parameters():
         parameter.requires_grad_(False)
@@ -282,20 +306,31 @@ def score_prompt_adherence(
     import torch
     import transformers
 
-    frames: list[bytes] = list(
-        _decoded_frames(video_path, ffmpeg, width=media.width, height=media.height)
-    )
-    frame_count = len(frames)
+    # First pass counts frames; the second keeps only the sampled ones so
+    # peak memory stays bounded by the sample limit, not the video length.
+    frame_count = 0
+    for _ in _decoded_frames(
+        video_path, ffmpeg, width=media.width, height=media.height
+    ):
+        frame_count += 1
     if frame_count == 0:
         message = "prompt-adherence input contains no decodable frames"
         raise ValidationError(message)
     indices = _sample_indices(frame_count, _FRAME_SAMPLE_LIMIT)
-    sampled = [
-        np.frombuffer(frames[index], dtype=np.uint8)
-        .reshape(media.height, media.width, 3)
-        .copy()
-        for index in indices
-    ]
+    wanted = set(indices)
+    sampled = []
+    for index, frame in enumerate(
+        _decoded_frames(video_path, ffmpeg, width=media.width, height=media.height)
+    ):
+        if index in wanted:
+            sampled.append(
+                np.frombuffer(frame, dtype=np.uint8)
+                .reshape(media.height, media.width, 3)
+                .copy()
+            )
+    if len(sampled) != len(indices):
+        message = "prompt-adherence input changed between decode passes"
+        raise ValidationError(message)
 
     previous_threads = torch.get_num_threads()
     torch.set_num_threads(1)
@@ -320,7 +355,7 @@ def score_prompt_adherence(
         mean_similarity=sum(values) / len(values),
         min_similarity=min(values),
         prompt_sha256=expected_prompt_sha256,
-        model_weights_sha256=expected_file_sha256s.get("model.safetensors", ""),
+        model_weights_sha256=expected_file_sha256s["model.safetensors"],
         torch_num_threads=1,
         transformers_version=str(transformers.__version__),
         torch_version=str(torch.__version__),
