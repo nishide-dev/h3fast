@@ -1,6 +1,7 @@
 """Tests for the SigLIP2 prompt-adherence metric adapter."""
 
 import hashlib
+import itertools
 import json
 import subprocess
 from pathlib import Path
@@ -315,7 +316,7 @@ def test_sample_indices_are_pinned_exactly() -> None:
     assert len(forty) == 16
     assert forty[0] == 0
     assert forty[-1] == 39
-    assert all(a < b for a, b in zip(forty, forty[1:], strict=False))
+    assert all(a < b for a, b in itertools.pairwise(forty))
 
 
 def test_exact_aggregation_of_known_similarities(
@@ -423,7 +424,7 @@ def test_rejects_subdirectory_and_manifest_without_weights(
     incomplete = {
         name: digest for name, digest in manifest.items() if name != "model.safetensors"
     }
-    with pytest.raises(ValidationError, match="must include model.safetensors"):
+    with pytest.raises(ValidationError, match=r"must include model\.safetensors"):
         score_prompt_adherence(
             video,
             prompt_file=prompt_path,
