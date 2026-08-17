@@ -96,10 +96,16 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         attention_backend="sage_attn",
         sage_attention_path=sage,
     )
-    # Sage applies to the DiT only: the text encoder attention layer
-    # supports fa/torch_sdpa and rejects sage_attn.
-    assert "--attention-backend" not in sage_plan.argv
-    assert "--component-attention-backends.transformer=sage_attn" in sage_plan.argv
+    # H3 resolves its attention backend lazily on the first forward, after
+    # the component override context has closed. A component-scoped
+    # transformer override is therefore silently lost and the DiT falls back
+    # to platform auto-selection. Request the backend globally and scope the
+    # text encoder down instead, since it rejects sage_attn.
+    backend_index = sage_plan.argv.index("--attention-backend")
+    assert sage_plan.argv[backend_index + 1] == "sage_attn"
+    component_index = sage_plan.argv.index("--component-attention-backends")
+    assert sage_plan.argv[component_index + 1] == "text_encoder=torch_sdpa"
+    assert "transformer=sage_attn" not in sage_plan.argv
     assert any(f"{sage.resolve()}:/opt/h3fast/sage:ro" in v for v in sage_plan.argv)
     assert any("PYTHONPATH=/opt/h3fast/sage:" in v for v in sage_plan.argv)
     assert sage_plan.runtime_settings["attention_backend"] == "sage_attn"

@@ -1,5 +1,9 @@
 """Benchmark protocol, preflight, launch, and execution helpers."""
 
+from h3fast.benchmarks.backend_verification import (
+    BackendVerificationReport,
+    verify_attention_backend,
+)
 from h3fast.benchmarks.client import BenchmarkResult, run_case, run_supplied_case
 from h3fast.benchmarks.formal_runner import FormalRunReport, run_formal_cases
 from h3fast.benchmarks.guard import ForeignGpuProcess, serve_guarded
@@ -54,6 +58,7 @@ from h3fast.benchmarks.temporal_consistency import (
 )
 
 __all__ = [
+    "BackendVerificationReport",
     "BenchmarkResult",
     "BenchmarkSuiteResult",
     "ForeignGpuProcess",
@@ -96,4 +101,5 @@ __all__ = [
     "serve_guarded",
     "stage_human_pairwise_presentation",
     "validate_protocol",
+    "verify_attention_backend",
 ]

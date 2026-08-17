@@ -176,12 +176,24 @@ def build_singularity_launch(
         # host; it does not change the compute graph or schedule.
         *(() if master_port is None else ("--master-port", str(master_port))),
         # Unlike placement settings, the attention backend changes numerics.
-        # Scope it to the DiT: the text encoder attention layer supports
-        # only fa/torch_sdpa and rejects sage_attn outright.
+        #
+        # H3 resolves its attention backend lazily on the first forward, by
+        # which time SGLang's component override context has closed. A
+        # component-scoped `transformer=` override is therefore accepted,
+        # logged, and then silently lost, leaving the DiT on platform
+        # auto-selection (measured: output stayed bit-identical to the
+        # FlashAttention baseline). Request the backend globally so it
+        # survives in server_args, and scope the text encoder down instead
+        # because its attention layer rejects sage_attn.
         *(
             ()
             if attention_backend == "auto"
-            else (f"--component-attention-backends.transformer={attention_backend}",)
+            else (
+                "--attention-backend",
+                attention_backend,
+                "--component-attention-backends",
+                "text_encoder=torch_sdpa",
+            )
         ),
     )
     return LaunchPlan(

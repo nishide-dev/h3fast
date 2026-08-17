@@ -33,6 +33,7 @@ from h3fast.benchmarks import (
     serve_guarded,
     stage_human_pairwise_presentation,
     validate_protocol,
+    verify_attention_backend,
 )
 from h3fast.benchmarks.perceptual_video import ALEXNET_BACKBONE_SHA256
 from h3fast.compliance import check_territory_inventory
@@ -391,6 +392,12 @@ def _benchmark_score_perceptual_video(args: argparse.Namespace) -> int:
         ffmpeg=args.ffmpeg,
         ffprobe=args.ffprobe,
     )
+    _write_json(report.to_dict())
+    return 0
+
+
+def _benchmark_verify_backend(args: argparse.Namespace) -> int:
+    report = verify_attention_backend(Path(args.server_log), requested=args.requested)
     _write_json(report.to_dict())
     return 0
 
@@ -789,6 +796,14 @@ def build_parser() -> argparse.ArgumentParser:
     formal_cases.add_argument("--poll-interval", type=float, default=1.0)
     formal_cases.add_argument("--timeout", type=float, default=7200.0)
     formal_cases.set_defaults(handler=_benchmark_run_formal_cases)
+
+    verify_backend = benchmark_subparsers.add_parser(
+        "verify-backend",
+        help="Verify that the requested attention backend actually resolved",
+    )
+    verify_backend.add_argument("--server-log", required=True)
+    verify_backend.add_argument("--requested", required=True)
+    verify_backend.set_defaults(handler=_benchmark_verify_backend)
     return parser
 
 
