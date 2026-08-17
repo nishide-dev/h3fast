@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.30（Sage Attention protocolを追加、Tier 2実測とfl2va/ref2va生成が未完了）
+- **状態:** Draft v0.31（Sage AttentionはSGLang側の問題で保留、fl2va/ref2va生成とTier 2実測が未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1571,6 +1571,8 @@ formal caseの生成は`run-formal-cases`が行う。private reviewed registry(g
 2026-08-18に、formal生成で観察された発話音声の非言語性がprompt書式に起因することを探索的に確認した（[`docs/experiments/0007-japanese-dialogue-probe.md`](experiments/0007-japanese-dialogue-probe.md)）。H3のmodel cardが示す`<d>[言語] テキスト</d>`書式で台詞本文を与えた条件では日本語音声が明瞭に生成され、同一seed・同一場面記述で台詞本文を与えない現行formal様式では言語として成立しなかった。現行のplacement最適化判定はbaselineとcandidateが同一promptを使うため影響を受けない。Tier 2最適化でaudio qualityとA/V syncを実測する際は、台詞が非言語のままではmetricが発話の明瞭さを評価できない可能性があるため、formal set改訂の要否をその時点で判断する。改訂はprompt digestを変えるためrights reviewとregistry再構築を伴う。
 
 最初のTier 2候補としてSage Attention（INT8量子化attention）を追加する。protocolの`runtime.attention_backend`（`auto` / `fa` / `sage_attn`、既定`auto`）を1変数として導入し、既定値では従来のpinned argvと同一の起動を保つ。SageAttentionはread-onlyのruntime imageへ同梱せず、pinned commit `d9704247a5139ab4c03bf7fc6b35cc0e2cbb5ea4`からAda（SM89）向けにbuildした成果物を外部pathへ置き、bindとPYTHONPATHで注入する。これによりruntime image digestは不変のまま、SageAttention側をcommitとwheel digestで独立に固定できる。`benchmarks/protocol-sage.yaml`はresident40との差分をattention backendだけに限定し、数値が変わるためexact artifact quality gateを持たない。採用判定は[ADR 0012](decisions/0012-tiered-optimization-verification.md)のTier 2に従い、formal setとmetric実測、family別budget承認を要求する。SageAttentionはApache-2.0であり、H3 Materialsを含まない外部依存としてartifact registerへ分類する。
+
+2026-08-18の実測で、pinned SGLang commitではDiTに対しSage kernelが一度も実行されないことが判明した（`sageattn`呼び出し0回、生成物がFA baselineとbit単位で一致、[experiment 0009](experiments/0009-sage-attention-noop.md)）。serverログの「backend有効化」表示は推論経路での使用を保証しない。Sage AttentionのTier 2評価は成立しないため候補をblockedへ戻し、原因が解消するまでformal setによるmetric実測へ進まない。追跡は[Issue #40](https://github.com/nishide-dev/h3fast/issues/40)で行う。protocolとlaunchの`attention_backend`対応は実行基盤として残し、既定`auto`では従来のpinned argvと同一の起動を保つ。数値を変えるはずの最適化でdigestが一致した場合は、品質劣化ゼロではなく最適化が無効である可能性を先に疑う。
 
 同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 
