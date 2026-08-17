@@ -176,6 +176,46 @@ def test_protocol_rejects_unknown_runtime_fields(tmp_path: Path) -> None:
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 
+def test_protocol_accepts_supported_attention_backends(tmp_path: Path) -> None:
+    for backend in ("auto", "fa", "sage_attn"):
+        protocol = _ready_protocol()
+        protocol["runtime"] = {
+            "dit_layerwise_resident_layers": 40,
+            "attention_backend": backend,
+        }
+
+        report = validate_protocol(_write_protocol(tmp_path, protocol))
+
+        assert report.ready is True
+
+
+def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
+    from h3fast.benchmarks import load_runtime_settings
+
+    protocol = _ready_protocol()
+    protocol["runtime"] = {"dit_layerwise_resident_layers": 40}
+    path = _write_protocol(tmp_path, protocol)
+
+    settings = load_runtime_settings(path)
+
+    assert settings.attention_backend == "auto"
+    assert settings.to_dict() == {
+        "dit_layerwise_resident_layers": 40,
+        "attention_backend": "auto",
+    }
+
+
+def test_protocol_rejects_unsupported_attention_backend(tmp_path: Path) -> None:
+    protocol = _ready_protocol()
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "attention_backend": "sage_attn_3",
+    }
+
+    with pytest.raises(ValidationError, match="attention_backend"):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
 def test_ready_protocol_rejects_unresolved_items(tmp_path: Path) -> None:
     protocol = _ready_protocol()
     protocol["unresolved"] = ["GPU"]

@@ -226,7 +226,7 @@ def _write_bundle(path: Path, value: dict[str, object]) -> None:
 
 
 def _load_lifecycle(
-    path: Path, endpoint: str, expected_runtime_settings: dict[str, int]
+    path: Path, endpoint: str, expected_runtime_settings: dict[str, object]
 ) -> dict[str, object]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))

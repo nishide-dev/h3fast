@@ -38,16 +38,22 @@ class ProtocolReport:
         }
 
 
+SUPPORTED_ATTENTION_BACKENDS = ("auto", "fa", "sage_attn")
+DEFAULT_ATTENTION_BACKEND = "auto"
+
+
 @dataclass(frozen=True, slots=True)
 class RuntimeSettings:
     """Protocol-owned settings that may change benchmark runtime behavior."""
 
     dit_layerwise_resident_layers: int
+    attention_backend: str = DEFAULT_ATTENTION_BACKEND
 
-    def to_dict(self) -> dict[str, int]:
+    def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable effective runtime settings."""
         return {
             "dit_layerwise_resident_layers": self.dit_layerwise_resident_layers,
+            "attention_backend": self.attention_backend,
         }
 
 
@@ -110,7 +116,7 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = "benchmark protocol cases must be a non-empty array"
         raise ValidationError(msg)
     unknown_runtime_fields = sorted(
-        set(runtime).difference({"dit_layerwise_resident_layers"})
+        set(runtime).difference({"dit_layerwise_resident_layers", "attention_backend"})
     )
     if unknown_runtime_fields:
         fields = ", ".join(unknown_runtime_fields)
@@ -125,6 +131,13 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = (
             "benchmark protocol runtime.dit_layerwise_resident_layers "
             "must be an integer between 1 and 50"
+        )
+        raise ValidationError(msg)
+    attention_backend = runtime.get("attention_backend", DEFAULT_ATTENTION_BACKEND)
+    if attention_backend not in SUPPORTED_ATTENTION_BACKENDS:
+        supported = ", ".join(SUPPORTED_ATTENTION_BACKENDS)
+        msg = (
+            f"benchmark protocol runtime.attention_backend must be one of: {supported}"
         )
         raise ValidationError(msg)
 
@@ -206,4 +219,10 @@ def load_runtime_settings(path: Path) -> RuntimeSettings:
     protocol = _load_protocol(path)
     runtime = _object(protocol.get("runtime"), "runtime")
     resident_layers = cast("int", runtime["dit_layerwise_resident_layers"])
-    return RuntimeSettings(dit_layerwise_resident_layers=resident_layers)
+    attention_backend = cast(
+        "str", runtime.get("attention_backend", DEFAULT_ATTENTION_BACKEND)
+    )
+    return RuntimeSettings(
+        dit_layerwise_resident_layers=resident_layers,
+        attention_backend=attention_backend,
+    )

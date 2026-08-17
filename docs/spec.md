@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.29（最適化検証をtier化、dialogue書式の影響を記録、fl2va/ref2va生成とmetric budget未完了）
+- **状態:** Draft v0.30（Sage Attention protocolを追加、Tier 2実測とfl2va/ref2va生成が未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1569,6 +1569,8 @@ formal caseの生成は`run-formal-cases`が行う。private reviewed registry(g
 この結果を受けて、最適化の検証費用を出力等価性のclassでtier化する（[ADR 0012](decisions/0012-tiered-optimization-verification.md)）。compute graph、schedule、step数、precisionを保存するplacement-only最適化はTier 1とし、protocolごとにsmoke 4 case以上をper-case digestで照合する。全一致は品質差0の証明であり、当該変更についてmetric実測とbudget承認を代替する。1 caseでも不一致があればTier 2へescalateする。量子化、量子化attention、step蒸留、kernel書き換え、precision/schedule変更などbytesが変わり得るものはTier 2とし、formal set全caseと[ADR 0008](decisions/0008-formal-quality-metric-plan.md)の反復・統計・family独立判定・budget承認を要求する。検証tierは測定前に宣言し、結果を見た後に下げてはならない。
 
 2026-08-18に、formal生成で観察された発話音声の非言語性がprompt書式に起因することを探索的に確認した（[`docs/experiments/0007-japanese-dialogue-probe.md`](experiments/0007-japanese-dialogue-probe.md)）。H3のmodel cardが示す`<d>[言語] テキスト</d>`書式で台詞本文を与えた条件では日本語音声が明瞭に生成され、同一seed・同一場面記述で台詞本文を与えない現行formal様式では言語として成立しなかった。現行のplacement最適化判定はbaselineとcandidateが同一promptを使うため影響を受けない。Tier 2最適化でaudio qualityとA/V syncを実測する際は、台詞が非言語のままではmetricが発話の明瞭さを評価できない可能性があるため、formal set改訂の要否をその時点で判断する。改訂はprompt digestを変えるためrights reviewとregistry再構築を伴う。
+
+最初のTier 2候補としてSage Attention（INT8量子化attention）を追加する。protocolの`runtime.attention_backend`（`auto` / `fa` / `sage_attn`、既定`auto`）を1変数として導入し、既定値では従来のpinned argvと同一の起動を保つ。SageAttentionはread-onlyのruntime imageへ同梱せず、pinned commit `d9704247a5139ab4c03bf7fc6b35cc0e2cbb5ea4`からAda（SM89）向けにbuildした成果物を外部pathへ置き、bindとPYTHONPATHで注入する。これによりruntime image digestは不変のまま、SageAttention側をcommitとwheel digestで独立に固定できる。`benchmarks/protocol-sage.yaml`はresident40との差分をattention backendだけに限定し、数値が変わるためexact artifact quality gateを持たない。採用判定は[ADR 0012](decisions/0012-tiered-optimization-verification.md)のTier 2に従い、formal setとmetric実測、family別budget承認を要求する。SageAttentionはApache-2.0であり、H3 Materialsを含まない外部依存としてartifact registerへ分類する。
 
 同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 

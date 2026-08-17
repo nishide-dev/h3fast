@@ -29,7 +29,7 @@ class LaunchPlan:
     sglang_revision: str
     base_image: str
     ffprobe_adapter_sha256: str
-    runtime_settings: dict[str, int]
+    runtime_settings: dict[str, object]
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable launch metadata."""
@@ -55,6 +55,8 @@ def build_singularity_launch(
     dit_layerwise_resident_layers: int,
     port: int = 30010,
     master_port: int | None = None,
+    attention_backend: str = "auto",
+    sage_attention_path: Path | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -85,6 +87,19 @@ def build_singularity_launch(
     ):
         message = "master port must be between 1 and 65535 and differ from port"
         raise ValidationError(message)
+    if attention_backend not in {"auto", "fa", "sage_attn"}:
+        message = f"unsupported attention backend: {attention_backend}"
+        raise ValidationError(message)
+    if attention_backend == "sage_attn":
+        if sage_attention_path is None:
+            message = "attention backend sage_attn requires a SageAttention path"
+            raise ValidationError(message)
+        if not (sage_attention_path / "sageattention").is_dir():
+            message = (
+                "attention backend sage_attn requires a built SageAttention "
+                f"package at {sage_attention_path}"
+            )
+            raise ValidationError(message)
     if (
         not isinstance(dit_layerwise_resident_layers, int)
         or isinstance(dit_layerwise_resident_layers, bool)
@@ -108,7 +123,11 @@ def build_singularity_launch(
         "--env",
         f"CUDA_VISIBLE_DEVICES={visible_devices}",
         "--env",
-        "PYTHONPATH=/opt/h3fast/sglang/python",
+        (
+            "PYTHONPATH=/opt/h3fast/sglang/python"
+            if sage_attention_path is None
+            else "PYTHONPATH=/opt/h3fast/sage:/opt/h3fast/sglang/python"
+        ),
         "--env",
         f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}",
         "--env",
@@ -117,6 +136,11 @@ def build_singularity_launch(
         f"{snapshot}:/models/MiniMax-H3:ro",
         "--bind",
         f"{source}:/opt/h3fast/sglang:ro",
+        *(
+            ()
+            if sage_attention_path is None
+            else ("--bind", f"{sage_attention_path.resolve()}:/opt/h3fast/sage:ro")
+        ),
         "--bind",
         f"{media_probe}:/usr/local/bin/ffprobe:ro",
         "--bind",
@@ -151,6 +175,12 @@ def build_singularity_launch(
         # A distinct rendezvous port allows two guarded servers on one
         # host; it does not change the compute graph or schedule.
         *(() if master_port is None else ("--master-port", str(master_port))),
+        # Unlike placement settings, the attention backend changes numerics.
+        *(
+            ()
+            if attention_backend == "auto"
+            else ("--attention-backend", attention_backend)
+        ),
     )
     return LaunchPlan(
         argv=argv,
@@ -160,5 +190,6 @@ def build_singularity_launch(
         ffprobe_adapter_sha256=sha256_file(media_probe),
         runtime_settings={
             "dit_layerwise_resident_layers": dit_layerwise_resident_layers,
+            "attention_backend": attention_backend,
         },
     )

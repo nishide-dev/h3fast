@@ -22,7 +22,10 @@ def _lifecycle(path: Path) -> None:
                 "selected_gpus": [1, 2],
                 "server_pid": 100,
                 "endpoint": "http://127.0.0.1:30010",
-                "runtime_settings": {"dit_layerwise_resident_layers": 40},
+                "runtime_settings": {
+                    "dit_layerwise_resident_layers": 40,
+                    "attention_backend": "auto",
+                },
             }
         ),
         encoding="utf-8",
@@ -124,7 +127,8 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
     assert saved["status"] == "completed"
     assert saved["server_lifecycle"]["startup_seconds"] == 600.0
     assert saved["server_lifecycle"]["runtime_settings"] == {
-        "dit_layerwise_resident_layers": 40
+        "dit_layerwise_resident_layers": 40,
+        "attention_backend": "auto",
     }
 
 
@@ -206,7 +210,10 @@ def test_run_suite_rejects_lifecycle_runtime_mismatch(tmp_path: Path) -> None:
     lifecycle = tmp_path / "lifecycle.json"
     _lifecycle(lifecycle)
     lifecycle_value = json.loads(lifecycle.read_text(encoding="utf-8"))
-    lifecycle_value["runtime_settings"] = {"dit_layerwise_resident_layers": 20}
+    lifecycle_value["runtime_settings"] = {
+        "dit_layerwise_resident_layers": 20,
+        "attention_backend": "auto",
+    }
     lifecycle.write_text(json.dumps(lifecycle_value), encoding="utf-8")
     server_output = tmp_path / "server"
     server_output.mkdir()
