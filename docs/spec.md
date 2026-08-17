@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.31（Sage AttentionはSGLang側の問題で保留、fl2va/ref2va生成とTier 2実測が未完了）
+- **状態:** Draft v0.32（Sage backend配線を修正しbackend検証を追加、fl2va/ref2va生成とTier 2実測が未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1572,7 +1572,9 @@ formal caseの生成は`run-formal-cases`が行う。private reviewed registry(g
 
 最初のTier 2候補としてSage Attention（INT8量子化attention）を追加する。protocolの`runtime.attention_backend`（`auto` / `fa` / `sage_attn`、既定`auto`）を1変数として導入し、既定値では従来のpinned argvと同一の起動を保つ。SageAttentionはread-onlyのruntime imageへ同梱せず、pinned commit `d9704247a5139ab4c03bf7fc6b35cc0e2cbb5ea4`からAda（SM89）向けにbuildした成果物を外部pathへ置き、bindとPYTHONPATHで注入する。これによりruntime image digestは不変のまま、SageAttention側をcommitとwheel digestで独立に固定できる。`benchmarks/protocol-sage.yaml`はresident40との差分をattention backendだけに限定し、数値が変わるためexact artifact quality gateを持たない。採用判定は[ADR 0012](decisions/0012-tiered-optimization-verification.md)のTier 2に従い、formal setとmetric実測、family別budget承認を要求する。SageAttentionはApache-2.0であり、H3 Materialsを含まない外部依存としてartifact registerへ分類する。`sage_attn`はSGLang公式ドキュメントがCUDA/MUSA対応backendとして記載し、pinned commit `d9704247…`を推奨installとして明示しているものである。component単位の指定は公式書式の`--component-attention-backends <component>=<backend>`を用いる。
 
-2026-08-18の測定では、pinned SGLang commitにおいてDiTのSage比較が成立しなかった（生成物がFA baselineとbit単位で一致、[experiment 0009](experiments/0009-sage-attention-noop.md)）。serverログの「backend有効化」表示は推論経路での使用を保証しない。ただしこの測定は公式ドキュメントが示す書式（`--component-attention-backends transformer=sage_attn`）ではなくdot区切りの非公式書式を用いており、また呼び出し回数probeはTP2のworker processへ届いていなかった可能性が高い。bit一致という一次観測は有効だが、原因の切り分けには公式書式での再測定とinstalled implの直接観測が必要である。Sage AttentionのTier 2評価は成立しないため候補をblockedへ戻す。この結果は「効果なし」ではなく「現在のH3/SGLang構成では評価不能または未接続」として記録し、速度・品質のいずれについても性能を主張しない。原因は未確定であり、pinned commitがupstream PR #33707を含みPR #34891より前である点からupstream regressionが有力候補である。requested / selected / installed / executedの分離計測、revision比較、direct SGLang最小再現、CUDA kernel traceによる確定と、benchmarkのfail-closed backend検証は[Issue #40](https://github.com/nishide-dev/h3fast/issues/40)で追跡する。protocolとlaunchの`attention_backend`対応は実行基盤として残し、既定`auto`では従来のpinned argvと同一の起動を保つ。数値を変えるはずの最適化でdigestが一致した場合は、品質劣化ゼロではなく最適化が無効である可能性を先に疑う。
+2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
+
+component loaderのログやpipeline validationの成功は、実装が各attention moduleへ設定された証拠にならない。このため`h3fast benchmark verify-backend`をfail-closedで追加した。guarded serverログの最終resolutionを実際に使われたbackendとみなし、要求と一致しないrun、および証拠のないrunを拒否する。Tier 2判定にはbackend検証を通過したrunだけを使用する。数値を変えるはずの最適化でdigestが一致した場合は、品質劣化ゼロではなく最適化が無効である可能性を先に疑う。
 
 同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 

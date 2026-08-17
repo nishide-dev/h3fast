@@ -1,11 +1,11 @@
-# Sage Attention comparison does not execute: evaluation blocked, cause unconfirmed
+# Component-scoped attention backend is lost by H3's lazy resolution
 
 - Date: 2026-08-18 (Asia/Tokyo)
 - Baseline protocol: `h3fast-phase1b-resident40-v1`（DiT resident 40層、FlashAttention）
 - Candidate protocol: `h3fast-phase1b-sage-attn-v1`（同一構成、DiTのattention backendのみsage_attn）
 - Host: 承認済みJapan-local GPU host（2×RTX 6000 Ada）
 - Related: [Issue #40](https://github.com/nishide-dev/h3fast/issues/40), [ADR 0012](../decisions/0012-tiered-optimization-verification.md)
-- Outcome: Sage kernelは一度も実行されず比較が成立しない。原因は未確定で、SGLang upstream regressionが有力候補。評価不能として扱う。
+- Outcome: component-scoped指定はH3の遅延解決に届かない。global指定で回避可能であり、その構成ではSageが実行される（E2E 1.24倍）。
 
 ## Purpose
 
@@ -27,20 +27,30 @@ DiTだけへ適用するため`--component-attention-backends.transformer=sage_a
 
 ## Results
 
-| 観測項目 | 結果 |
-|---|---|
-| serverログ | `Using sage_attn attention backend`、`Using sage_attn backend for component: transformer` |
-| `sageattn` 実呼び出し回数 | **0**（ただし計測手法に欠陥あり。下記参照） |
-| 生成物SHA-256 | `748134a32a6cddfd…`（FA baselineとbit単位で一致） |
-| E2E所要 | 716.4秒 vs FA 762.7秒（1.06倍） |
+同一条件（smoke-001、seed 12000、768p、4秒、50 steps、TP2、resident 40、ring-degree 1）で3構成を比較した。
+
+| 構成 | 生成物SHA-256 | E2E | peak memory |
+|---|---|---|---|
+| FA baseline | `748134a32a6cddfd…` | 762.7秒 | 35,696 MB |
+| A: component-only<br>`--component-attention-backends transformer=sage_attn` | `748134a32a6cddfd…`<br>**FAとbit一致** | 720秒 | 34,792 MB |
+| B: global + encoder override<br>`--attention-backend sage_attn`<br>`--component-attention-backends text_encoder=torch_sdpa` | **`e1dd9a196303c060…`**<br>**FAと相違** | **615秒** | 35,028 MB |
+
+serverログの決定的な差:
+
+- **A**: `Using sage_attn backend for component: transformer` の後に `Using fa attention backend`
+- **B**: 遅延解決時も `Using sage_attn attention backend`
+
+Aの最終行の`fa`が、component指定が失効してplatform auto-selectionへ落ちた瞬間の記録である。
 
 ## Interpretation
 
-Sage kernelは実行されていない。生成物がbit単位で一致することと呼び出し回数0は同じ結論を指し、1.06倍の所要差は測定誤差の範囲である。
+原因はライフサイクル不整合である。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、MiniMax H3はattention backendの解決をモデルロード時ではなく最初のforwardまで遅延する。遅延解決の時点でcomponent contextは終了しているため`transformer=sage_attn`が見えず、selectorはplatform auto-selection（FA系）へ落ちる。
 
-serverログの「backend有効化」表示はbackendオブジェクトの生成を報告するものであり、推論経路で実際に使用された証拠ではない。
+global指定なら`server_args.attention_backend`がselectorの優先順位に残るため、遅延解決後もSageが選ばれる。BでのみFAと出力が変わったことがこれを裏づける。
 
-したがってこの測定は「SageAttentionの効果が小さい」ことを示さない。**SageAttention比較が成立していない**、すなわち評価不能である。速度・品質のいずれについてもSageAttentionの性能を主張してはならない。
+componentローダーのログとpipeline validationの成功は、いずれも「実装がH3の各attention moduleへ設定された」証拠にならない。validationは`get_attn_backend`を呼んで妥当性を確かめるが、返却されたbackend classをmodelへ注入しない。
+
+Aの測定は「SageAttentionの効果が小さい」ことを示さない。Sageが実行されていないため比較自体が成立していない。
 
 ## Ruled out
 
@@ -58,7 +68,11 @@ serverログの「backend有効化」表示はbackendオブジェクトの生成
 
 ## Consequences
 
-Sage AttentionのTier 2評価は成立しない。候補としてはblockedへ戻し、「効果なし」ではなく「現在のH3/SGLang構成では評価不能または未接続」と記録する。再開条件（requested/selected/installed/executedの一致、Sage `forward_varlen`のcall count、CUDA traceでのkernel確認、FA baselineとの非bit一致、warmup後の複数run、SGLang/SageAttention revisionのmanifest固定）はIssue #40に定める。
+Sage評価はglobal指定（B構成）で実施する。launchは`sage_attn`要求時に`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`を出す形へ修正した。ring-degree 1が前提である（現行H3実装はring attention時にFA以外を拒否する）。
+
+あわせて`verify-attention-backend`をfail-closedで追加した。guarded serverログの最終resolutionを実際に使われたbackendとみなし、要求と一致しないrunや証拠のないrunを拒否する。A構成のログは実際にこの検査で拒否される。
+
+B構成でのE2E 1.24倍は単一case・単一run・warmupなしの暫定値であり、性能主張ではない。Tier 2の正式評価はformal setとmetric実測、budget承認を要する。
 
 `benchmarks/protocol-sage.yaml`とlaunch/protocolの`attention_backend`対応はrepositoryへ残す。実行基盤としては正しく動作しており、upstream側が解決した時点で再測定に使える。既定`auto`では従来のpinned argvと同一の起動を保つため、既存protocolの再現性には影響しない。
 
