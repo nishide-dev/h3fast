@@ -96,8 +96,12 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         attention_backend="sage_attn",
         sage_attention_path=sage,
     )
-    backend_index = sage_plan.argv.index("--attention-backend")
-    assert sage_plan.argv[backend_index + 1] == "sage_attn"
+    # Sage applies to the DiT only: the text encoder attention layer
+    # supports fa/torch_sdpa and rejects sage_attn.
+    assert "--attention-backend" not in sage_plan.argv
+    assert (
+        "--component-attention-backends.transformer=sage_attn" in sage_plan.argv
+    )
     assert any(f"{sage.resolve()}:/opt/h3fast/sage:ro" in v for v in sage_plan.argv)
     assert any("PYTHONPATH=/opt/h3fast/sage:" in v for v in sage_plan.argv)
     assert sage_plan.runtime_settings["attention_backend"] == "sage_attn"
