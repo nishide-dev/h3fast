@@ -1,11 +1,11 @@
-# Sage Attention is selected but never executed for the H3 DiT
+# Sage Attention comparison does not execute: evaluation blocked, cause unconfirmed
 
 - Date: 2026-08-18 (Asia/Tokyo)
 - Baseline protocol: `h3fast-phase1b-resident40-v1`（DiT resident 40層、FlashAttention）
 - Candidate protocol: `h3fast-phase1b-sage-attn-v1`（同一構成、DiTのattention backendのみsage_attn）
 - Host: 承認済みJapan-local GPU host（2×RTX 6000 Ada）
 - Related: [Issue #40](https://github.com/nishide-dev/h3fast/issues/40), [ADR 0012](../decisions/0012-tiered-optimization-verification.md)
-- Outcome: Sage kernelは一度も実行されない。Tier 2評価は成立せず、候補をblockedへ戻す。
+- Outcome: Sage kernelは一度も実行されず比較が成立しない。原因は未確定で、SGLang upstream regressionが有力候補。評価不能として扱う。
 
 ## Purpose
 
@@ -36,6 +36,8 @@ Sage kernelは実行されていない。生成物がbit単位で一致するこ
 
 serverログの「backend有効化」表示はbackendオブジェクトの生成を報告するものであり、推論経路で実際に使用された証拠ではない。
 
+したがってこの測定は「SageAttentionの効果が小さい」ことを示さない。**SageAttention比較が成立していない**、すなわち評価不能である。速度・品質のいずれについてもSageAttentionの性能を主張してはならない。
+
 ## Ruled out
 
 - **kernel不良ではない**: Ada build済みSageAttentionはH3相当形状（S=2048、H=56、head_dim=128、NHD、bf16）でSDPA参照と異なる出力を返す（max_err 0.0156、mean_err 0.0011、NaN/Infなし）。
@@ -43,11 +45,15 @@ serverログの「backend有効化」表示はbackendオブジェクトの生成
 - **text_encoder制約ではない**: DiTへスコープした状態での結果である。
 - **backend実装の分岐差ではない**: `forward_varlen`の両分岐がいずれも`sageattn`を呼ぶ。
 
-推定原因は、H3 DiTが`_attention_impl`を設定する経路と実際にforwardで使用する経路の間でcomponent単位のbackend制約が反映されていないことだが、未確定である。詳細と追跡は[Issue #40](https://github.com/nishide-dev/h3fast/issues/40)で扱う。
+推定原因は、H3 DiTが`_attention_impl`を設定する経路と実際にforwardで使用する経路の間でbackend選択が接続されていないことだが、**未確定である**。
+
+現時点では「H3Fast固有の問題でSGLang側は正常」とは判断できない。むしろupstream regressionが有力候補である。pinned commit `6eb941a3…`は、H3のattention admissionをbackend capability由来へ変更したupstream PR #33707（`AttentionRequirements(packed_varlen=True)`導入、`_attention_impl`経由実行への変更）を含み、Diffusion backend fallback scopeを修正したPR #34891より前の状態にある。疑っている接続部分はPR #33707の変更対象そのものである。
+
+原因の確定にはrequested / selected / installed / executedの分離計測、全`MiniMaxH3Attention._attention_impl`の直接観測、4 revision比較、H3Fastを介さないdirect SGLang最小再現、CUDA kernel traceが必要である。詳細な調査計画と追跡は[Issue #40](https://github.com/nishide-dev/h3fast/issues/40)で扱う。
 
 ## Consequences
 
-Sage AttentionのTier 2評価は成立しない。候補としてはblockedへ戻し、原因が解消するまでformal setによるmetric実測へ進まない。
+Sage AttentionのTier 2評価は成立しない。候補としてはblockedへ戻し、「効果なし」ではなく「現在のH3/SGLang構成では評価不能または未接続」と記録する。再開条件（requested/selected/installed/executedの一致、Sage `forward_varlen`のcall count、CUDA traceでのkernel確認、FA baselineとの非bit一致、warmup後の複数run、SGLang/SageAttention revisionのmanifest固定）はIssue #40に定める。
 
 `benchmarks/protocol-sage.yaml`とlaunch/protocolの`attention_backend`対応はrepositoryへ残す。実行基盤としては正しく動作しており、upstream側が解決した時点で再測定に使える。既定`auto`では従来のpinned argvと同一の起動を保つため、既存protocolの再現性には影響しない。
 
@@ -60,3 +66,5 @@ Sage AttentionのTier 2評価は成立しない。候補としてはblockedへ�
 ## Lesson
 
 数値を変えるはずの最適化でdigestが一致した場合、それは「品質劣化ゼロ」ではなく「最適化が効いていない」ことを疑う。ADR 0012のTier判定でdigest照合を先に行う運用が、速度計測だけでは見逃していた誤りを捕捉した。
+
+さらに、backend選択ログはrequestedまたはselectedを示すだけで、installedやexecutedの証拠にならない。benchmarkはrequested / selected / installed / executedの一致を検証し、実行0回をwarningではなくfailureとして扱うべきである（防御的変更をIssue #40で追跡）。
