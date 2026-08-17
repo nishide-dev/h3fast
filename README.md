@@ -1,5 +1,9 @@
 # H3Fast
 
+> **Status: active development / not released.** Phase 1Bの実装段階であり、APIとschemaは予告なく変更されます。
+> Initial Runtimeのpackage releaseは意図的にblockedで、公開wheelもcontainerも配布していません。
+> 現時点では単一operatorのlocal研究用途を前提としています。
+
 H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高速化・効率化するための研究・ランタイムプロジェクトです。
 
 現在はPhase 1Bの最初の実測最適化まで完了しています。公式H3の重みやコードは含めず、次を提供します。
@@ -16,7 +20,11 @@ H3Fastは、ローカルのMiniMax H3-Base推論を再現可能な方法で高�
 
 ## Status
 
-このrepositoryはPhase 1Bの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbenchmark harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。2基のRTX 6000 AdaではDiT resident layerを20から40へ増やした単一変数A/Bを実施し、client E2E p50を889.495秒から883.516秒へ、denoise p50を847.339秒から842.507秒へ改善しました。一方、reported peak GPU memoryは最大23,376 MiBから35,696 MiBへ増加しています。単一caseのlocal測定であり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
+このrepositoryはPhase 1Bの実装段階です。内部実験として固定SGLang sourceとSingularity runtimeを使うbenchmark harnessを提供しますが、モデル変換、Triton kernel、Hosted APIはまだ提供しません。
+
+**安定性の目安:** public wheelは未公開で、CLI、schema、protocol、artifact形式はいずれもbreaking changeを伴って変更され得ます。versionはPhase 0/1の実装状態を示すもので、互換性の約束ではありません。外部からの利用を想定した安定APIはまだ存在しません。
+
+2基のRTX 6000 AdaではDiT resident layerを20から40へ増やした単一変数A/Bを実施し、client E2E p50を889.495秒から883.516秒へ、denoise p50を847.339秒から842.507秒へ改善しました。一方、reported peak GPU memoryは最大23,376 MiBから35,696 MiBへ増加しています。さらにt2va 20 caseの実測で、この変更が生成物をbit単位で変えないこと（20層と40層のSHA-256が全case一致）と、固定条件下の生成がbit-exact決定的であることを確認しました（[experiment 0008](docs/experiments/0008-formal-generation-determinism.md)）。いずれもlocal測定であり、一般的な品質、lossless性、Tier 1/2 supportを示す公開benchmarkではありません。
 
 このrepositoryのsource、schema、CLIおよびH3 Materialsを含まないwheelは独立実装のApache-2.0成果物です。MiniMax公式プロジェクトまたは提携製品ではありません。一方、BYOWはH3の重みを再配布しない方式にすぎず、H3の取得・実行・変換・Outputに対するMiniMax H3 Community Licenseの地域・用途等の制限を免除しません。H3を取得・利用する前に、必ず最新の原文を確認してください。
 
