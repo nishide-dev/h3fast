@@ -59,7 +59,10 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert "false" in plan.argv
     resident_index = plan.argv.index("--dit-layerwise-resident-layers")
     assert plan.argv[resident_index + 1] == "40"
-    assert plan.runtime_settings == {"dit_layerwise_resident_layers": 40}
+    assert plan.runtime_settings == {
+        "dit_layerwise_resident_layers": 40,
+        "attention_backend": "auto",
+    }
     assert any("/usr/local/bin/ffprobe:ro" in value for value in plan.argv)
     assert len(plan.ffprobe_adapter_sha256) == 64
     assert plan.to_dict()["shell_command"].startswith("/usr/bin/singularity exec")
@@ -79,6 +82,39 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     )
     master_index = parallel.argv.index("--master-port")
     assert parallel.argv[master_index + 1] == "35011"
+
+    sage = tmp_path / "sage-site-packages"
+    (sage / "sageattention").mkdir(parents=True)
+    sage_plan = build_singularity_launch(
+        snapshot_path=snapshot,
+        runtime_image=image,
+        sglang_source=source,
+        ffprobe_adapter=adapter,
+        output_path=output,
+        selected_gpus=(1, 2),
+        dit_layerwise_resident_layers=40,
+        attention_backend="sage_attn",
+        sage_attention_path=sage,
+    )
+    # Sage applies to the DiT only: the text encoder attention layer
+    # supports fa/torch_sdpa and rejects sage_attn.
+    assert "--attention-backend" not in sage_plan.argv
+    assert "--component-attention-backends.transformer=sage_attn" in sage_plan.argv
+    assert any(f"{sage.resolve()}:/opt/h3fast/sage:ro" in v for v in sage_plan.argv)
+    assert any("PYTHONPATH=/opt/h3fast/sage:" in v for v in sage_plan.argv)
+    assert sage_plan.runtime_settings["attention_backend"] == "sage_attn"
+
+    with pytest.raises(ValidationError, match="sage_attn requires"):
+        build_singularity_launch(
+            snapshot_path=snapshot,
+            runtime_image=image,
+            sglang_source=source,
+            ffprobe_adapter=adapter,
+            output_path=output,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=40,
+            attention_backend="sage_attn",
+        )
 
     with pytest.raises(ValidationError, match="master port"):
         build_singularity_launch(

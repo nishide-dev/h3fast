@@ -405,7 +405,7 @@ def _write_lifecycle(
     selected_gpus: tuple[int, ...],
     server_pid: int,
     endpoint: str,
-    runtime_settings: dict[str, int],
+    runtime_settings: dict[str, object],
 ) -> None:
     value = {
         "schema_version": "1.0",
