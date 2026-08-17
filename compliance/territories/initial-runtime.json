@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "inventory_id": "initial-runtime-territories",
   "status": "approved",
-  "updated_at": "2026-08-16",
+  "updated_at": "2026-08-17",
   "source_issue": "https://github.com/nishide-dev/h3fast/issues/11",
   "license_evidence": {
     "base_revision": "42ed227ee7df40d41602854ae760620d6eb651fe",
@@ -64,6 +64,26 @@
         "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
       ],
       "notes": "The project owner declared the GPU machine and its operator to be in Japan. This approval does not cover remote execution from or access by an Excluded Territory."
+    },
+    {
+      "id": "gpu-benchmark-host-secondary",
+      "description": "Second Japan-local GPU host used by the same operator for exploratory H3 runs outside the pinned benchmark protocol",
+      "location_scope": "countries",
+      "country_codes": [
+        "JP"
+      ],
+      "territory_assessment": "within-applicable",
+      "h3_relation": "both",
+      "decision": "approved-under-community-license",
+      "written_license": null,
+      "operator": "nishide-dev",
+      "owner": "nishide-dev",
+      "deadline": "2026-08-31",
+      "evidence": [
+        "docs/experiments/0007-japanese-dialogue-probe.md",
+        "https://github.com/nishide-dev/h3fast/issues/11#issuecomment-5303694328"
+      ],
+      "notes": "The project owner declared this host to sit in Japan under the same single-operator conditions as the primary GPU host, with a shared home filesystem and no third-party access. Runs on this host are exploratory and must not be compared against pinned benchmark protocol results. This approval does not cover remote execution from or access by an Excluded Territory."
     },
     {
       "id": "github-actions",
