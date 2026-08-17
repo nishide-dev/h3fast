@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.26（Phase 0 formal case生成実測中、metric実測/release blockerあり）
+- **状態:** Draft v0.27（Phase 0 t2va 20-case決定性実測済み、fl2va/ref2va生成とmetric budget未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1539,6 +1539,7 @@ prompt本文とreference assetのlocal pathを含む入力は[`schemas/private-q
 - prompt adherence、perceptual video、temporal consistency、audio quality、A/V sync、人手pairwiseが重複なく1件ずつ存在する
 - 各familyにowner、version、immutable revision、entrypoint、exact dependency pin、入力、score方向、budget、HTTPS evidenceがある
 - baseline/candidateを各3反復し、p5/p50/p95/worst-caseを記録する
+- bit-exact決定性が独立2反復のper-case digest一致で証明された場合に限り、任意の`deterministic_generation_exemption`（policy、検証反復数、owner、日付、evidenceを必須）で追加反復を省略できる。反復要件そのものは3のまま変更せず、数値を変える最適化やbit-exactが成立しない条件では適用しない（[ADR 0011](decisions/0011-bit-exact-repetition-exemption.md)）
 - exact profileはbaseline自己変動envelope外へのabsolute/relative toleranceを0とする
 - 全familyを独立判定し、映像の合格でaudioまたはA/V syncの失敗を相殺しない
 - observation欠損はfailとし、各familyでformal set全caseの100% coverageを要求する
@@ -1562,6 +1563,8 @@ temporal-consistencyはproject-owned契約`adjacent-frame-lpips-trajectory-v1`�
 prompt-adherenceは契約`siglip2-base-patch16-256-cosine-v1`で固定する。`score-prompt-adherence`は、pinned SigLIP2 snapshot(revision `3f9f96cb…`、7 fileのSHA-256 manifestで検証、自動downloadなし、manifest外のfile検出で拒否)をoffline loadし、最大16 frameを固定則で一様サンプリングして、L2正規化したtext/image featureのcosine類似度のmeanとminを出力する(higher-is-better)。prompt本文はgroup/otherから読めないprivate local fileとして供給し、そのbytesのSHA-256がformal caseの`prompt_sha256`と一致しない場合は拒否する。prompt本文、path、mediaはstdoutへ出力しない。pinned snapshotのconfigはmodel_type `siglip`(FixRes変種)であり、digest manifestが同一性を固定した上でarchitecture classを検証する。torch thread数1の決定性、非有限値fail、依存欠如の正規化はほかのadapterと同一契約である。pinned snapshotのoffline loadと意味的方向性(一致promptと不一致promptのscore分離)はlocal CPUで実機確認済みである。formal media contractと固定H3 runtimeでの確認、baseline自己変動が完了するまでcandidateのままとする。
 
 formal caseの生成は`run-formal-cases`が行う。private reviewed registry(group/other不可読)をcommitted formal quality setへfail-closedで拘束し、全60 caseの固定順一致、prompt本文のSHA-256とformal caseの`prompt_sha256`の一致、seed・task・duration・aspect ratioの一致を検証してから、pinned protocolのtemplate caseから固定生成parameter(short_edge、sigma_points、flow_shift、audio_flow_shift、conditions)を採り、caseごとのpayloadをguarded serverへ送る。repetitionごとのoutput directoryへper-case result(JSON)とmediaを保存し、artifact digest検証つきのresumeで中断再開できる。redactedなrun manifest(case_id、artifact名、SHA-256、size、経過時間のみ。prompt・digest・pathなし)を書き出し、これがmetric評価とhuman-pairwise media manifestの入力になる。現時点のpayload契約はt2vaだけを表現できるため、fl2va/ref2vaおよびreference asset付きcaseの選択は明示的にunsupported errorとする(silentなtask置換を行わない)。resumeは現在のformal case prompt digestとprotocol_idへ一致するresultだけを再利用する。stdoutへはcount・manifest digestだけを出力する。生成mediaはH3 OutputとしてGit外に保持し、承認済みJapan-local scope内でのみ実行する。
+
+2026-08-17に固定runtimeでt2va 20 caseを両protocol2反復ずつ生成し、rep1/rep2の生成物SHA-256が全40比較で一致してbit-exact決定性を確認した。同一caseにおける20層baselineと40層candidateの出力も全20 caseでbit単位一致し、placement変更がcompute graphを保存するという主張を単一caseのexact gateから20 caseへ拡張して裏づけた。これによりbaseline自己変動は0、40層candidateの品質差も0である。詳細と限界は[`docs/experiments/0008-formal-generation-determinism.md`](experiments/0008-formal-generation-determinism.md)に記録する。bit-exact性は当該pinned条件での実測事実であり一般保証ではなく、fl2va/ref2va 40 caseは未測定である。
 
 同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 

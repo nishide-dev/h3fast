@@ -48,6 +48,18 @@ _EVALUATION_FIELDS = frozenset(
         "missing_observation_policy",
     }
 )
+_OPTIONAL_EVALUATION_FIELDS = frozenset({"deterministic_generation_exemption"})
+_EXEMPTION_FIELDS = frozenset(
+    {
+        "policy",
+        "verified_repetitions",
+        "owner",
+        "verified_at",
+        "evidence",
+    }
+)
+_EXEMPTION_POLICY = "bit-exact-digest-match-v1"
+_EXEMPTION_MINIMUM_REPETITIONS = 2
 _METRIC_FIELDS = frozenset(
     {"family", "state", "owner", "implementation", "budget", "evidence"}
 )
@@ -220,11 +232,65 @@ def _https_url(value: object, name: str) -> str:
     return text
 
 
+def _validate_determinism_exemption(value: object) -> None:
+    """Validate the optional bit-exact determinism exemption.
+
+    The exemption records that generation was proven bit-exact across
+    independent repetitions, so additional repetitions would regenerate
+    identical bytes. It never lowers the required repetition count on its
+    own: the proof, its owner, and its evidence must all be present.
+    """
+    if not isinstance(value, dict):
+        message = "deterministic generation exemption must be an object"
+        raise ValidationError(message)
+    _fields(value, _EXEMPTION_FIELDS, "deterministic generation exemption")
+    if value["policy"] != _EXEMPTION_POLICY:
+        message = (
+            "deterministic generation exemption policy must equal "
+            f"{_EXEMPTION_POLICY!r}"
+        )
+        raise ValidationError(message)
+    repetitions = value["verified_repetitions"]
+    if (
+        isinstance(repetitions, bool)
+        or not isinstance(repetitions, int)
+        or repetitions < _EXEMPTION_MINIMUM_REPETITIONS
+    ):
+        message = (
+            "deterministic generation exemption verified_repetitions must be at "
+            f"least {_EXEMPTION_MINIMUM_REPETITIONS}"
+        )
+        raise ValidationError(message)
+    _string(value["owner"], "deterministic generation exemption owner")
+    verified_at = _string(
+        value["verified_at"], "deterministic generation exemption verified_at"
+    )
+    try:
+        date.fromisoformat(verified_at)
+    except ValueError as error:
+        message = (
+            "deterministic generation exemption verified_at must be an ISO 8601 date"
+        )
+        raise ValidationError(message) from error
+    _strings(
+        value["evidence"],
+        "deterministic generation exemption evidence",
+        minimum=1,
+    )
+
+
 def _validate_evaluation(value: object) -> None:
     if not isinstance(value, dict):
         message = "quality metric evaluation must be an object"
         raise ValidationError(message)
-    _fields(value, _EVALUATION_FIELDS, "quality metric evaluation")
+    present_optional = _OPTIONAL_EVALUATION_FIELDS.intersection(value)
+    _fields(
+        value,
+        _EVALUATION_FIELDS.union(present_optional),
+        "quality metric evaluation",
+    )
+    if "deterministic_generation_exemption" in value:
+        _validate_determinism_exemption(value["deterministic_generation_exemption"])
     fixed_values: dict[str, object] = {
         "baseline_repetitions": 3,
         "candidate_repetitions": 3,

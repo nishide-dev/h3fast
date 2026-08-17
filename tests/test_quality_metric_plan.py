@@ -159,6 +159,63 @@ def test_metric_plan_rejects_changed_evaluation_contract(tmp_path: Path) -> None
         check_quality_metric_plan(_write_plan(tmp_path, plan))
 
 
+def _exemption() -> dict[str, object]:
+    return {
+        "policy": "bit-exact-digest-match-v1",
+        "verified_repetitions": 2,
+        "owner": "nishide-dev",
+        "verified_at": "2026-08-17",
+        "evidence": [
+            "docs/experiments/0008-formal-generation-determinism.md",
+        ],
+    }
+
+
+def test_committed_plan_has_no_determinism_exemption() -> None:
+    plan = _plan()
+    evaluation = plan["evaluation"]
+    assert isinstance(evaluation, dict)
+    assert "deterministic_generation_exemption" not in evaluation
+
+
+def test_metric_plan_accepts_verified_determinism_exemption(tmp_path: Path) -> None:
+    plan = _plan()
+    evaluation = plan["evaluation"]
+    assert isinstance(evaluation, dict)
+    evaluation["deterministic_generation_exemption"] = _exemption()
+
+    report = check_quality_metric_plan(_write_plan(tmp_path, plan))
+
+    assert report.plan_id == "h3fast-phase0-formal-quality-metrics-v1"
+
+
+def test_metric_plan_rejects_incomplete_determinism_exemption(tmp_path: Path) -> None:
+    for field, value, message in (
+        ("policy", "trust-me-v1", "policy must equal"),
+        ("verified_repetitions", 1, "verified_repetitions must be at least 2"),
+        ("owner", "", "owner"),
+        ("verified_at", "17-08-2026", "verified_at"),
+        ("evidence", [], "evidence"),
+    ):
+        plan = _plan()
+        evaluation = plan["evaluation"]
+        assert isinstance(evaluation, dict)
+        exemption = _exemption()
+        exemption[field] = value
+        evaluation["deterministic_generation_exemption"] = exemption
+        with pytest.raises(ValidationError, match=message):
+            check_quality_metric_plan(_write_plan(tmp_path, plan))
+
+    plan = _plan()
+    evaluation = plan["evaluation"]
+    assert isinstance(evaluation, dict)
+    exemption = _exemption()
+    del exemption["owner"]
+    evaluation["deterministic_generation_exemption"] = exemption
+    with pytest.raises(ValidationError, match="missing required fields"):
+        check_quality_metric_plan(_write_plan(tmp_path, plan))
+
+
 def test_metric_plan_rejects_missing_or_duplicate_families(tmp_path: Path) -> None:
     plan = _plan()
     _metrics(plan).pop()
