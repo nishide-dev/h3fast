@@ -173,6 +173,8 @@ Every optimization must include:
 
 Change one optimization dimension at a time when establishing causality. Separate cold-start, compilation, warmup, and steady-state measurements. Do not call a path lossless or exact until its numerical tolerance and quality gate are defined and passed.
 
+Declare the verification tier before measuring, following ADR 0012. Tier 1 covers placement-only changes that preserve the compute graph, schedule, step count, and precision: verify them with per-case output digests over at least four smoke cases per protocol. A full digest match proves the quality difference is zero and replaces metric measurement for that change. Any digest mismatch escalates to Tier 2. Tier 2 covers changes that can alter output bytes — quantization, distillation, kernel rewrites, precision or schedule changes — and requires the formal set with the repetitions, statistics, and per-family budgets in ADR 0008. Never lower a declared tier after seeing results.
+
 ## Testing and quality checks
 
 Run the smallest relevant checks during development and the complete affected suite before handoff. The current CPU/package gates are:

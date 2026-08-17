@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.27（Phase 0 t2va 20-case決定性実測済み、fl2va/ref2va生成とmetric budget未完了）
+- **状態:** Draft v0.28（最適化検証をtier化、fl2va/ref2va生成とmetric budget未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1565,6 +1565,8 @@ prompt-adherenceは契約`siglip2-base-patch16-256-cosine-v1`で固定する。`
 formal caseの生成は`run-formal-cases`が行う。private reviewed registry(group/other不可読)をcommitted formal quality setへfail-closedで拘束し、全60 caseの固定順一致、prompt本文のSHA-256とformal caseの`prompt_sha256`の一致、seed・task・duration・aspect ratioの一致を検証してから、pinned protocolのtemplate caseから固定生成parameter(short_edge、sigma_points、flow_shift、audio_flow_shift、conditions)を採り、caseごとのpayloadをguarded serverへ送る。repetitionごとのoutput directoryへper-case result(JSON)とmediaを保存し、artifact digest検証つきのresumeで中断再開できる。redactedなrun manifest(case_id、artifact名、SHA-256、size、経過時間のみ。prompt・digest・pathなし)を書き出し、これがmetric評価とhuman-pairwise media manifestの入力になる。現時点のpayload契約はt2vaだけを表現できるため、fl2va/ref2vaおよびreference asset付きcaseの選択は明示的にunsupported errorとする(silentなtask置換を行わない)。resumeは現在のformal case prompt digestとprotocol_idへ一致するresultだけを再利用する。stdoutへはcount・manifest digestだけを出力する。生成mediaはH3 OutputとしてGit外に保持し、承認済みJapan-local scope内でのみ実行する。
 
 2026-08-17に固定runtimeでt2va 20 caseを両protocol2反復ずつ生成し、rep1/rep2の生成物SHA-256が全40比較で一致してbit-exact決定性を確認した。同一caseにおける20層baselineと40層candidateの出力も全20 caseでbit単位一致し、placement変更がcompute graphを保存するという主張を単一caseのexact gateから20 caseへ拡張して裏づけた。これによりbaseline自己変動は0、40層candidateの品質差も0である。詳細と限界は[`docs/experiments/0008-formal-generation-determinism.md`](experiments/0008-formal-generation-determinism.md)に記録する。bit-exact性は当該pinned条件での実測事実であり一般保証ではなく、fl2va/ref2va 40 caseは未測定である。
+
+この結果を受けて、最適化の検証費用を出力等価性のclassでtier化する（[ADR 0012](decisions/0012-tiered-optimization-verification.md)）。compute graph、schedule、step数、precisionを保存するplacement-only最適化はTier 1とし、protocolごとにsmoke 4 case以上をper-case digestで照合する。全一致は品質差0の証明であり、当該変更についてmetric実測とbudget承認を代替する。1 caseでも不一致があればTier 2へescalateする。量子化、量子化attention、step蒸留、kernel書き換え、precision/schedule変更などbytesが変わり得るものはTier 2とし、formal set全caseと[ADR 0008](decisions/0008-formal-quality-metric-plan.md)の反復・統計・family独立判定・budget承認を要求する。検証tierは測定前に宣言し、結果を見た後に下げてはならない。
 
 同一host上で2つのguarded serverを並列運用する場合は`--master-port`で分散rendezvous portを分離する。これはcompute graph・scheduleへ影響しない起動設定であり、既定(None)では従来のpinned argvと同一である。並列生成中のlatency・memory測定値はpinned単一server環境と比較しない。
 
