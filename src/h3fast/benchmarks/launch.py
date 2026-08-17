@@ -177,11 +177,15 @@ def build_singularity_launch(
         *(() if master_port is None else ("--master-port", str(master_port))),
         # Unlike placement settings, the attention backend changes numerics.
         # Scope it to the DiT: the text encoder attention layer supports
-        # only fa/torch_sdpa and rejects sage_attn outright.
+        # only fa/torch_sdpa and rejects sage_attn outright. The documented
+        # form is a space-separated `component=backend` argument.
         *(
             ()
             if attention_backend == "auto"
-            else (f"--component-attention-backends.transformer={attention_backend}",)
+            else (
+                "--component-attention-backends",
+                f"transformer={attention_backend}",
+            )
         ),
     )
     return LaunchPlan(
