@@ -86,3 +86,11 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local agent skill checkouts.
+# Upstream MiniMax skills are H3 Materials: keep them out of this
+# Apache-2.0 repository until their license scope and artifact
+# classification are reviewed (AGENTS.md, docs/spec.md).
+/.agents/
+/.claude/
+/skills-lock.json
