@@ -21,6 +21,7 @@ REQUIRED_FLOW_IDS = frozenset(
         "development-host",
         "github-actions",
         "gpu-benchmark-host",
+        "gpu-benchmark-host-secondary",
         "initial-user-access",
         "output-use",
         "public-source-distribution",

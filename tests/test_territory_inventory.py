@@ -79,6 +79,7 @@ def test_committed_territory_inventory_approves_declared_japan_scope() -> None:
         "benchmark-output-storage",
         "development-host",
         "gpu-benchmark-host",
+        "gpu-benchmark-host-secondary",
         "output-use",
         "runtime-execution",
     ):

@@ -28,3 +28,9 @@ Project ownerは、現行のdevelopment workspace、remote access元、GPU machi
 ## Consequences
 
 `h3fast compliance check-territories`は、宣言済みのJapan-local scopeに対して成功できる。これはPublic Runtime release、Support Tier、formal quality equivalence、Hosted Serviceまたはderivative distributionの承認を意味しない。それらは個別のrelease、quality、supply-chain、downstream termsとterritory gateを引き続き要求する。
+
+## 2026-08-17 amendment: second Japan-local GPU host
+
+Project ownerは、同一homeをmountする2台目のGPU host(RTX PRO 6000 Blackwell)が同じJapan-local single-operator条件下にあり、第三者accessがないと申告した。これを`gpu-benchmark-host-secondary`としてinventoryへ追加し、同一のterritory判断(JP、operator `nishide-dev`、community license下で承認)を適用する。
+
+このhostは固定benchmark protocolの測定には使用せず、探索的なH3実行に限定する。異なるGPUと実行条件による測定値をpinned baseline/candidateの結果と比較しない。operator、physical country、第三者access、storage providerが変わる場合は、既存flowと同様にinventoryを`incomplete`へ戻して再reviewする。

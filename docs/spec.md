@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.25（Phase 0 formal case generation runner実装済み、metric実測/release blockerあり）
+- **状態:** Draft v0.26（Phase 0 formal case生成実測中、metric実測/release blockerあり）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -218,7 +218,7 @@ MiniMax H3 Community Licenseの`Materials`はMiniMaxが公開したH3本体とDo
 
 独立codeのrelease stateは[`compliance/release-gates/initial-runtime.json`](../compliance/release-gates/initial-runtime.json)へ記録する。`h3fast release check`はcode boundary、quality、reproducibility、supply chain、notice、support target、converter、GPU E2E、public benchmarkおよびrelease/schema approvalが完了した場合だけ成功する。H3 territory approvalはこのcode-only release判定のrequired checkにしない。
 
-H3 snapshotへのaccess、保存、変換、GPU実行、Output利用またはH3 Worksを組み込むserviceのregion stateは[`compliance/territories/initial-runtime.json`](../compliance/territories/initial-runtime.json)へ記録する。`h3fast compliance check-territories`はH3-related flowのregion、operator、owner、evidenceと必要なapprovalが揃った場合だけ成功する。現行approvalは[ADR 0007](decisions/0007-japan-local-h3-use-scope.md)に従い、`nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchだけを対象とする。第三者access、Hosted Service、derivative/Output配布、Japan外利用、operator/machine/storage変更前にはrecordを`incomplete`へ戻す。source storage、H3を扱わないCPU CI、global source/package accessは`h3_relation: none`、`decision: not-applicable`とする。
+H3 snapshotへのaccess、保存、変換、GPU実行、Output利用またはH3 Worksを組み込むserviceのregion stateは[`compliance/territories/initial-runtime.json`](../compliance/territories/initial-runtime.json)へ記録する。`h3fast compliance check-territories`はH3-related flowのregion、operator、owner、evidenceと必要なapprovalが揃った場合だけ成功する。現行approvalは[ADR 0007](decisions/0007-japan-local-h3-use-scope.md)に従い、`nishide-dev`が宣言済みJapan内machine/storageで行うsingle-operator local researchだけを対象とする。2026-08-17に同一条件の2台目Japan-local GPU host(`gpu-benchmark-host-secondary`)を追加した。このhostは固定protocolの測定に使用せず、探索的実行に限定し、その測定値をpinned baseline/candidateと比較しない。第三者access、Hosted Service、derivative/Output配布、Japan外利用、operator/machine/storage変更前にはrecordを`incomplete`へ戻す。source storage、H3を扱わないCPU CI、global source/package accessは`h3_relation: none`、`decision: not-applicable`とする。
 
 H3 Works、Model Derivative、またはそれらを組み込んだ製品・サービスを第三者へ提供する前には、該当する次の項目を満たす。
 
