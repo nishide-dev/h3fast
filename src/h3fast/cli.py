@@ -792,7 +792,12 @@ def build_parser() -> argparse.ArgumentParser:
     formal_cases.add_argument("--output-dir", required=True)
     formal_cases.add_argument("--repetition", required=True)
     formal_cases.add_argument("--split", default=None)
-    formal_cases.add_argument("--task", default="t2va")
+    formal_cases.add_argument(
+        "--task",
+        default="t2va",
+        choices=("t2va", "fl2va", "ref2va"),
+        help="Formal task family to generate (cases of other families are skipped)",
+    )
     formal_cases.add_argument("--poll-interval", type=float, default=1.0)
     formal_cases.add_argument("--timeout", type=float, default=7200.0)
     formal_cases.set_defaults(handler=_benchmark_run_formal_cases)

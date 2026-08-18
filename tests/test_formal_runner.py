@@ -32,6 +32,22 @@ def formal_pair(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
     for case in formal["cases"]:
         prompt = _test_prompt(case["id"])
         case["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        references = []
+        if case["task"] == "fl2va":
+            references = [
+                {"modality": "image", "path": "assets/frame-first.png"},
+                {"modality": "image", "path": "assets/frame-last.png"},
+            ]
+        elif case["task"] == "ref2va":
+            modality = case["reference_modalities"][0]
+            names = {
+                "image": "assets/frame-first.png",
+                "video": "assets/reference.mp4",
+                "audio": "assets/reference.wav",
+            }
+            references = [
+                {"modality": modality, "path": names.get(modality, names["image"])}
+            ]
         registry_cases.append(
             {
                 "id": case["id"],
@@ -41,12 +57,17 @@ def formal_pair(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
                 "task": case["task"],
                 "duration_seconds": case["duration_seconds"],
                 "aspect_ratio": case["aspect_ratio"],
+                "references": references,
             }
         )
     formal_path = root / "formal-quality-set.json"
     formal_path.write_text(
         json.dumps(formal, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    assets = root / "assets"
+    assets.mkdir(exist_ok=True)
+    for name in ("frame-first.png", "frame-last.png", "reference.mp4", "reference.wav"):
+        (assets / name).write_bytes(f"asset {name}".encode())
     registry_path = root / "registry.json"
     registry_path.write_text(
         json.dumps({"schema_version": "1.0", "cases": registry_cases}),
@@ -175,7 +196,7 @@ def test_rejects_unsupported_task_family(
             endpoint="http://127.0.0.1:30010",
             output_dir=tmp_path / "outputs",
             repetition_id="rep1",
-            task="fl2va",
+            task="i2va",
         )
 
 
@@ -537,6 +558,114 @@ def test_run_supplied_case_submits_runner_payload(
             {"id": "", "prompt": "x"},
             endpoint="http://127.0.0.1:30010",
             output_dir=tmp_path / "results",
+        )
+
+
+def test_fl2va_builds_keyframe_conditions(
+    tmp_path: Path, formal_pair, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    formal_path, registry_path = formal_pair
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "h3fast.benchmarks.formal_runner._run_single_case", _fake_runner(calls)
+    )
+
+    report = run_formal_cases(
+        PROTOCOL,
+        registry_path,
+        formal_path,
+        endpoint="http://127.0.0.1:30010",
+        output_dir=tmp_path / "outputs",
+        repetition_id="fl2va-rep1",
+        split="smoke",
+        task="fl2va",
+    )
+
+    assert report.case_count == 3
+    case = calls[0]["case"]
+    assert isinstance(case, dict)
+    conditions = case["conditions"]
+    assert isinstance(conditions, list)
+    assert len(conditions) == 2
+    assert conditions[0]["type"] == "image"
+    assert conditions[0]["role"] == "keyframe"
+    assert conditions[0]["frame_index"] == 0
+    assert conditions[1]["frame_index"] == -1
+    assert conditions[0]["uri"].startswith("file:///")
+    assert conditions[0]["uri"].endswith("frame-first.png")
+
+
+def test_ref2va_builds_reference_conditions(
+    tmp_path: Path, formal_pair, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    formal_path, registry_path = formal_pair
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "h3fast.benchmarks.formal_runner._run_single_case", _fake_runner(calls)
+    )
+
+    run_formal_cases(
+        PROTOCOL,
+        registry_path,
+        formal_path,
+        endpoint="http://127.0.0.1:30010",
+        output_dir=tmp_path / "outputs",
+        repetition_id="ref2va-rep1",
+        split="smoke",
+        task="ref2va",
+    )
+
+    seen_types = set()
+    for call in calls:
+        case = call["case"]
+        assert isinstance(case, dict)
+        for condition in case["conditions"]:
+            assert condition["role"] == "reference"
+            assert "frame_index" not in condition
+            assert condition["uri"].startswith("file:///")
+            seen_types.add(condition["type"])
+    assert seen_types <= {"image", "video", "audio", "video_audio"}
+    assert seen_types
+
+
+def test_reference_tasks_reject_missing_or_miscounted_assets(
+    tmp_path: Path, formal_pair, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    formal_path, registry_path = _copy_pair(formal_pair, tmp_path / "pair")
+    monkeypatch.setattr(
+        "h3fast.benchmarks.formal_runner._run_single_case", _fake_runner([])
+    )
+
+    # assets were not copied alongside the registry
+    with pytest.raises(ValidationError, match="reference asset"):
+        run_formal_cases(
+            PROTOCOL,
+            registry_path,
+            formal_path,
+            endpoint="http://127.0.0.1:30010",
+            output_dir=tmp_path / "o1",
+            repetition_id="rep1",
+            split="smoke",
+            task="fl2va",
+        )
+
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    for case in registry["cases"]:
+        if case["task"] == "fl2va":
+            case["references"] = case["references"][:1]
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
+    registry_path.chmod(0o600)
+    shutil.copytree(formal_pair[0].parent / "assets", tmp_path / "pair" / "assets")
+    with pytest.raises(ValidationError, match="two keyframe"):
+        run_formal_cases(
+            PROTOCOL,
+            registry_path,
+            formal_path,
+            endpoint="http://127.0.0.1:30010",
+            output_dir=tmp_path / "o2",
+            repetition_id="rep1",
+            split="smoke",
+            task="fl2va",
         )
 
 
