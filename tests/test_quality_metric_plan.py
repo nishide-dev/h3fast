@@ -30,6 +30,20 @@ def _metrics(plan: dict[str, object]) -> list[dict[str, object]]:
     return metrics  # type: ignore[return-value]
 
 
+def _reset_unassigned(metric: dict[str, object]) -> dict[str, object]:
+    """Return the metric reset to the unassigned baseline disposition."""
+    metric.update(
+        {
+            "state": "unassigned",
+            "owner": None,
+            "implementation": None,
+            "budget": None,
+            "evidence": [],
+        }
+    )
+    return metric
+
+
 def _approve(plan: dict[str, object]) -> dict[str, object]:
     approved = copy.deepcopy(plan)
     approved["status"] = "approved"
@@ -78,8 +92,10 @@ def test_committed_metric_plan_is_valid_draft() -> None:
     assert report.status == "draft"
     assert report.ready is False
     assert report.approved_metrics == 0
-    assert report.planned_metrics == 0
-    assert report.unassigned_metrics == 6
+    # Three families are planned per ADR 0013; none carries an approved
+    # budget, so the plan stays a draft and every family remains a blocker.
+    assert report.planned_metrics == 3
+    assert report.unassigned_metrics == 3
     assert len(report.blockers) == 6
 
 
@@ -224,6 +240,8 @@ def test_metric_plan_rejects_missing_or_duplicate_families(tmp_path: Path) -> No
 
     plan = _plan()
     metrics = _metrics(plan)
+    _reset_unassigned(metrics[0])
+    _reset_unassigned(metrics[1])
     metrics[1]["family"] = metrics[0]["family"]
     with pytest.raises(ValidationError, match="duplicate quality metric family"):
         check_quality_metric_plan(_write_plan(tmp_path, plan))
@@ -231,13 +249,13 @@ def test_metric_plan_rejects_missing_or_duplicate_families(tmp_path: Path) -> No
 
 def test_metric_plan_rejects_invalid_state_disposition(tmp_path: Path) -> None:
     plan = _plan()
-    metric = _metrics(plan)[0]
+    metric = _reset_unassigned(_metrics(plan)[0])
     metric["owner"] = "quality-owner"
     with pytest.raises(ValidationError, match=r"unassigned metric .* disposition"):
         check_quality_metric_plan(_write_plan(tmp_path, plan))
 
     plan = _plan()
-    metric = _metrics(plan)[0]
+    metric = _reset_unassigned(_metrics(plan)[0])
     metric["state"] = "planned"
     with pytest.raises(ValidationError, match=r"planned metric .* requires an owner"):
         check_quality_metric_plan(_write_plan(tmp_path, plan))
