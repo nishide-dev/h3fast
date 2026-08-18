@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.37（Sage Attentionをt2vaで採用、E2E 1.63×）
+- **状態:** Draft v0.38（turbo LoRAをTier 2候補として準備、実測前）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1581,6 +1581,8 @@ BYOWではvariantごとに重みを取得する必要がある。`hf download`�
 最初のTier 2候補としてSage Attention（INT8量子化attention）を追加する。protocolの`runtime.attention_backend`（`auto` / `fa` / `sage_attn`、既定`auto`）を1変数として導入し、既定値では従来のpinned argvと同一の起動を保つ。SageAttentionはread-onlyのruntime imageへ同梱せず、pinned commit `d9704247a5139ab4c03bf7fc6b35cc0e2cbb5ea4`からAda（SM89）向けにbuildした成果物を外部pathへ置き、bindとPYTHONPATHで注入する。これによりruntime image digestは不変のまま、SageAttention側をcommitとwheel digestで独立に固定できる。`benchmarks/protocol-sage.yaml`はresident40との差分をattention backendだけに限定し、数値が変わるためexact artifact quality gateを持たない。採用判定は[ADR 0012](decisions/0012-tiered-optimization-verification.md)のTier 2宣言と[ADR 0013](decisions/0013-single-operator-process-reduction.md)の判定(blind pairwise一次、objective metric証跡)に従う。SageAttentionはApache-2.0であり、H3 Materialsを含まない外部依存としてartifact registerへ分類する。`sage_attn`はSGLang公式ドキュメントがCUDA/MUSA対応backendとして記載し、pinned commit `d9704247…`を推奨installとして明示しているものである。component単位の指定は公式書式の`--component-attention-backends <component>=<backend>`を用いる。
 
 2026-08-19にSage Attention(global構成)をt2vaで**採用**した。t2va formal 20 caseの実測でE2E総時間1.63×(中央値1.61×、範囲1.25〜2.14×、FAより遅いcase 0件)、blind human-pairwiseはcandidate 8勝 / baseline 4勝 / tie 8で劣化なし、temporal consistencyは同水準(p50 0.0800→0.0798)、prompt adherence deltaは無視可能(p50 +0.0005)であった。sample間LPIPS(p50 0.241)は劣化ではなく別サンプルへの収束であり、これはbytesが変わる候補にenvelope判定が使えないというADR 0013の根拠の実証でもある。評価の詳細・限界(単一reviewer、単一rep、t2vaのみ、audio専用metricなし)は[`docs/experiments/0011-sage-attention-tier2-adoption.md`](experiments/0011-sage-attention-tier2-adoption.md)に記録する。fl2va / ref2vaへの適用は各familyのformal case生成と同判定を要する。
+
+次のTier 2候補はstep蒸留turbo LoRA(larryvrh/MiniMax-H3-Turbo-Lora、revision `43a74557…`、`minimax_h3_turbo_v4_step600_ema.safetensors`、SHA-256 `5f3a626c…`)である。protocolの`runtime.lora`でnickname、weight名、weight SHA-256、scale、merge mode、provenanceを固定し、launchはweightのdigestをfail-closedで検証してからread-onlyでbindする。`benchmarks/protocol-turbo.yaml`はSage採用構成との差分をLoRAと`sigma_points: 9`に限定する。pinned SGLang commitのLoRA対応(CLI引数、H3固有key変換、`MiniMaxH3Pipeline`の`LoRAPipeline`継承)はソースで確認済みだが、H3でのend-to-endはupstream未テストであり、step数の意味論(9 points = 8 steps仮説)を含む未確定事項は[Issue #51](https://github.com/nishide-dev/h3fast/issues/51)で追跡する。adapterはH3派生物としてlocal研究利用に限定し、再配布・同梱はしない。実測前であり性能・品質の主張はない。
 
 2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
 

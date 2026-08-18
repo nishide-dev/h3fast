@@ -63,6 +63,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "dit_layerwise_resident_layers": 40,
         "attention_backend": "auto",
         "model_variant": "fl2va",
+        "lora": None,
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -233,6 +234,81 @@ def test_launch_requires_the_variant_weights_in_the_snapshot(
 
     with pytest.raises(ValidationError, match="Ref2VA"):
         build_singularity_launch(**arguments, model_variant="ref2va")
+
+
+def test_launch_binds_a_digest_verified_lora(tmp_path: Path, monkeypatch) -> None:
+    """A LoRA changes output bytes, so the launch pins and verifies it."""
+    import hashlib
+
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    lora_dir = tmp_path / "lora"
+    lora_dir.mkdir()
+    weight = lora_dir / "turbo.safetensors"
+    weight.write_bytes(b"lora-weights")
+    digest = hashlib.sha256(b"lora-weights").hexdigest()
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    lora = {
+        "nickname": "turbo",
+        "weight_name": "turbo.safetensors",
+        "weight_sha256": digest,
+        "scale": 1.0,
+        "merge_mode": "auto",
+        "source": "example/repo@" + "4" * 40,
+    }
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, lora=lora, lora_path=lora_dir)
+
+    lora_index = plan.argv.index("--lora-path")
+    assert plan.argv[lora_index + 1] == "/opt/h3fast/lora"
+    weight_index = plan.argv.index("--lora-weight-name")
+    assert plan.argv[weight_index + 1] == "turbo.safetensors"
+    nickname_index = plan.argv.index("--lora-nickname")
+    assert plan.argv[nickname_index + 1] == "turbo"
+    scale_index = plan.argv.index("--lora-scale")
+    assert plan.argv[scale_index + 1] == "1.0"
+    merge_index = plan.argv.index("--lora-merge-mode")
+    assert plan.argv[merge_index + 1] == "auto"
+    assert any(
+        f"{lora_dir.resolve()}:/opt/h3fast/lora:ro" in value for value in plan.argv
+    )
+    assert plan.runtime_settings["lora"] == lora
+    assert str(lora_dir) not in str(plan.runtime_settings)
+
+    with pytest.raises(ValidationError, match="digest"):
+        build_singularity_launch(
+            **arguments,
+            lora={**lora, "weight_sha256": "0" * 64},
+            lora_path=lora_dir,
+        )
+    with pytest.raises(ValidationError, match="lora"):
+        build_singularity_launch(
+            **arguments,
+            lora={**lora, "weight_name": "missing.safetensors"},
+            lora_path=lora_dir,
+        )
+    with pytest.raises(ValidationError, match="lora"):
+        build_singularity_launch(**arguments, lora=lora)
+    with pytest.raises(ValidationError, match="lora"):
+        build_singularity_launch(**arguments, lora_path=lora_dir)
 
 
 def test_build_singularity_launch_rejects_missing_runtime(

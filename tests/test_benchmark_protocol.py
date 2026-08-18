@@ -210,6 +210,48 @@ def test_protocol_carries_the_served_model_variant(tmp_path: Path) -> None:
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 
+def test_protocol_carries_a_pinned_lora_adapter(tmp_path: Path) -> None:
+    """A LoRA changes output bytes, so its identity must be pinned."""
+    lora = {
+        "nickname": "turbo",
+        "weight_name": "minimax_h3_turbo_v4_step600_ema.safetensors",
+        "weight_sha256": "5f" * 32,
+        "scale": 1.0,
+        "merge_mode": "auto",
+        "source": "larryvrh/MiniMax-H3-Turbo-Lora@" + "4" * 40,
+    }
+    protocol = _ready_protocol()
+    protocol["runtime"] = {"dit_layerwise_resident_layers": 40, "lora": lora}
+    path = _write_protocol(tmp_path, protocol)
+
+    assert validate_protocol(path).ready is True
+    settings = load_runtime_settings(path)
+    assert settings.lora == lora
+    assert settings.to_dict()["lora"] == lora
+
+    for field, value in (
+        ("weight_sha256", "not-a-digest"),
+        ("weight_name", ""),
+        ("scale", "1.0"),
+        ("merge_mode", "sometimes"),
+        ("nickname", ""),
+        ("source", ""),
+    ):
+        protocol["runtime"] = {
+            "dit_layerwise_resident_layers": 40,
+            "lora": {**lora, field: value},
+        }
+        with pytest.raises(ValidationError, match="lora"):
+            validate_protocol(_write_protocol(tmp_path, protocol))
+
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "lora": {k: v for k, v in lora.items() if k != "weight_sha256"},
+    }
+    with pytest.raises(ValidationError, match="lora"):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
 def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
     from h3fast.benchmarks import load_runtime_settings
 
@@ -224,6 +266,7 @@ def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
         "dit_layerwise_resident_layers": 40,
         "attention_backend": "auto",
         "model_variant": "fl2va",
+        "lora": None,
     }
 
 
