@@ -13,6 +13,7 @@ from h3fast.benchmarks.client import (
     _request_json,
     _validate_endpoint,
     run_case,
+    run_supplied_case,
 )
 from h3fast.exceptions import ValidationError
 
@@ -60,6 +61,55 @@ def test_run_case_records_hashes_without_prompt(tmp_path: Path, monkeypatch) -> 
         )
     )
     assert saved["artifact"]["sha256"] == result.artifact_sha256
+
+
+def test_supplied_case_task_family_reaches_the_payload(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A reference-conditioned case must not be submitted as t2va."""
+    submitted: list[dict] = []
+    responses = iter(({"id": "job-fl"}, {"status": "completed"}))
+
+    def request(_method, _url, payload, _timeout):
+        if payload is not None:
+            submitted.append(payload)
+        return next(responses)
+
+    monkeypatch.setattr("h3fast.benchmarks.client._request_json", request)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.client._download_content",
+        lambda _url, destination, _timeout: destination.write_bytes(b"video"),
+    )
+    monkeypatch.setattr("h3fast.benchmarks.client.time.sleep", lambda _s: None)
+
+    run_supplied_case(
+        Path("benchmarks/protocol.yaml"),
+        {
+            "id": "smoke-002",
+            "task": "fl2va",
+            "prompt": "p",
+            "seed": 1,
+            "conditions": [
+                {
+                    "type": "image",
+                    "uri": "file:///reference-assets/a.png",
+                    "role": "keyframe",
+                    "frame_index": 0,
+                }
+            ],
+            "short_edge": 768,
+            "aspect_ratio": "16:9",
+            "duration_seconds": 5,
+            "sigma_points": 50,
+            "flow_shift": 12.0,
+            "audio_flow_shift": 3.0,
+        },
+        endpoint="http://127.0.0.1:30010",
+        output_dir=tmp_path / "results",
+    )
+
+    assert submitted[0]["task"] == "fl2va"
+    assert submitted[0]["conditions"][0]["role"] == "keyframe"
 
 
 @pytest.mark.parametrize(

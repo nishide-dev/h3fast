@@ -145,7 +145,10 @@ def _payload(
         "model": "MiniMaxAI/MiniMax-H3",
         "prompt": prompt,
         "seconds": duration,
-        "task": "t2va",
+        # Reference-conditioned families carry their own conditions; never
+        # rewrite the requested family, which would silently generate the
+        # wrong task.
+        "task": case.get("task", "t2va"),
         "conditions": case.get("conditions", []),
         "target": {
             "short_edge": case.get("short_edge"),

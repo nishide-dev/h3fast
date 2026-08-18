@@ -158,9 +158,15 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         port=args.port,
         master_port=args.master_port,
         attention_backend=runtime_settings.attention_backend,
+        model_variant=runtime_settings.model_variant,
         sage_attention_path=(
             Path(args.sage_attention_path)
             if args.sage_attention_path is not None
+            else None
+        ),
+        reference_assets_path=(
+            Path(args.reference_assets_path)
+            if args.reference_assets_path is not None
             else None
         ),
     )
@@ -200,9 +206,15 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         port=args.port,
         master_port=args.master_port,
         attention_backend=runtime_settings.attention_backend,
+        model_variant=runtime_settings.model_variant,
         sage_attention_path=(
             Path(args.sage_attention_path)
             if args.sage_attention_path is not None
+            else None
+        ),
+        reference_assets_path=(
+            Path(args.reference_assets_path)
+            if args.reference_assets_path is not None
             else None
         ),
     )
@@ -575,6 +587,11 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--port", type=int, default=30010)
     launch.add_argument("--master-port", type=int, default=None)
     launch.add_argument("--sage-attention-path", default=None)
+    launch.add_argument(
+        "--reference-assets-path",
+        default=None,
+        help="Directory of reference assets to mount for fl2va/ref2va",
+    )
     launch.set_defaults(handler=_benchmark_plan_launch)
 
     guarded = benchmark_subparsers.add_parser(
@@ -598,6 +615,11 @@ def build_parser() -> argparse.ArgumentParser:
     guarded.add_argument("--port", type=int, default=30010)
     guarded.add_argument("--master-port", type=int, default=None)
     guarded.add_argument("--sage-attention-path", default=None)
+    guarded.add_argument(
+        "--reference-assets-path",
+        default=None,
+        help="Directory of reference assets to mount for fl2va/ref2va",
+    )
     guarded.add_argument("--startup-timeout", type=float, default=3600.0)
     guarded.add_argument("--poll-interval", type=float, default=2.0)
     guarded.set_defaults(handler=_benchmark_serve_guarded)

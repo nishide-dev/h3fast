@@ -44,6 +44,19 @@ class LaunchPlan:
         }
 
 
+REFERENCE_ASSETS_MOUNT = "/reference-assets"
+
+# A served partition only answers its own task families. Requesting a family
+# outside the loaded variant fails in the scheduler after the model is
+# resident, so the variant is selected up front and checked against the
+# snapshot rather than discovered at generation time.
+MODEL_VARIANT_TASKS: dict[str, tuple[str, ...]] = {
+    "fl2va": ("t2va", "fl2va"),
+    "ref2va": ("t2va", "ref2va"),
+}
+_VARIANT_SNAPSHOT_DIRS = {"fl2va": "FL2VA", "ref2va": "Ref2VA"}
+
+
 def build_singularity_launch(
     *,
     snapshot_path: Path,
@@ -57,6 +70,8 @@ def build_singularity_launch(
     master_port: int | None = None,
     attention_backend: str = "auto",
     sage_attention_path: Path | None = None,
+    reference_assets_path: Path | None = None,
+    model_variant: str = "fl2va",
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -86,6 +101,20 @@ def build_singularity_launch(
         not (1 <= master_port <= 65535) or master_port == port
     ):
         message = "master port must be between 1 and 65535 and differ from port"
+        raise ValidationError(message)
+    if reference_assets_path is not None and not reference_assets_path.is_dir():
+        message = f"reference asset directory is missing: {reference_assets_path}"
+        raise ValidationError(message)
+    if model_variant not in MODEL_VARIANT_TASKS:
+        supported = ", ".join(sorted(MODEL_VARIANT_TASKS))
+        message = f"unsupported model variant {model_variant!r}; expected {supported}"
+        raise ValidationError(message)
+    variant_dir = _VARIANT_SNAPSHOT_DIRS[model_variant]
+    if not (snapshot_path / variant_dir).is_dir():
+        message = (
+            f"model variant {model_variant!r} requires {variant_dir} weights in the "
+            f"snapshot: {snapshot_path / variant_dir}"
+        )
         raise ValidationError(message)
     if attention_backend not in {"auto", "fa", "sage_attn"}:
         message = f"unsupported attention backend: {attention_backend}"
@@ -141,6 +170,17 @@ def build_singularity_launch(
             if sage_attention_path is None
             else ("--bind", f"{sage_attention_path.resolve()}:/opt/h3fast/sage:ro")
         ),
+        # Reference-conditioned tasks read their inputs through file:// URIs
+        # that the server resolves inside the container, so the asset tree
+        # needs its own read-only mount at a fixed path.
+        *(
+            ()
+            if reference_assets_path is None
+            else (
+                "--bind",
+                f"{reference_assets_path.resolve()}:{REFERENCE_ASSETS_MOUNT}:ro",
+            )
+        ),
         "--bind",
         f"{media_probe}:/usr/local/bin/ffprobe:ro",
         "--bind",
@@ -153,7 +193,7 @@ def build_singularity_launch(
         "--model-path",
         "/models/MiniMax-H3",
         "--model-variant",
-        "fl2va",
+        model_variant,
         "--num-gpus",
         "2",
         "--tp-size",
@@ -205,5 +245,6 @@ def build_singularity_launch(
         runtime_settings={
             "dit_layerwise_resident_layers": dit_layerwise_resident_layers,
             "attention_backend": attention_backend,
+            "model_variant": model_variant,
         },
     )
