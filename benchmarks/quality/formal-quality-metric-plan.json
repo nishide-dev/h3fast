@@ -2,13 +2,18 @@
   "schema_version": "1.0",
   "plan_id": "h3fast-phase0-formal-quality-metrics-v1",
   "status": "draft",
-  "updated_at": "2026-08-16",
+  "updated_at": "2026-08-18",
   "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
   "quality_profile": "exact",
   "evaluation": {
     "baseline_repetitions": 3,
     "candidate_repetitions": 3,
-    "statistics": ["p5", "p50", "p95", "worst-case"],
+    "statistics": [
+      "p5",
+      "p50",
+      "p95",
+      "worst-case"
+    ],
     "comparison": "baseline-self-envelope-v1",
     "family_aggregation": "independent-all-must-pass",
     "missing_observation_policy": "fail"
@@ -16,25 +21,75 @@
   "metrics": [
     {
       "family": "prompt-adherence",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
+      "state": "planned",
+      "owner": "nishide-dev",
+      "implementation": {
+        "name": "siglip2-base-patch16-256-cosine-v1",
+        "version": "5.14.1",
+        "revision": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
+        "entrypoint": "h3fast benchmark score-prompt-adherence",
+        "dependencies": [
+          "torch==2.11.0",
+          "transformers==5.14.1",
+          "ffmpeg==4.4.2",
+          "ffprobe==4.4.2"
+        ],
+        "inputs": [
+          "prompt",
+          "candidate-video"
+        ],
+        "score_direction": "higher-is-better"
+      },
       "budget": null,
       "evidence": []
     },
     {
       "family": "perceptual-video",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
+      "state": "planned",
+      "owner": "nishide-dev",
+      "implementation": {
+        "name": "lpips-alex-0.1.4-v1",
+        "version": "0.1.4",
+        "revision": "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02",
+        "entrypoint": "h3fast benchmark score-perceptual-video",
+        "dependencies": [
+          "torch==2.11.0",
+          "torchvision==0.26.0",
+          "lpips==0.1.4",
+          "ffmpeg==4.4.2",
+          "ffprobe==4.4.2"
+        ],
+        "inputs": [
+          "baseline-video",
+          "candidate-video"
+        ],
+        "score_direction": "lower-is-better"
+      },
       "budget": null,
       "evidence": []
     },
     {
       "family": "temporal-consistency",
-      "state": "unassigned",
-      "owner": null,
-      "implementation": null,
+      "state": "planned",
+      "owner": "nishide-dev",
+      "implementation": {
+        "name": "adjacent-frame-lpips-trajectory-v1",
+        "version": "0.1.4",
+        "revision": "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02",
+        "entrypoint": "h3fast benchmark score-temporal-consistency",
+        "dependencies": [
+          "torch==2.11.0",
+          "torchvision==0.26.0",
+          "lpips==0.1.4",
+          "ffmpeg==4.4.2",
+          "ffprobe==4.4.2"
+        ],
+        "inputs": [
+          "baseline-video",
+          "candidate-video"
+        ],
+        "score_direction": "lower-is-better"
+      },
       "budget": null,
       "evidence": []
     },
@@ -64,8 +119,9 @@
     }
   ],
   "limitations": [
-    "This draft fixes evaluation semantics but does not select or approve metric implementations.",
-    "No quality budget is approved until baseline self-variation is measured on the formal case set.",
+    "Promotion conditions are defined solely by ADR 0013; three families are planned with pinned implementations verified on real H3 output (2026-08-18).",
+    "Planned families carry no numeric budget: per ADR 0013 the Tier 2 verdict comes from blind human-pairwise review, with objective metric deltas recorded as evidence.",
+    "audio-quality, av-sync, and human-pairwise metric records stay unassigned; pairwise review covers audio until a dedicated metric earns its cost.",
     "A passing metric plan does not replace case rights review, set approval, or GPU evaluation."
   ]
 }

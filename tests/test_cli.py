@@ -171,7 +171,8 @@ def test_benchmark_quality_metric_plan_command_reports_draft(capsys) -> None:
     assert status == 1
     assert output["ready"] is False
     assert output["approved_metrics"] == 0
-    assert output["unassigned_metrics"] == 6
+    assert output["planned_metrics"] == 3
+    assert output["unassigned_metrics"] == 3
     assert "metric:audio-quality:unassigned" in output["blockers"]
 
 
