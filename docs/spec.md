@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.34（測定前の予測を原則化、GPU実測とTier 2評価が未完了）
+- **状態:** Draft v0.35（served variantを明示化、Tier 2評価が未完了）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1266,7 +1266,7 @@ h3fast convert \
   --precision fp8
 ```
 
-ダウンロード対象を明示し、不要なFL2VA/Ref2VA/Diffusersコピーをまとめて取得しない。
+ダウンロード対象を明示し、不要なFL2VA/Ref2VA/Diffusersコピーをまとめて取得しない。ただしserved partitionは自身のtask familyしか提供しないため、`ref2va`を生成する場合は`'Ref2VA/*'`も取得する。FL2VAのみのsnapshotでref2vaを要求すると、model resident後にschedulerがtaskを拒否する。
 
 ### 10.2 Controlled Weights
 
@@ -1565,6 +1565,12 @@ prompt-adherenceは契約`siglip2-base-patch16-256-cosine-v1`で固定する。`
 formal caseの生成は`run-formal-cases`が行う。private reviewed registry(group/other不可読)をcommitted formal quality setへfail-closedで拘束し、全60 caseの固定順一致、prompt本文のSHA-256とformal caseの`prompt_sha256`の一致、seed・task・duration・aspect ratioの一致を検証してから、pinned protocolのtemplate caseから固定生成parameter(short_edge、sigma_points、flow_shift、audio_flow_shift、conditions)を採り、caseごとのpayloadをguarded serverへ送る。repetitionごとのoutput directoryへper-case result(JSON)とmediaを保存し、artifact digest検証つきのresumeで中断再開できる。redactedなrun manifest(case_id、artifact名、SHA-256、size、経過時間のみ。prompt・digest・pathなし)を書き出し、これがmetric評価とhuman-pairwise media manifestの入力になる。runnerはt2va、fl2va、ref2vaのpayloadを構築する。task選択は`--task`で行い、選択したtaskのcaseだけを対象とする。silentなtask置換は行わず、未対応のtask familyは明示的なerrorとする。
 
 reference条件は公式cookbookの`conditions`契約に従い、`{type, uri, role}`を与える。fl2vaは`role: keyframe`と`frame_index`(first=`0`、last=`-1`)の2条件を要求し、2件でない場合や画像以外の場合はfail closedとする。ref2vaは`role: reference`と`type: image|video|video_audio|audio`を用い、mixed caseは複数条件として展開する。asset pathはregistryからの相対解決を許し、実在しないassetは拒否する。`uri`は`file://`形式で与え、生成物と同様にasset本体はGit外のJapan-local storageに置く。resumeは現在のformal case prompt digestとprotocol_idへ一致するresultだけを再利用する。stdoutへはcount・manifest digestだけを出力する。生成mediaはH3 OutputとしてGit外に保持し、承認済みJapan-local scope内でのみ実行する。
+
+served partitionは自身のtask familyしか提供しない。FL2VA variantは`t2va`と`fl2va`を、Ref2VA variantは`t2va`と`ref2va`を提供し、範囲外のfamilyはscheduler側が拒否する。したがってprotocolの`runtime.model_variant`(`fl2va` / `ref2va`、既定`fl2va`)でserved variantを宣言し、launchはこれを`--model-variant`へ渡す。既定値では従来のpinned argvと同一であり、既存protocolの再現性へ影響しない。
+
+variantに対応する重みがsnapshotに存在しない場合、launch構築時にfail closedとする。この検査がない場合、model residentまで進んでから生成時に失敗し、TP2のロード時間を消費してからでないと不足が判明しない。`runtime_settings`へvariantを含めるため、serverのlifecycle記録とprotocolの不一致検査も自動的にvariantを対象とし、protocolがref2vaを宣言しながらfl2va serverへ接続したrunは拒否される。
+
+BYOWではvariantごとに重みを取得する必要がある。`hf download`の`--include`でFL2VAのみを取得したsnapshotはref2vaを提供できない。formal setの60 caseはt2va 20、fl2va 20、ref2va 20から成り、ref2va caseの生成にはRef2VA variantの取得が前提となる。
 
 2026-08-17に固定runtimeでt2va 20 caseを両protocol2反復ずつ生成し、rep1/rep2の生成物SHA-256が全40比較で一致してbit-exact決定性を確認した。同一caseにおける20層baselineと40層candidateの出力も全20 caseでbit単位一致し、placement変更がcompute graphを保存するという主張を単一caseのexact gateから20 caseへ拡張して裏づけた。これによりbaseline自己変動は0、40層candidateの品質差も0である。詳細と限界は[`docs/experiments/0008-formal-generation-determinism.md`](experiments/0008-formal-generation-determinism.md)に記録する。bit-exact性は当該pinned条件での実測事実であり一般保証ではなく、fl2va/ref2va 40 caseは未測定である。
 
