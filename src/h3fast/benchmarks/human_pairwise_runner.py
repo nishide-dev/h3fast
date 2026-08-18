@@ -141,7 +141,8 @@ def _validate_pending_ballot(
             message = f"duplicate human-pairwise ballot case: {case_id}"
             raise ValidationError(message)
         commitments[case_id] = commitment
-    if tuple(commitments) != expected_ids:
+    scoped = tuple(case_id for case_id in expected_ids if case_id in commitments)
+    if tuple(commitments) != scoped or not commitments:
         message = "human-pairwise ballot must cover every formal case in fixed order"
         raise ValidationError(message)
     return ballot_id, commitments
@@ -342,6 +343,9 @@ def stage_human_pairwise_presentation(
     ballot_id, ballot_commitments = _validate_pending_ballot(
         ballot, expected_ids, formal_sha
     )
+    # A task-scoped ballot narrows the run: assignment and media must then
+    # cover exactly the ballot's cases, still in formal-set order.
+    expected_ids = tuple(ballot_commitments)
     _require_private_file(assignment_path, "human-pairwise assignment")
     assignment, assignment_raw = _load_object(
         assignment_path, "human-pairwise assignment"

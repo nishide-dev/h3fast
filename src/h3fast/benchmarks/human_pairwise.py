@@ -190,7 +190,9 @@ def _load_private_seed(path: Path) -> str:
     return seed
 
 
-def _case_ids(formal_set: dict[str, object]) -> tuple[str, ...]:
+def _case_ids(
+    formal_set: dict[str, object], *, task: str | None = None
+) -> tuple[str, ...]:
     cases = formal_set.get("cases")
     if not isinstance(cases, list):
         message = "formal quality set cases must be an array"
@@ -200,7 +202,12 @@ def _case_ids(formal_set: dict[str, object]) -> tuple[str, ...]:
         if not isinstance(case, dict):
             message = f"formal quality case at index {index} must be an object"
             raise ValidationError(message)
+        if task is not None and case.get("task") != task:
+            continue
         result.append(_string(case.get("id"), f"formal quality case {index} id"))
+    if task is not None and not result:
+        message = f"no formal cases belong to task family {task!r}"
+        raise ValidationError(message)
     if not result or len(set(result)) != len(result):
         message = "formal quality set must contain distinct case IDs"
         raise ValidationError(message)
@@ -255,8 +262,13 @@ def prepare_human_pairwise_ballot(
     ballot_id: str,
     reviewer: str,
     randomization_seed_file: Path,
+    task: str | None = None,
 ) -> HumanPairwisePreparationReport:
-    """Create a pending ballot and a separate private assignment key."""
+    """Create a pending ballot and a separate private assignment key.
+
+    A Tier 2 candidate only affects the task families it was generated
+    for, so the ballot may be scoped to one family (ADR 0013).
+    """
     ballot_id = _string(ballot_id, "ballot_id")
     reviewer = _string(reviewer, "reviewer")
     if ballot_path == assignment_path:
@@ -268,7 +280,7 @@ def prepare_human_pairwise_ballot(
     formal_set, formal_raw = _load_object(formal_set_path, "formal quality set")
     check_formal_quality_set(formal_set_path)
     formal_sha = _sha256(formal_raw)
-    case_ids = _case_ids(formal_set)
+    case_ids = _case_ids(formal_set, task=task)
 
     assignment_cases: list[dict[str, object]] = []
     ballot_cases: list[dict[str, object]] = []

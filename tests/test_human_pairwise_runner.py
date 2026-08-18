@@ -85,6 +85,74 @@ def _build_media(tmp_path: Path) -> Path:
     return manifest
 
 
+def test_stage_accepts_task_scoped_ballot(tmp_path: Path) -> None:
+    """A Tier 2 ballot covers only the affected family (ADR 0013)."""
+    ballot = tmp_path / "ballot.json"
+    assignment = tmp_path / "assignment.json"
+    seed = tmp_path / "seed.txt"
+    seed.write_text("test-only-secret-seed-with-32-characters", encoding="utf-8")
+    seed.chmod(0o600)
+    prepare_human_pairwise_ballot(
+        FORMAL_SET,
+        ballot,
+        assignment,
+        ballot_id="runner-t2va-001",
+        reviewer="reviewer-001",
+        randomization_seed_file=seed,
+        task="t2va",
+    )
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    formal_sha = hashlib.sha256(FORMAL_SET.read_bytes()).hexdigest()
+    scoped = [c for c in _cases(_read(FORMAL_SET)) if c["task"] == "t2va"]
+    cases = []
+    for case in scoped:
+        case_id = str(case["id"])
+        entry: dict[str, object] = {"case_id": case_id}
+        for source in ("baseline", "candidate"):
+            path = media_dir / f"{case_id}-{source}.mp4"
+            data = f"{source} media for {case_id}\n".encode()
+            path.write_bytes(data)
+            entry[source] = {
+                "path": f"media/{case_id}-{source}.mp4",
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        cases.append(entry)
+    manifest = tmp_path / "media-manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "formal_set_sha256": formal_sha,
+                "cases": cases,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    manifest.chmod(0o600)
+    staging = tmp_path / "staging"
+
+    report = stage_human_pairwise_presentation(
+        FORMAL_SET, ballot, assignment, manifest, staging
+    )
+
+    assert report.case_count == len(scoped) == 20
+    assert (staging / "index.html").is_file()
+
+    # A ballot case order that breaks the formal-set order stays rejected.
+    broken = _read(ballot)
+    broken_cases = _cases(broken)
+    broken_cases[0], broken_cases[1] = broken_cases[1], broken_cases[0]
+    reordered = tmp_path / "reordered-ballot.json"
+    reordered.write_text(json.dumps(broken) + "\n", encoding="utf-8")
+    reordered.chmod(0o600)
+    with pytest.raises(ValidationError, match="fixed order"):
+        stage_human_pairwise_presentation(
+            FORMAL_SET, reordered, assignment, manifest, tmp_path / "staging2"
+        )
+
+
 def _stage(tmp_path: Path) -> tuple[Path, Path, Path]:
     ballot, assignment = _prepare(tmp_path)
     manifest = _build_media(tmp_path)
