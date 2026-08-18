@@ -363,6 +363,7 @@ def run_formal_cases(
             continue
         payload_case: dict[str, object] = {
             "id": case_id,
+            "task": task,
             "prompt": registry_case["prompt"],
             "seed": formal_case["seed"],
             "aspect_ratio": _ASPECT_RATIO_MAP[str(formal_case["aspect_ratio"])],

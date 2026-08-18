@@ -587,6 +587,7 @@ def test_fl2va_builds_keyframe_conditions(
     conditions = case["conditions"]
     assert isinstance(conditions, list)
     assert len(conditions) == 2
+    assert case["task"] == "fl2va"
     assert conditions[0]["type"] == "image"
     assert conditions[0]["role"] == "keyframe"
     assert conditions[0]["frame_index"] == 0
@@ -621,6 +622,7 @@ def test_ref2va_builds_reference_conditions(
     for call in calls:
         case = call["case"]
         assert isinstance(case, dict)
+        assert case["task"] == "ref2va"
         for condition in case["conditions"]:
             assert condition["role"] == "reference"
             assert "frame_index" not in condition
