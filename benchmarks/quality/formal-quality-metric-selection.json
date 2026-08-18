@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "assessment_id": "h3fast-phase0-formal-quality-metric-selection-v1",
   "status": "candidate-review",
-  "updated_at": "2026-08-16",
+  "updated_at": "2026-08-18",
   "source_issue": "https://github.com/nishide-dev/h3fast/issues/16",
   "metrics": [
     {
@@ -30,7 +30,10 @@
           "license_scope": "Source code at the pinned release tag"
         }
       ],
-      "inputs": ["prompt", "candidate-video"],
+      "inputs": [
+        "prompt",
+        "candidate-video"
+      ],
       "score_direction": "higher-is-better",
       "adoption_requirements": [
         "Implement an H3Fast adapter with fixed frame sampling, RGB conversion, text preprocessing, and aggregation semantics.",
@@ -60,10 +63,22 @@
           "revision": "082bb24f84c091ea94de2867d34c4544f68e0963",
           "source": "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
           "license": "BSD-2-Clause",
-          "license_scope": "Source code and bundled network weights in the pinned repository"
+          "license_scope": "Source code only. The BSD-2-Clause text covers the software and does not state terms for network weights; the AlexNet backbone is recorded as a separate component."
+        },
+        {
+          "name": "torchvision alexnet-owt-7be5be79.pth",
+          "kind": "model",
+          "version": "0.26.0",
+          "revision": "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02",
+          "source": "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth",
+          "license": "unconfirmed",
+          "license_scope": "torchvision source is BSD-3-Clause, but that LICENSE text covers software only and does not state terms for distributed pretrained checkpoints; upstream pytorch/vision#160 raised the same question and no license statement for the weights was found. Treat the checkpoint as unlicensed for redistribution: local digest-pinned use only, never bundled into a wheel, image, or benchmark bundle."
         }
       ],
-      "inputs": ["baseline-video", "candidate-video"],
+      "inputs": [
+        "baseline-video",
+        "candidate-video"
+      ],
       "score_direction": "lower-is-better",
       "adoption_requirements": [
         "Implement deterministic matching of decoded frame count, timestamps, color conversion, and LPIPS input normalization.",
@@ -94,10 +109,22 @@
           "revision": "082bb24f84c091ea94de2867d34c4544f68e0963",
           "source": "https://github.com/richzhang/PerceptualSimilarity/tree/082bb24f84c091ea94de2867d34c4544f68e0963",
           "license": "BSD-2-Clause",
-          "license_scope": "Source code and bundled network weights in the pinned repository"
+          "license_scope": "Source code only. The BSD-2-Clause text covers the software and does not state terms for network weights; the AlexNet backbone is recorded as a separate component."
+        },
+        {
+          "name": "torchvision alexnet-owt-7be5be79.pth",
+          "kind": "model",
+          "version": "0.26.0",
+          "revision": "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02",
+          "source": "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth",
+          "license": "unconfirmed",
+          "license_scope": "torchvision source is BSD-3-Clause, but that LICENSE text covers software only and does not state terms for distributed pretrained checkpoints; upstream pytorch/vision#160 raised the same question and no license statement for the weights was found. Treat the checkpoint as unlicensed for redistribution: local digest-pinned use only, never bundled into a wheel, image, or benchmark bundle."
         }
       ],
-      "inputs": ["baseline-video", "candidate-video"],
+      "inputs": [
+        "baseline-video",
+        "candidate-video"
+      ],
       "score_direction": "lower-is-better",
       "adoption_requirements": [
         "Specify the adjacent-frame trajectory distance, timestamp alignment, scene-cut handling, and zero-motion boundary behavior.",
@@ -130,7 +157,10 @@
           "license_scope": "Source code at the pinned revision"
         }
       ],
-      "inputs": ["baseline-audio", "candidate-audio"],
+      "inputs": [
+        "baseline-audio",
+        "candidate-audio"
+      ],
       "score_direction": "higher-is-better",
       "adoption_requirements": [
         "Build and smoke-test the pinned ViSQOL revision in the Python 3.12 fixed runtime.",
