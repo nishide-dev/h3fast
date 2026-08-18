@@ -42,6 +42,16 @@ SUPPORTED_ATTENTION_BACKENDS = ("auto", "fa", "sage_attn")
 DEFAULT_ATTENTION_BACKEND = "auto"
 SUPPORTED_MODEL_VARIANTS = ("fl2va", "ref2va")
 DEFAULT_MODEL_VARIANT = "fl2va"
+SUPPORTED_LORA_MERGE_MODES = ("auto", "static", "dynamic")
+_LORA_FIELDS = {
+    "nickname": str,
+    "weight_name": str,
+    "weight_sha256": str,
+    "scale": float,
+    "merge_mode": str,
+    "source": str,
+}
+_SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +61,7 @@ class RuntimeSettings:
     dit_layerwise_resident_layers: int
     attention_backend: str = DEFAULT_ATTENTION_BACKEND
     model_variant: str = DEFAULT_MODEL_VARIANT
+    lora: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable effective runtime settings."""
@@ -58,7 +69,45 @@ class RuntimeSettings:
             "dit_layerwise_resident_layers": self.dit_layerwise_resident_layers,
             "attention_backend": self.attention_backend,
             "model_variant": self.model_variant,
+            "lora": self.lora,
         }
+
+
+def _validate_lora(lora: object) -> None:
+    """Validate the pinned LoRA identity; a LoRA changes output bytes."""
+    if lora is None:
+        return
+    if not isinstance(lora, dict):
+        msg = "benchmark protocol runtime.lora must be an object"
+        raise ValidationError(msg)
+    missing = sorted(set(_LORA_FIELDS).difference(lora))
+    unknown = sorted(set(lora).difference(_LORA_FIELDS))
+    if missing or unknown:
+        msg = (
+            "benchmark protocol runtime.lora requires exactly the fields: "
+            + ", ".join(_LORA_FIELDS)
+        )
+        raise ValidationError(msg)
+    for field, kind in _LORA_FIELDS.items():
+        value = lora[field]
+        valid = (
+            isinstance(value, kind)
+            and not isinstance(value, bool)
+            and (kind is not str or value)
+        )
+        if not valid:
+            msg = f"benchmark protocol runtime.lora {field} is invalid"
+            raise ValidationError(msg)
+    if not _SHA256_PATTERN.fullmatch(str(lora["weight_sha256"])):
+        msg = "benchmark protocol runtime.lora weight_sha256 must be a SHA-256"
+        raise ValidationError(msg)
+    if lora["merge_mode"] not in SUPPORTED_LORA_MERGE_MODES:
+        supported = ", ".join(SUPPORTED_LORA_MERGE_MODES)
+        msg = f"benchmark protocol runtime.lora merge_mode must be one of: {supported}"
+        raise ValidationError(msg)
+    if not str(lora["weight_name"]).endswith(".safetensors"):
+        msg = "benchmark protocol runtime.lora weight_name must be a safetensors file"
+        raise ValidationError(msg)
 
 
 def _load_protocol(path: Path) -> dict[str, object]:
@@ -125,6 +174,7 @@ def validate_protocol(path: Path) -> ProtocolReport:
                 "dit_layerwise_resident_layers",
                 "attention_backend",
                 "model_variant",
+                "lora",
             }
         )
     )
@@ -155,6 +205,7 @@ def validate_protocol(path: Path) -> ProtocolReport:
         supported = ", ".join(SUPPORTED_MODEL_VARIANTS)
         msg = f"benchmark protocol runtime.model_variant must be one of: {supported}"
         raise ValidationError(msg)
+    _validate_lora(runtime.get("lora"))
 
     quality_raw = protocol.get("quality")
     if quality_raw is not None:
@@ -238,8 +289,10 @@ def load_runtime_settings(path: Path) -> RuntimeSettings:
         "str", runtime.get("attention_backend", DEFAULT_ATTENTION_BACKEND)
     )
     model_variant = cast("str", runtime.get("model_variant", DEFAULT_MODEL_VARIANT))
+    lora = cast("dict[str, object] | None", runtime.get("lora"))
     return RuntimeSettings(
         dit_layerwise_resident_layers=resident_layers,
         attention_backend=attention_backend,
         model_variant=model_variant,
+        lora=lora,
     )

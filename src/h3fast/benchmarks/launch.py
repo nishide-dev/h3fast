@@ -45,6 +45,7 @@ class LaunchPlan:
 
 
 REFERENCE_ASSETS_MOUNT = "/reference-assets"
+LORA_MOUNT = "/opt/h3fast/lora"
 
 # A served partition only answers its own task families. Requesting a family
 # outside the loaded variant fails in the scheduler after the model is
@@ -72,6 +73,8 @@ def build_singularity_launch(
     sage_attention_path: Path | None = None,
     reference_assets_path: Path | None = None,
     model_variant: str = "fl2va",
+    lora: dict[str, object] | None = None,
+    lora_path: Path | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -116,6 +119,18 @@ def build_singularity_launch(
             f"snapshot: {snapshot_path / variant_dir}"
         )
         raise ValidationError(message)
+    if (lora is None) != (lora_path is None):
+        message = "lora settings and the lora directory must be provided together"
+        raise ValidationError(message)
+    if lora is not None and lora_path is not None:
+        weight = lora_path / str(lora["weight_name"])
+        if not weight.is_file():
+            message = f"lora weight file is missing: {weight}"
+            raise ValidationError(message)
+        digest = sha256_file(weight)
+        if digest != lora["weight_sha256"]:
+            message = "lora weight digest does not match the pinned protocol identity"
+            raise ValidationError(message)
     if attention_backend not in {"auto", "fa", "sage_attn"}:
         message = f"unsupported attention backend: {attention_backend}"
         raise ValidationError(message)
@@ -181,6 +196,11 @@ def build_singularity_launch(
                 f"{reference_assets_path.resolve()}:{REFERENCE_ASSETS_MOUNT}:ro",
             )
         ),
+        *(
+            ()
+            if lora_path is None
+            else ("--bind", f"{lora_path.resolve()}:{LORA_MOUNT}:ro")
+        ),
         "--bind",
         f"{media_probe}:/usr/local/bin/ffprobe:ro",
         "--bind",
@@ -210,6 +230,22 @@ def build_singularity_launch(
         str(dit_layerwise_resident_layers),
         "--enable-torch-compile",
         "false",
+        *(
+            ()
+            if lora is None
+            else (
+                "--lora-path",
+                LORA_MOUNT,
+                "--lora-weight-name",
+                str(lora["weight_name"]),
+                "--lora-nickname",
+                str(lora["nickname"]),
+                "--lora-scale",
+                str(lora["scale"]),
+                "--lora-merge-mode",
+                str(lora["merge_mode"]),
+            )
+        ),
         "--port",
         str(port),
         # A distinct rendezvous port allows two guarded servers on one
@@ -246,5 +282,6 @@ def build_singularity_launch(
             "dit_layerwise_resident_layers": dit_layerwise_resident_layers,
             "attention_backend": attention_backend,
             "model_variant": model_variant,
+            "lora": dict(lora) if lora is not None else None,
         },
     )

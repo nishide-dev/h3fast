@@ -26,6 +26,7 @@ def _lifecycle(path: Path) -> None:
                     "dit_layerwise_resident_layers": 40,
                     "attention_backend": "auto",
                     "model_variant": "fl2va",
+                    "lora": None,
                 },
             }
         ),
@@ -131,6 +132,7 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
         "dit_layerwise_resident_layers": 40,
         "attention_backend": "auto",
         "model_variant": "fl2va",
+        "lora": None,
     }
 
 
