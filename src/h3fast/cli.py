@@ -357,6 +357,7 @@ def _benchmark_prepare_human_pairwise(args: argparse.Namespace) -> int:
         ballot_id=args.ballot_id,
         reviewer=args.reviewer,
         randomization_seed_file=Path(args.randomization_seed_file),
+        task=args.task,
     )
     _write_json(report.to_dict())
     return 0
@@ -734,6 +735,12 @@ def build_parser() -> argparse.ArgumentParser:
     human_pairwise_prepare.add_argument("--randomization-seed-file", required=True)
     human_pairwise_prepare.add_argument("--ballot", required=True)
     human_pairwise_prepare.add_argument("--assignment", required=True)
+    human_pairwise_prepare.add_argument(
+        "--task",
+        choices=("t2va", "fl2va", "ref2va"),
+        default=None,
+        help="Scope the ballot to one task family (Tier 2 affected family)",
+    )
     human_pairwise_prepare.set_defaults(handler=_benchmark_prepare_human_pairwise)
 
     human_pairwise_check = benchmark_subparsers.add_parser(

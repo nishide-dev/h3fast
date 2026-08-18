@@ -35,6 +35,41 @@ def _prepare(tmp_path: Path) -> tuple[Path, Path]:
     return ballot, assignment
 
 
+def test_prepare_scopes_ballot_to_one_task_family(tmp_path: Path) -> None:
+    """Tier 2 pairwise review covers only the affected task family (ADR 0013)."""
+    ballot = tmp_path / "ballot.json"
+    assignment = tmp_path / "assignment.json"
+    seed = tmp_path / "seed.txt"
+    seed.write_text("test-only-secret-seed-with-32-characters", encoding="utf-8")
+    seed.chmod(0o600)
+    report = prepare_human_pairwise_ballot(
+        FORMAL_SET,
+        ballot,
+        assignment,
+        ballot_id="tier2-t2va-001",
+        reviewer="reviewer-001",
+        randomization_seed_file=seed,
+        task="t2va",
+    )
+
+    formal = json.loads(FORMAL_SET.read_text(encoding="utf-8"))
+    expected = [case["id"] for case in formal["cases"] if case["task"] == "t2va"]
+    assert report.case_count == len(expected) == 20
+    ballot_ids = [case["case_id"] for case in _cases(_read(ballot))]
+    assert ballot_ids == expected
+
+    with pytest.raises(ValidationError, match="no formal cases"):
+        prepare_human_pairwise_ballot(
+            FORMAL_SET,
+            tmp_path / "b2.json",
+            tmp_path / "a2.json",
+            ballot_id="tier2-none-001",
+            reviewer="reviewer-001",
+            randomization_seed_file=seed,
+            task="unknown-task",
+        )
+
+
 def _read(path: Path) -> dict[str, object]:
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
