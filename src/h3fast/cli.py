@@ -158,6 +158,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         port=args.port,
         master_port=args.master_port,
         attention_backend=runtime_settings.attention_backend,
+        model_variant=runtime_settings.model_variant,
         sage_attention_path=(
             Path(args.sage_attention_path)
             if args.sage_attention_path is not None
@@ -205,6 +206,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         port=args.port,
         master_port=args.master_port,
         attention_backend=runtime_settings.attention_backend,
+        model_variant=runtime_settings.model_variant,
         sage_attention_path=(
             Path(args.sage_attention_path)
             if args.sage_attention_path is not None

@@ -40,6 +40,8 @@ class ProtocolReport:
 
 SUPPORTED_ATTENTION_BACKENDS = ("auto", "fa", "sage_attn")
 DEFAULT_ATTENTION_BACKEND = "auto"
+SUPPORTED_MODEL_VARIANTS = ("fl2va", "ref2va")
+DEFAULT_MODEL_VARIANT = "fl2va"
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,12 +50,14 @@ class RuntimeSettings:
 
     dit_layerwise_resident_layers: int
     attention_backend: str = DEFAULT_ATTENTION_BACKEND
+    model_variant: str = DEFAULT_MODEL_VARIANT
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable effective runtime settings."""
         return {
             "dit_layerwise_resident_layers": self.dit_layerwise_resident_layers,
             "attention_backend": self.attention_backend,
+            "model_variant": self.model_variant,
         }
 
 
@@ -116,7 +120,13 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = "benchmark protocol cases must be a non-empty array"
         raise ValidationError(msg)
     unknown_runtime_fields = sorted(
-        set(runtime).difference({"dit_layerwise_resident_layers", "attention_backend"})
+        set(runtime).difference(
+            {
+                "dit_layerwise_resident_layers",
+                "attention_backend",
+                "model_variant",
+            }
+        )
     )
     if unknown_runtime_fields:
         fields = ", ".join(unknown_runtime_fields)
@@ -139,6 +149,11 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = (
             f"benchmark protocol runtime.attention_backend must be one of: {supported}"
         )
+        raise ValidationError(msg)
+    model_variant = runtime.get("model_variant", DEFAULT_MODEL_VARIANT)
+    if model_variant not in SUPPORTED_MODEL_VARIANTS:
+        supported = ", ".join(SUPPORTED_MODEL_VARIANTS)
+        msg = f"benchmark protocol runtime.model_variant must be one of: {supported}"
         raise ValidationError(msg)
 
     quality_raw = protocol.get("quality")
@@ -222,7 +237,9 @@ def load_runtime_settings(path: Path) -> RuntimeSettings:
     attention_backend = cast(
         "str", runtime.get("attention_backend", DEFAULT_ATTENTION_BACKEND)
     )
+    model_variant = cast("str", runtime.get("model_variant", DEFAULT_MODEL_VARIANT))
     return RuntimeSettings(
         dit_layerwise_resident_layers=resident_layers,
         attention_backend=attention_backend,
+        model_variant=model_variant,
     )

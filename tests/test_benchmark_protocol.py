@@ -189,6 +189,27 @@ def test_protocol_accepts_supported_attention_backends(tmp_path: Path) -> None:
         assert report.ready is True
 
 
+def test_protocol_carries_the_served_model_variant(tmp_path: Path) -> None:
+    """A partition serves only its own families, so the variant is reproducible."""
+    protocol = _ready_protocol()
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "model_variant": "ref2va",
+    }
+    path = _write_protocol(tmp_path, protocol)
+
+    assert validate_protocol(path).ready is True
+    assert load_runtime_settings(path).model_variant == "ref2va"
+
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "model_variant": "t2va",
+    }
+
+    with pytest.raises(ValidationError, match="model_variant"):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
 def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
     from h3fast.benchmarks import load_runtime_settings
 
@@ -202,6 +223,7 @@ def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
     assert settings.to_dict() == {
         "dit_layerwise_resident_layers": 40,
         "attention_backend": "auto",
+        "model_variant": "fl2va",
     }
 
 

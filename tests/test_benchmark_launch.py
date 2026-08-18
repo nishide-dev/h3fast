@@ -32,7 +32,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     image = tmp_path / "runtime.sif"
     adapter = tmp_path / "ffprobe.py"
     output = tmp_path / "server-output"
-    snapshot.mkdir()
+    (snapshot / "FL2VA").mkdir(parents=True)
     source.mkdir()
     image.write_bytes(b"image")
     adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
@@ -62,7 +62,10 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert plan.runtime_settings == {
         "dit_layerwise_resident_layers": 40,
         "attention_backend": "auto",
+        "model_variant": "fl2va",
     }
+    variant_index = plan.argv.index("--model-variant")
+    assert plan.argv[variant_index + 1] == "fl2va"
     assert any("/usr/local/bin/ffprobe:ro" in value for value in plan.argv)
     assert len(plan.ffprobe_adapter_sha256) == 64
     assert plan.to_dict()["shell_command"].startswith("/usr/bin/singularity exec")
@@ -165,6 +168,73 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         )
 
 
+def test_launch_serves_the_requested_model_variant(tmp_path: Path, monkeypatch) -> None:
+    """A partition only serves its own task families, so the variant is explicit."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    (snapshot / "Ref2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, model_variant="ref2va")
+
+    variant_index = plan.argv.index("--model-variant")
+    assert plan.argv[variant_index + 1] == "ref2va"
+    assert plan.runtime_settings["model_variant"] == "ref2va"
+
+    with pytest.raises(ValidationError, match="unsupported model variant"):
+        build_singularity_launch(**arguments, model_variant="t2va")
+
+
+def test_launch_requires_the_variant_weights_in_the_snapshot(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Serving a variant whose weights are absent fails at generation time."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    assert build_singularity_launch(**arguments, model_variant="fl2va").argv
+
+    with pytest.raises(ValidationError, match="Ref2VA"):
+        build_singularity_launch(**arguments, model_variant="ref2va")
+
+
 def test_build_singularity_launch_rejects_missing_runtime(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -191,7 +261,7 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
     source = tmp_path / "source"
     image = tmp_path / "runtime.sif"
     adapter = tmp_path / "ffprobe.py"
-    snapshot.mkdir()
+    (snapshot / "FL2VA").mkdir(parents=True)
     source.mkdir()
     image.write_bytes(b"image")
     adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
