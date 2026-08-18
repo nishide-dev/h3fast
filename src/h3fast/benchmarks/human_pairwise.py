@@ -451,14 +451,21 @@ def check_human_pairwise_ballot(
             raise ValidationError(message)
         assignment_by_id[case_id] = case
 
-    if tuple(ballot_by_id) != expected_ids or tuple(assignment_by_id) != expected_ids:
+    # A task-scoped ballot (ADR 0013) covers an ordered subset of the
+    # formal set; the assignment must still match the ballot exactly.
+    scoped = tuple(case_id for case_id in expected_ids if case_id in ballot_by_id)
+    if (
+        not ballot_by_id
+        or tuple(ballot_by_id) != scoped
+        or tuple(assignment_by_id) != scoped
+    ):
         message = "human-pairwise records must cover every formal case in fixed order"
         raise ValidationError(message)
 
     baseline_wins = 0
     candidate_wins = 0
     ties = 0
-    for case_id in expected_ids:
+    for case_id in scoped:
         ballot_case = ballot_by_id[case_id]
         assignment_case = assignment_by_id[case_id]
         if (
@@ -481,7 +488,7 @@ def check_human_pairwise_ballot(
             candidate_wins += 1
         else:
             baseline_wins += 1
-    case_count = len(expected_ids)
+    case_count = len(scoped)
     score = (candidate_wins - baseline_wins) / case_count
     return HumanPairwiseReport(
         ballot_id=ballot_id,

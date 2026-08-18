@@ -70,6 +70,32 @@ def test_prepare_scopes_ballot_to_one_task_family(tmp_path: Path) -> None:
         )
 
 
+def test_check_aggregates_task_scoped_ballot(tmp_path: Path) -> None:
+    """Aggregation accepts a Tier 2 family-scoped ballot (ADR 0013)."""
+    ballot = tmp_path / "ballot.json"
+    assignment = tmp_path / "assignment.json"
+    seed = tmp_path / "seed.txt"
+    seed.write_text("test-only-secret-seed-with-32-characters", encoding="utf-8")
+    seed.chmod(0o600)
+    prepare_human_pairwise_ballot(
+        FORMAL_SET,
+        ballot,
+        assignment,
+        ballot_id="tier2-t2va-check-001",
+        reviewer="reviewer-001",
+        randomization_seed_file=seed,
+        task="t2va",
+    )
+    _complete(ballot, assignment, candidate_wins=5, baseline_wins=3)
+
+    report = check_human_pairwise_ballot(FORMAL_SET, ballot, assignment)
+
+    assert report.case_count == 20
+    assert report.candidate_wins == 5
+    assert report.baseline_wins == 3
+    assert report.ties == 12
+
+
 def _read(path: Path) -> dict[str, object]:
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
