@@ -110,6 +110,36 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
     assert any("PYTHONPATH=/opt/h3fast/sage:" in v for v in sage_plan.argv)
     assert sage_plan.runtime_settings["attention_backend"] == "sage_attn"
 
+    assets = tmp_path / "reference-assets"
+    assets.mkdir()
+    (assets / "frame-first.png").write_bytes(b"png")
+    asset_plan = build_singularity_launch(
+        snapshot_path=snapshot,
+        runtime_image=image,
+        sglang_source=source,
+        ffprobe_adapter=adapter,
+        output_path=output,
+        selected_gpus=(1, 2),
+        dit_layerwise_resident_layers=40,
+        reference_assets_path=assets,
+    )
+    assert any(
+        f"{assets.resolve()}:/reference-assets:ro" in value for value in asset_plan.argv
+    )
+    assert "--bind" in asset_plan.argv
+
+    with pytest.raises(ValidationError, match="reference asset directory"):
+        build_singularity_launch(
+            snapshot_path=snapshot,
+            runtime_image=image,
+            sglang_source=source,
+            ffprobe_adapter=adapter,
+            output_path=output,
+            selected_gpus=(1, 2),
+            dit_layerwise_resident_layers=40,
+            reference_assets_path=tmp_path / "missing-assets",
+        )
+
     with pytest.raises(ValidationError, match="sage_attn requires"):
         build_singularity_launch(
             snapshot_path=snapshot,

@@ -225,11 +225,20 @@ def _manifest_entry(record: dict[str, object]) -> dict[str, object]:
 def _reference_uri(
     registry_dir: Path, reference: dict[str, object], case_id: str
 ) -> str:
+    """Resolve a registry reference to the server-visible asset URI.
+
+    The asset tree is bound read-only into the container at a fixed mount,
+    so the URI must address that mount rather than the host path: the
+    server resolves `file://` inside the container.
+    """
+    from pathlib import Path as _Path
+
+    from h3fast.benchmarks.launch import REFERENCE_ASSETS_MOUNT
+
     path_value = reference.get("path")
     if not isinstance(path_value, str) or not path_value:
         message = f"reference for {case_id} must define a path"
         raise ValidationError(message)
-    from pathlib import Path as _Path
 
     target = _Path(path_value)
     if not target.is_absolute():
@@ -237,7 +246,7 @@ def _reference_uri(
     if not target.is_file():
         message = f"reference asset is missing for {case_id}: {path_value}"
         raise ValidationError(message)
-    return target.resolve().as_uri()
+    return f"file://{REFERENCE_ASSETS_MOUNT}/{target.name}"
 
 
 def _build_conditions(

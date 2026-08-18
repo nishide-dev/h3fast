@@ -44,6 +44,9 @@ class LaunchPlan:
         }
 
 
+REFERENCE_ASSETS_MOUNT = "/reference-assets"
+
+
 def build_singularity_launch(
     *,
     snapshot_path: Path,
@@ -57,6 +60,7 @@ def build_singularity_launch(
     master_port: int | None = None,
     attention_backend: str = "auto",
     sage_attention_path: Path | None = None,
+    reference_assets_path: Path | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -86,6 +90,9 @@ def build_singularity_launch(
         not (1 <= master_port <= 65535) or master_port == port
     ):
         message = "master port must be between 1 and 65535 and differ from port"
+        raise ValidationError(message)
+    if reference_assets_path is not None and not reference_assets_path.is_dir():
+        message = f"reference asset directory is missing: {reference_assets_path}"
         raise ValidationError(message)
     if attention_backend not in {"auto", "fa", "sage_attn"}:
         message = f"unsupported attention backend: {attention_backend}"
@@ -140,6 +147,17 @@ def build_singularity_launch(
             ()
             if sage_attention_path is None
             else ("--bind", f"{sage_attention_path.resolve()}:/opt/h3fast/sage:ro")
+        ),
+        # Reference-conditioned tasks read their inputs through file:// URIs
+        # that the server resolves inside the container, so the asset tree
+        # needs its own read-only mount at a fixed path.
+        *(
+            ()
+            if reference_assets_path is None
+            else (
+                "--bind",
+                f"{reference_assets_path.resolve()}:{REFERENCE_ASSETS_MOUNT}:ro",
+            )
         ),
         "--bind",
         f"{media_probe}:/usr/local/bin/ffprobe:ro",

@@ -591,8 +591,10 @@ def test_fl2va_builds_keyframe_conditions(
     assert conditions[0]["role"] == "keyframe"
     assert conditions[0]["frame_index"] == 0
     assert conditions[1]["frame_index"] == -1
-    assert conditions[0]["uri"].startswith("file:///")
-    assert conditions[0]["uri"].endswith("frame-first.png")
+    # The server resolves URIs inside the container, so they must point at
+    # the mount path rather than the host path.
+    assert conditions[0]["uri"] == "file:///reference-assets/frame-first.png"
+    assert conditions[1]["uri"] == "file:///reference-assets/frame-last.png"
 
 
 def test_ref2va_builds_reference_conditions(
@@ -622,7 +624,7 @@ def test_ref2va_builds_reference_conditions(
         for condition in case["conditions"]:
             assert condition["role"] == "reference"
             assert "frame_index" not in condition
-            assert condition["uri"].startswith("file:///")
+            assert condition["uri"].startswith("file:///reference-assets/")
             seen_types.add(condition["type"])
     assert seen_types <= {"image", "video", "audio", "video_audio"}
     assert seen_types
