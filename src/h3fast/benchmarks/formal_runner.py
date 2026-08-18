@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from h3fast.benchmarks.client import BenchmarkResult
 
 _ASPECT_RATIO_MAP = {"landscape": "16:9", "portrait": "9:16", "square": "1:1"}
+_SUPPORTED_TASKS = ("t2va", "fl2va", "ref2va")
+# MiniMax H3 accepts first-frame-only, last-frame-only, or first+last.
+_FL2VA_FRAME_INDICES = (0, -1)
+_REFERENCE_CONDITION_TYPES = frozenset({"image", "video", "video_audio", "audio"})
 _SPLITS = frozenset({"smoke", "regression"})
 _REPETITION_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _TEMPLATE_FIELDS = ("short_edge", "sigma_points", "flow_shift", "audio_flow_shift")
@@ -218,6 +222,76 @@ def _manifest_entry(record: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _reference_uri(
+    registry_dir: Path, reference: dict[str, object], case_id: str
+) -> str:
+    path_value = reference.get("path")
+    if not isinstance(path_value, str) or not path_value:
+        message = f"reference for {case_id} must define a path"
+        raise ValidationError(message)
+    from pathlib import Path as _Path
+
+    target = _Path(path_value)
+    if not target.is_absolute():
+        target = registry_dir / target
+    if not target.is_file():
+        message = f"reference asset is missing for {case_id}: {path_value}"
+        raise ValidationError(message)
+    return target.resolve().as_uri()
+
+
+def _build_conditions(
+    registry_case: dict[str, object],
+    registry_dir: Path,
+    *,
+    task: str,
+    case_id: str,
+) -> list[dict[str, object]]:
+    """Build the H3 `conditions` array for a reference-conditioned case."""
+    references = registry_case.get("references")
+    if not isinstance(references, list) or not references:
+        message = f"registry case {case_id} must define references for {task}"
+        raise ValidationError(message)
+    for reference in references:
+        if not isinstance(reference, dict):
+            message = f"reference for {case_id} must be an object"
+            raise ValidationError(message)
+        modality = reference.get("modality")
+        if modality not in _REFERENCE_CONDITION_TYPES:
+            message = f"unsupported reference modality for {case_id}: {modality!r}"
+            raise ValidationError(message)
+
+    if task == "fl2va":
+        if len(references) != len(_FL2VA_FRAME_INDICES):
+            message = f"fl2va case {case_id} requires exactly two keyframe references"
+            raise ValidationError(message)
+        conditions: list[dict[str, object]] = []
+        for reference, frame_index in zip(
+            references, _FL2VA_FRAME_INDICES, strict=True
+        ):
+            if reference["modality"] != "image":
+                message = f"fl2va keyframe for {case_id} must be an image reference"
+                raise ValidationError(message)
+            conditions.append(
+                {
+                    "type": "image",
+                    "uri": _reference_uri(registry_dir, reference, case_id),
+                    "role": "keyframe",
+                    "frame_index": frame_index,
+                }
+            )
+        return conditions
+
+    return [
+        {
+            "type": str(reference["modality"]),
+            "uri": _reference_uri(registry_dir, reference, case_id),
+            "role": "reference",
+        }
+        for reference in references
+    ]
+
+
 def run_formal_cases(
     protocol_path: Path,
     registry_path: Path,
@@ -238,10 +312,7 @@ def run_formal_cases(
     if split is not None and split not in _SPLITS:
         message = f"unknown formal split: {split}"
         raise ValidationError(message)
-    if task != "t2va":
-        # The pinned payload contract cannot express reference-conditioned
-        # generation yet; silently degrading fl2va/ref2va to t2va is the
-        # one thing this runner must never do.
+    if task not in _SUPPORTED_TASKS:
         message = f"unsupported formal task family for generation: {task}"
         raise ValidationError(message)
     check_formal_quality_set(formal_set_path)
@@ -260,13 +331,13 @@ def run_formal_cases(
     if not selected:
         message = "no formal cases match the selected split and task"
         raise ValidationError(message)
-    for case in selected:
-        if case["reference_asset_sha256s"]:
-            message = (
-                "reference-conditioned formal cases are not supported yet: "
-                f"{case['id']}"
-            )
-            raise ValidationError(message)
+    if task == "t2va":
+        for case in selected:
+            if case["reference_asset_sha256s"]:
+                message = (
+                    f"t2va formal cases must not carry reference assets: {case['id']}"
+                )
+                raise ValidationError(message)
     repetition_dir = output_dir / repetition_id
     repetition_dir.mkdir(parents=True, exist_ok=True)
 
@@ -289,6 +360,10 @@ def run_formal_cases(
             "duration_seconds": formal_case["duration_seconds"],
             **fixed,
         }
+        if task != "t2va":
+            payload_case["conditions"] = _build_conditions(
+                registry_case, registry_path.parent, task=task, case_id=case_id
+            )
         result = _run_single_case(
             protocol_path,
             payload_case,
