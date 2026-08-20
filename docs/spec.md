@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.40（生成profileを3段階へ、既定はbalanced = FA比6.28×）
+- **状態:** Draft v0.41（online FP8 + dynamic LoRAの実行可能性を確認、品質評価は未実施）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1601,6 +1601,14 @@ profileは`h3fast.benchmarks.profiles`へ登録し、`h3fast benchmark profiles`
 この測定でpairwiseとtemporal metricが一致しなかった(pairwiseは−0.25→0.00へ改善、temporal deltaは+0.0078→+0.0096で実質不変)。temporal metricは蒸留由来の差異を検出できても知覚的劣化を判定できないため、**Tier 2のbudget根拠には使わない**。metricは異常検知の証跡として記録し、合否はblind pairwiseで判定する現行方針を維持する。
 
 11実効stepより多いpointsは未測定であり、最適点は探索していない。fl2va / ref2vaへのprofile適用も各familyでの生成と判定を要する。評価の詳細と限界は[`docs/experiments/0012-turbo-lora-tier2-evaluation.md`](experiments/0012-turbo-lora-tier2-evaluation.md)に記録する。
+
+protocolの`runtime.quantization`(既定なし)を1変数として導入する。fail-closedで`fp8`のみを許可し、他方式(`mxfp4`はROCm MI350+、`mxfp8` / `mxfp4_npu`はAscend NPU、`modelopt`系は事前量子化checkpoint必須)は拒否する。`runtime_settings`へ含めるため、serverのlifecycle記録とprotocolの不一致検査が自動的にquantizationも対象にする。
+
+sm89でのonline FP8対応はソースと実機で確認した(`fp8`の最小capabilityは80、sm89はCUDA 12.4以上で`cutlass_fp8_supported()`がTrue、本環境はCUDA 12.9)。cookbookが「picker exposes this option only on the B200 and B300 topologies」と記すのは検証済み構成の一覧であり、実装の対応範囲ではない。
+
+**FP8とLoRAの併用は`lora.merge_mode: dynamic`を要する。** `auto`はquantized runtime weightを考慮せずstatic mergeを選び、CUTLASS向けに転置されたFP8 storage(logical `[10752, 5376]`に対しruntime `[5376, 10752]`)へlogical orientationのdeltaを加算しようとしてshape mismatchで起動に失敗する。shapeを合わせるだけでは不十分で、`weight_scale`を更新しない加算は数値的に壊れたweightを作る。dynamicは`y = dequant(Q(W))x + scale·B(Ax)`として出力側で加算するため、base weightと`weight_scale`を変更せずBF16 adapterのまま適用できる。量子化対応LoRAは不要である。
+
+2026-08-20の実測(smoke-001、12 sigma points、同一seed)でFP8は速度1.17×、peak VRAM −28.0%(36,412 → 26,204 MiB)であった。dynamic LoRAのoverheadは+7.0秒(約5%)・+3,674 MiBで、net VRAM benefitは10,208 MiBである。LoRA on/offのartifactが相違することを確認し、forwardでの適用を裏づけた。**品質は未評価である**: `FP8 Q(W) + BF16 delta`は`BF16 W + BF16 delta`と同一出力ではなく、Tier 2のblind pairwiseを要する。詳細と限界は[`docs/experiments/0014-fp8-dynamic-lora-smoke.md`](experiments/0014-fp8-dynamic-lora-smoke.md)、調査経緯は[Issue #55](https://github.com/nishide-dev/h3fast/issues/55)に記録する。
 
 2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
 

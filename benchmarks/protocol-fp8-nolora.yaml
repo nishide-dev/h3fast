@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "protocol_id": "h3fast-phase1b-turbo12-fp8-v1",
+  "protocol_id": "h3fast-phase1b-fp8-nolora-canary-v1",
   "status": "draft",
   "unresolved": [
     "H3 license approval for the selected environment",
@@ -45,14 +45,6 @@
   "runtime": {
     "dit_layerwise_resident_layers": 40,
     "attention_backend": "sage_attn",
-    "lora": {
-      "nickname": "turbo",
-      "weight_name": "minimax_h3_turbo_v4_step600_ema.safetensors",
-      "weight_sha256": "5f3a626cd72c93a8b9318d6760c510bc5092d2ab13aaba1f932c5bab07a416d3",
-      "scale": 1.0,
-      "merge_mode": "dynamic",
-      "source": "larryvrh/MiniMax-H3-Turbo-Lora@43a74557ac3f6539db8e0f2a959d03feb7a81480"
-    },
     "quantization": "fp8"
   },
   "measurement": {
