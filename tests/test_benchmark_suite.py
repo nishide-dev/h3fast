@@ -27,6 +27,7 @@ def _lifecycle(path: Path) -> None:
                     "attention_backend": "auto",
                     "model_variant": "fl2va",
                     "lora": None,
+                    "quantization": None,
                 },
             }
         ),
@@ -133,6 +134,7 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
         "attention_backend": "auto",
         "model_variant": "fl2va",
         "lora": None,
+        "quantization": None,
     }
 
 

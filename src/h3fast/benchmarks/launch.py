@@ -47,6 +47,11 @@ class LaunchPlan:
 REFERENCE_ASSETS_MOUNT = "/reference-assets"
 LORA_MOUNT = "/opt/h3fast/lora"
 
+# Only methods that quantize online from the BF16 snapshot on the tested
+# hardware. Other SGLang methods need a pre-quantized checkpoint or
+# another vendor (ROCm MI350+, Ascend NPU), so they fail closed here.
+SUPPORTED_QUANTIZATION = ("fp8",)
+
 # A served partition only answers its own task families. Requesting a family
 # outside the loaded variant fails in the scheduler after the model is
 # resident, so the variant is selected up front and checked against the
@@ -75,6 +80,7 @@ def build_singularity_launch(
     model_variant: str = "fl2va",
     lora: dict[str, object] | None = None,
     lora_path: Path | None = None,
+    quantization: str | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -117,6 +123,13 @@ def build_singularity_launch(
         message = (
             f"model variant {model_variant!r} requires {variant_dir} weights in the "
             f"snapshot: {snapshot_path / variant_dir}"
+        )
+        raise ValidationError(message)
+    if quantization is not None and quantization not in SUPPORTED_QUANTIZATION:
+        supported = ", ".join(SUPPORTED_QUANTIZATION)
+        message = (
+            f"unsupported quantization {quantization!r}; this launch profile "
+            f"supports online quantization methods: {supported}"
         )
         raise ValidationError(message)
     if (lora is None) != (lora_path is None):
@@ -230,6 +243,7 @@ def build_singularity_launch(
         str(dit_layerwise_resident_layers),
         "--enable-torch-compile",
         "false",
+        *(() if quantization is None else ("--quantization", quantization)),
         *(
             ()
             if lora is None
@@ -283,5 +297,6 @@ def build_singularity_launch(
             "attention_backend": attention_backend,
             "model_variant": model_variant,
             "lora": dict(lora) if lora is not None else None,
+            "quantization": quantization,
         },
     )
