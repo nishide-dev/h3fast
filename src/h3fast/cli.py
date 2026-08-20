@@ -11,6 +11,8 @@ from pathlib import Path
 
 from h3fast import __version__
 from h3fast.benchmarks import (
+    DEFAULT_GENERATION_PROFILE,
+    GENERATION_PROFILES,
     apply_quality_registry_review,
     build_quality_reference,
     build_singularity_launch,
@@ -351,6 +353,25 @@ def _benchmark_apply_quality_review(args: argparse.Namespace) -> int:
     )
     _write_json(report.to_dict())
     return 0 if report.ready else 1
+
+
+def _benchmark_profiles(_args: argparse.Namespace) -> int:
+    """List the measured generation profiles and the current default."""
+    _write_json(
+        {
+            "schema_version": "1.0",
+            "default": DEFAULT_GENERATION_PROFILE,
+            "profiles": [
+                profile.to_dict()
+                for profile in (
+                    GENERATION_PROFILES["quality"],
+                    GENERATION_PROFILES["balanced"],
+                    GENERATION_PROFILES["speed"],
+                )
+            ],
+        }
+    )
+    return 0
 
 
 def _benchmark_prepare_human_pairwise(args: argparse.Namespace) -> int:
@@ -731,6 +752,11 @@ def build_parser() -> argparse.ArgumentParser:
     quality_review_apply.add_argument("--output", required=True)
     quality_review_apply.set_defaults(handler=_benchmark_apply_quality_review)
 
+    profiles_list = benchmark_subparsers.add_parser(
+        "profiles",
+        help="List measured generation profiles and the default",
+    )
+    profiles_list.set_defaults(handler=_benchmark_profiles)
     human_pairwise_prepare = benchmark_subparsers.add_parser(
         "prepare-human-pairwise",
         help="Create a private blind ballot and separate assignment key",
