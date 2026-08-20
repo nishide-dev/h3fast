@@ -252,6 +252,33 @@ def test_protocol_carries_a_pinned_lora_adapter(tmp_path: Path) -> None:
         validate_protocol(_write_protocol(tmp_path, protocol))
 
 
+def test_protocol_accepts_upstream_lora_merge_modes(tmp_path: Path) -> None:
+    """Merge modes must mirror SGLang's LORA_MERGE_MODES exactly."""
+    lora = {
+        "nickname": "turbo",
+        "weight_name": "adapter.safetensors",
+        "weight_sha256": "5f" * 32,
+        "scale": 1.0,
+        "merge_mode": "auto",
+        "source": "example/repo@" + "4" * 40,
+    }
+    for mode in ("auto", "merge", "dynamic"):
+        protocol = _ready_protocol()
+        protocol["runtime"] = {
+            "dit_layerwise_resident_layers": 40,
+            "lora": {**lora, "merge_mode": mode},
+        }
+        assert validate_protocol(_write_protocol(tmp_path, protocol)).ready is True
+
+    protocol = _ready_protocol()
+    protocol["runtime"] = {
+        "dit_layerwise_resident_layers": 40,
+        "lora": {**lora, "merge_mode": "static"},
+    }
+    with pytest.raises(ValidationError, match="merge_mode"):
+        validate_protocol(_write_protocol(tmp_path, protocol))
+
+
 def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
     from h3fast.benchmarks import load_runtime_settings
 
@@ -267,6 +294,7 @@ def test_protocol_defaults_attention_backend_to_auto(tmp_path: Path) -> None:
         "attention_backend": "auto",
         "model_variant": "fl2va",
         "lora": None,
+        "quantization": None,
     }
 
 

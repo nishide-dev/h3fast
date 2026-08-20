@@ -162,6 +162,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         attention_backend=runtime_settings.attention_backend,
         model_variant=runtime_settings.model_variant,
         lora=runtime_settings.lora,
+        quantization=runtime_settings.quantization,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -212,6 +213,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         attention_backend=runtime_settings.attention_backend,
         model_variant=runtime_settings.model_variant,
         lora=runtime_settings.lora,
+        quantization=runtime_settings.quantization,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)

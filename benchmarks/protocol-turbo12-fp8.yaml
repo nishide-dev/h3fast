@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "protocol_id": "h3fast-phase1b-turbo12-fp8-v1",
+  "status": "draft",
+  "unresolved": [
+    "H3 license approval for the selected environment",
+    "formal 10-case smoke and 50-case regression quality sets"
+  ],
+  "base_model": {
+    "repository": "MiniMaxAI/MiniMax-H3",
+    "revision": "42ed227ee7df40d41602854ae760620d6eb651fe",
+    "min_snapshot_bytes": 140000000000,
+    "task_family": "fl2va",
+    "task": "t2va"
+  },
+  "environment": {
+    "accelerator": {
+      "vendor": "nvidia",
+      "model": "RTX 6000 Ada Generation",
+      "architecture": "sm89",
+      "memory_gib": 48,
+      "count": 2,
+      "min_free_memory_mib": 45000
+    },
+    "host": {
+      "min_ram_gib": 384,
+      "min_output_free_gib": 20
+    },
+    "software": {
+      "python": "3.12",
+      "h3fast": "0.1.0",
+      "sglang": "git:6eb941a34cb100b708a42ed1d26d2bdefafbd01e",
+      "sglang_base_image": "lmsysorg/sglang@sha256:29f0f645122be1799a594c15907d81da326dbbe6ccd6395710a07a4292125a5f",
+      "sglang_runtime_sif_sha256": "c20b1b3c7da5b164d2783859937e4189c6265a2ad0b4f7be4b7329b7feebd2a4",
+      "ffprobe_adapter_sha256": "f69a957140cce3d55be043fb4f89cb7cdbf18fd45cf90ea4d4dc6b0d9daca8d0",
+      "pytorch": "2.11.0+cu129",
+      "triton": "3.6.0",
+      "cuda": "12.9",
+      "driver": "555.58.02",
+      "runai_model_streamer": false,
+      "sageattention": "git:d9704247a5139ab4c03bf7fc6b35cc0e2cbb5ea4",
+      "sageattention_wheel_sha256": "bae8c1a02a5b3246cb73a1f8bfc86549c48092d7ae010cd1c1f935479915e850"
+    }
+  },
+  "runtime": {
+    "dit_layerwise_resident_layers": 40,
+    "attention_backend": "sage_attn",
+    "lora": {
+      "nickname": "turbo",
+      "weight_name": "minimax_h3_turbo_v4_step600_ema.safetensors",
+      "weight_sha256": "5f3a626cd72c93a8b9318d6760c510bc5092d2ab13aaba1f932c5bab07a416d3",
+      "scale": 1.0,
+      "merge_mode": "auto",
+      "source": "larryvrh/MiniMax-H3-Turbo-Lora@43a74557ac3f6539db8e0f2a959d03feb7a81480"
+    },
+    "quantization": "fp8"
+  },
+  "measurement": {
+    "warmup_runs": 1,
+    "measured_runs": 3,
+    "separate_cold_start": true,
+    "cold_start_definition": "guard process start through the first successful /health response after SGLang synthetic warmup",
+    "warmup_definition": "one full smoke-001 API run on the ready server, excluded from aggregate statistics",
+    "measured_definition": "three sequential smoke-001 API runs on the same guarded server after the protocol warmup",
+    "statistics": [
+      "min",
+      "p50",
+      "p95",
+      "max"
+    ],
+    "percentile_method": "linear interpolation at (n - 1) * p",
+    "stage_source": "SGLang request-scoped perf_dump_path at commit 6eb941a34cb100b708a42ed1d26d2bdefafbd01e",
+    "stages": [
+      "InputValidationStage",
+      "MiniMaxH3PartitionAdmissionStage",
+      "MiniMaxH3TextEncodingStage",
+      "MiniMaxH3VisualEncodingStage",
+      "MiniMaxH3AudioEncodingStage",
+      "MiniMaxH3LatentPreparationStage",
+      "MiniMaxH3TimestepPreparationStage",
+      "MiniMaxH3DenoisingStage",
+      "MiniMaxH3DecodingStage"
+    ],
+    "boundaries": {
+      "server_inference": "scheduler worker receipt through materialized output transport; excludes API queue, final media validation, and client download",
+      "client_end_to_end": "immediately before POST /v1/videos through completed MP4 download and fsync",
+      "cold_start": "guarded server process start through ready /health response"
+    },
+    "output_rules": {
+      "local_root": "benchmark-results/",
+      "git_managed": false,
+      "prompt_storage": "SHA-256 only in result metadata",
+      "success": "atomic per-run result JSON, artifact hash and media contract, request-scoped server performance JSON, aggregate suite JSON",
+      "failure": "atomic suite failure JSON and guarded server failure JSON"
+    }
+  },
+  "cases": [
+    {
+      "id": "smoke-001",
+      "prompt": "A quiet street at dawn with natural synchronized ambience.",
+      "seed": 1101,
+      "conditions": [],
+      "short_edge": 768,
+      "aspect_ratio": "16:9",
+      "duration_seconds": 5.0,
+      "sigma_points": 12,
+      "flow_shift": 12.0,
+      "audio_flow_shift": 3.0
+    }
+  ]
+}

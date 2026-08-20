@@ -42,7 +42,13 @@ SUPPORTED_ATTENTION_BACKENDS = ("auto", "fa", "sage_attn")
 DEFAULT_ATTENTION_BACKEND = "auto"
 SUPPORTED_MODEL_VARIANTS = ("fl2va", "ref2va")
 DEFAULT_MODEL_VARIANT = "fl2va"
-SUPPORTED_LORA_MERGE_MODES = ("auto", "static", "dynamic")
+# Mirrors SGLang LORA_MERGE_MODES: auto keeps a static merge for regular
+# weights, merge always merges into base weights, dynamic applies LoRA at
+# forward time.
+SUPPORTED_LORA_MERGE_MODES = ("auto", "merge", "dynamic")
+# Online quantization methods verified on the tested hardware; other
+# SGLang methods need a pre-quantized checkpoint or another vendor.
+SUPPORTED_QUANTIZATION_METHODS = ("fp8",)
 _LORA_FIELDS = {
     "nickname": str,
     "weight_name": str,
@@ -62,6 +68,7 @@ class RuntimeSettings:
     attention_backend: str = DEFAULT_ATTENTION_BACKEND
     model_variant: str = DEFAULT_MODEL_VARIANT
     lora: dict[str, object] | None = None
+    quantization: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable effective runtime settings."""
@@ -70,6 +77,7 @@ class RuntimeSettings:
             "attention_backend": self.attention_backend,
             "model_variant": self.model_variant,
             "lora": self.lora,
+            "quantization": self.quantization,
         }
 
 
@@ -175,6 +183,7 @@ def validate_protocol(path: Path) -> ProtocolReport:
                 "attention_backend",
                 "model_variant",
                 "lora",
+                "quantization",
             }
         )
     )
@@ -206,6 +215,11 @@ def validate_protocol(path: Path) -> ProtocolReport:
         msg = f"benchmark protocol runtime.model_variant must be one of: {supported}"
         raise ValidationError(msg)
     _validate_lora(runtime.get("lora"))
+    quantization = runtime.get("quantization")
+    if quantization is not None and quantization not in SUPPORTED_QUANTIZATION_METHODS:
+        supported = ", ".join(SUPPORTED_QUANTIZATION_METHODS)
+        msg = f"benchmark protocol runtime.quantization must be one of: {supported}"
+        raise ValidationError(msg)
 
     quality_raw = protocol.get("quality")
     if quality_raw is not None:
@@ -290,9 +304,11 @@ def load_runtime_settings(path: Path) -> RuntimeSettings:
     )
     model_variant = cast("str", runtime.get("model_variant", DEFAULT_MODEL_VARIANT))
     lora = cast("dict[str, object] | None", runtime.get("lora"))
+    quantization = cast("str | None", runtime.get("quantization"))
     return RuntimeSettings(
         dit_layerwise_resident_layers=resident_layers,
         attention_backend=attention_backend,
         model_variant=model_variant,
         lora=lora,
+        quantization=quantization,
     )

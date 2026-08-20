@@ -64,6 +64,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "attention_backend": "auto",
         "model_variant": "fl2va",
         "lora": None,
+        "quantization": None,
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -309,6 +310,45 @@ def test_launch_binds_a_digest_verified_lora(tmp_path: Path, monkeypatch) -> Non
         build_singularity_launch(**arguments, lora=lora)
     with pytest.raises(ValidationError, match="lora"):
         build_singularity_launch(**arguments, lora_path=lora_dir)
+
+
+def test_launch_passes_a_supported_quantization(tmp_path: Path, monkeypatch) -> None:
+    """Quantization changes numerics, so only vetted methods are accepted."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, quantization="fp8")
+
+    index = plan.argv.index("--quantization")
+    assert plan.argv[index + 1] == "fp8"
+    assert plan.runtime_settings["quantization"] == "fp8"
+
+    # Default keeps the pinned argv byte-identical.
+    assert "--quantization" not in build_singularity_launch(**arguments).argv
+
+    # Methods needing other vendors or pre-quantized checkpoints are rejected.
+    for method in ("mxfp4", "mxfp8", "modelslim", "int4", ""):
+        with pytest.raises(ValidationError, match="quantization"):
+            build_singularity_launch(**arguments, quantization=method)
 
 
 def test_build_singularity_launch_rejects_missing_runtime(
