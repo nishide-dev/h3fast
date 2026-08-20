@@ -25,6 +25,12 @@ from h3fast.benchmarks.perceptual_video import (
     score_perceptual_video,
 )
 from h3fast.benchmarks.preflight import PreflightReport, run_preflight
+from h3fast.benchmarks.profiles import (
+    DEFAULT_GENERATION_PROFILE,
+    GENERATION_PROFILES,
+    GenerationProfile,
+    resolve_generation_profile,
+)
 from h3fast.benchmarks.prompt_adherence import (
     PromptAdherenceReport,
     score_prompt_adherence,
@@ -58,12 +64,15 @@ from h3fast.benchmarks.temporal_consistency import (
 )
 
 __all__ = [
+    "DEFAULT_GENERATION_PROFILE",
+    "GENERATION_PROFILES",
     "BackendVerificationReport",
     "BenchmarkResult",
     "BenchmarkSuiteResult",
     "ForeignGpuProcess",
     "FormalQualitySetReport",
     "FormalRunReport",
+    "GenerationProfile",
     "HumanPairwisePreparationReport",
     "HumanPairwiseRecordReport",
     "HumanPairwiseReport",
@@ -90,6 +99,7 @@ __all__ = [
     "prepare_human_pairwise_ballot",
     "prepare_quality_registry_review",
     "record_human_pairwise_selection",
+    "resolve_generation_profile",
     "run_case",
     "run_formal_cases",
     "run_preflight",

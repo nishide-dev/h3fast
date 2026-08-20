@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.39（turbo LoRAをprofile採用、既定はSage構成）
+- **状態:** Draft v0.40（生成profileを3段階へ、既定はbalanced = FA比6.28×）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1586,9 +1586,21 @@ BYOWではvariantごとに重みを取得する必要がある。`hf download`�
 
 2026-08-20にturbo LoRAをt2vaで**profile採用**した。Sage構成比4.94×(FA比8.04×、8.6h→1.74h、遅いcase 0件)、blind human-pairwiseはbaseline 10勝 / candidate 5勝 / tie 5(score −0.25)、temporal consistencyは0.0798→0.0909(約14%悪化)、prompt adherence deltaはほぼ不変(p50 −0.0035)であった。9 sigma pointsは`denoise_steps_seconds`が8要素であることから8実効stepと確定し、生成はbit-exact決定的である。
 
-step蒸留は計算量そのものを削るため劣化ゼロを要求できない。判定基準を[ADR 0014](decisions/0014-compute-reduction-optimization-class.md)で2クラスへ分け、等価変換系(Class E、Sage等)は劣化ゼロを要求し、計算削減系(Class R、step蒸留等)は速度比と劣化量を併記してownerが既定採用 / profile採用 / 不採用を判断する。turbo LoRAはClass Rのprofile採用であり、既定は品質重視の`protocol-sage.yaml`、opt-inで速度重視の`protocol-turbo.yaml`とする。profileの選択は明示指定でのみ行い、暗黙に切り替えない。
+step蒸留は計算量そのものを削るため劣化ゼロを要求できない。判定基準を[ADR 0014](decisions/0014-compute-reduction-optimization-class.md)で2クラスへ分け、等価変換系(Class E、Sage等)は劣化ゼロを要求し、計算削減系(Class R、step蒸留等)は速度比と劣化量を併記してownerが既定採用 / profile採用 / 不採用を判断する。turbo LoRAはClass Rの採用であり、生成profileを3段階へ整理する。
 
-劣化がtemporalに集中しているため、`sigma_points`を増やした構成での再判定により既定切り替えを検討する余地がある。未測定であり[Issue #51](https://github.com/nishide-dev/h3fast/issues/51)で追跡する。評価の詳細と限界は[`docs/experiments/0012-turbo-lora-tier2-evaluation.md`](experiments/0012-turbo-lora-tier2-evaluation.md)に記録する。
+2026-08-20に`sigma_points: 12`(11実効step)を追加測定し、blind pairwiseがtie(6勝6敗8tie、score 0.00)となった。9 points(8実効step)の−0.25から改善し、劣化が検出されない水準でSage比3.86×(FA比6.28×)である。この構成を**既定**とする([experiment 0013](experiments/0013-turbo-lora-step-sweep.md))。
+
+| profile | protocol | vs FA | pairwise |
+|---|---|---|---|
+| `quality` | `protocol-sage.yaml` | 1.63× | +0.20(劣化なし) |
+| `balanced`(既定) | `protocol-turbo12.yaml` | 6.28× | 0.00(tie) |
+| `speed` | `protocol-turbo.yaml` | 8.04× | −0.25(劣化あり) |
+
+profileは`h3fast.benchmarks.profiles`へ登録し、`h3fast benchmark profiles`で速度比・pairwise結果・evidenceを機械可読に出力する。選択は明示指定でのみ行い、暗黙に切り替えない。Tier 1のexact artifact gateは`protocol.yaml`(FlashAttention、50 step)に紐づくため、placement-only最適化の比較基準として維持する。
+
+この測定でpairwiseとtemporal metricが一致しなかった(pairwiseは−0.25→0.00へ改善、temporal deltaは+0.0078→+0.0096で実質不変)。temporal metricは蒸留由来の差異を検出できても知覚的劣化を判定できないため、**Tier 2のbudget根拠には使わない**。metricは異常検知の証跡として記録し、合否はblind pairwiseで判定する現行方針を維持する。
+
+11実効stepより多いpointsは未測定であり、最適点は探索していない。fl2va / ref2vaへのprofile適用も各familyでの生成と判定を要する。評価の詳細と限界は[`docs/experiments/0012-turbo-lora-tier2-evaluation.md`](experiments/0012-turbo-lora-tier2-evaluation.md)に記録する。
 
 2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
 
