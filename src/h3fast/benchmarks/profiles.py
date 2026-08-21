@@ -43,6 +43,7 @@ class GenerationProfile:
 _SAGE_EXPERIMENT = "docs/experiments/0011-sage-attention-tier2-adoption.md"
 _TURBO_EXPERIMENT = "docs/experiments/0012-turbo-lora-tier2-evaluation.md"
 _TURBO12_EXPERIMENT = "docs/experiments/0013-turbo-lora-step-sweep.md"
+_FP8_EXPERIMENT = "docs/experiments/0015-fp8-default-adoption.md"
 
 GENERATION_PROFILES: dict[str, GenerationProfile] = {
     "quality": GenerationProfile(
@@ -59,15 +60,29 @@ GENERATION_PROFILES: dict[str, GenerationProfile] = {
     ),
     "balanced": GenerationProfile(
         name="balanced",
+        protocol_id="h3fast-phase1b-turbo12-fp8-v1",
+        protocol_path=Path("benchmarks/protocol-turbo12-fp8.yaml"),
+        speedup_versus_quality=4.22,
+        pairwise_score=0.20,
+        evidence=_FP8_EXPERIMENT,
+        summary=(
+            "Turbo LoRA at 12 sigma points with online FP8 weights, applied "
+            "via dynamic LoRA. Blind pairwise favoured it 7/3/10 over the "
+            "BF16 configuration at 4.22x the quality profile and 22% less "
+            "peak VRAM."
+        ),
+    ),
+    "bf16-balanced": GenerationProfile(
+        name="bf16-balanced",
         protocol_id="h3fast-phase1b-turbo-lora-12-v1",
         protocol_path=Path("benchmarks/protocol-turbo12.yaml"),
         speedup_versus_quality=3.86,
         pairwise_score=0.0,
         evidence=_TURBO12_EXPERIMENT,
         summary=(
-            "Turbo LoRA at 12 sigma points (11 effective steps). Blind "
-            "pairwise against quality tied at 6/6/8, so no degradation was "
-            "detected at 3.86x the throughput."
+            "Turbo LoRA at 12 sigma points without quantization. Blind "
+            "pairwise against quality tied at 6/6/8. Use when BF16 weights "
+            "are required; online FP8 is explicitly an approximation."
         ),
     ),
     "speed": GenerationProfile(

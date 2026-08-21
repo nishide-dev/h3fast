@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.41（online FP8 + dynamic LoRAの実行可能性を確認、品質評価は未実施）
+- **状態:** Draft v0.42（online FP8を既定へ、quality profile比4.22×・VRAM −22%）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1609,6 +1609,21 @@ sm89でのonline FP8対応はソースと実機で確認した(`fp8`の最小cap
 **FP8とLoRAの併用は`lora.merge_mode: dynamic`を要する。** `auto`はquantized runtime weightを考慮せずstatic mergeを選び、CUTLASS向けに転置されたFP8 storage(logical `[10752, 5376]`に対しruntime `[5376, 10752]`)へlogical orientationのdeltaを加算しようとしてshape mismatchで起動に失敗する。shapeを合わせるだけでは不十分で、`weight_scale`を更新しない加算は数値的に壊れたweightを作る。dynamicは`y = dequant(Q(W))x + scale·B(Ax)`として出力側で加算するため、base weightと`weight_scale`を変更せずBF16 adapterのまま適用できる。量子化対応LoRAは不要である。
 
 2026-08-20の実測(smoke-001、12 sigma points、同一seed)でFP8は速度1.17×、peak VRAM −28.0%(36,412 → 26,204 MiB)であった。dynamic LoRAのoverheadは+7.0秒(約5%)・+3,674 MiBで、net VRAM benefitは10,208 MiBである。LoRA on/offのartifactが相違することを確認し、forwardでの適用を裏づけた。**品質は未評価である**: `FP8 Q(W) + BF16 delta`は`BF16 W + BF16 delta`と同一出力ではなく、Tier 2のblind pairwiseを要する。詳細と限界は[`docs/experiments/0014-fp8-dynamic-lora-smoke.md`](experiments/0014-fp8-dynamic-lora-smoke.md)、調査経緯は[Issue #55](https://github.com/nishide-dev/h3fast/issues/55)に記録する。
+
+2026-08-21にt2va formal 20 caseで評価し、**FP8構成を既定とした**。BF16 balancedに対し総時間1.09×(per-case p50 1.12×、全caseで改善)、peak VRAM −8,932 MiB(−22.0%)、quality profile比4.22×である。blind human-pairwiseはcandidate 7勝 / baseline 3勝 / tie 10(score +0.20)で劣化は検出されなかった。7対3は二項検定でp≈0.34であり有意ではないため、結論は「FP8が優れる」ではなく「劣化が検出されなかった」である。
+
+profile階梯は4段階となる。
+
+| profile | protocol | vs quality | pairwise |
+|---|---|---|---|
+| `quality` | `protocol-sage.yaml` | 1.00× | +0.20(FA比較、劣化なし) |
+| `bf16-balanced` | `protocol-turbo12.yaml` | 3.86× | 0.00(tie) |
+| `balanced`(既定) | `protocol-turbo12-fp8.yaml` | 4.22× | +0.20 |
+| `speed` | `protocol-turbo.yaml` | 4.94× | −0.25(劣化あり) |
+
+online FP8は近似であるため、BF16 weightや数値再現性を要する用途のために`bf16-balanced`を保持する。`quantization`を設定したprofileは`lora.merge_mode: dynamic`を必須とし、この制約はprotocolのpinned identityとregression testで固定する。
+
+この評価でもpairwiseとtemporal metricが逆方向を示した(pairwise +0.20に対しtemporal delta p50 +0.0303、20件中17件で悪化)。experiment 0013と同じ不一致であり、temporal metricは構成間の差異を検出できても知覚的劣化を判定できないという観測が量子化でも再現した。合否はblind pairwiseで判定し、metricは異常検知の証跡として記録する方針を維持する。評価の詳細と限界は[`docs/experiments/0015-fp8-default-adoption.md`](experiments/0015-fp8-default-adoption.md)に記録する。
 
 2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
 
