@@ -367,6 +367,7 @@ def _benchmark_profiles(_args: argparse.Namespace) -> int:
                 profile.to_dict()
                 for profile in (
                     GENERATION_PROFILES["quality"],
+                    GENERATION_PROFILES["bf16-balanced"],
                     GENERATION_PROFILES["balanced"],
                     GENERATION_PROFILES["speed"],
                 )
