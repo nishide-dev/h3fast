@@ -28,6 +28,7 @@ def _lifecycle(path: Path) -> None:
                     "model_variant": "fl2va",
                     "lora": None,
                     "quantization": None,
+                    "synchronized_stage_profiling": False,
                 },
             }
         ),
@@ -135,6 +136,7 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
         "model_variant": "fl2va",
         "lora": None,
         "quantization": None,
+        "synchronized_stage_profiling": False,
     }
 
 

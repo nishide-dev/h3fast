@@ -163,6 +163,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         model_variant=runtime_settings.model_variant,
         lora=runtime_settings.lora,
         quantization=runtime_settings.quantization,
+        synchronized_stage_profiling=args.sync_stage_profiling,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -214,6 +215,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         model_variant=runtime_settings.model_variant,
         lora=runtime_settings.lora,
         quantization=runtime_settings.quantization,
+        synchronized_stage_profiling=args.sync_stage_profiling,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -618,6 +620,11 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--sage-attention-path", default=None)
     launch.add_argument("--lora-path", default=None)
     launch.add_argument(
+        "--sync-stage-profiling",
+        action="store_true",
+        help="Enable synchronized stage profiling (required for stage attribution)",
+    )
+    launch.add_argument(
         "--reference-assets-path",
         default=None,
         help="Directory of reference assets to mount for fl2va/ref2va",
@@ -646,6 +653,11 @@ def build_parser() -> argparse.ArgumentParser:
     guarded.add_argument("--master-port", type=int, default=None)
     guarded.add_argument("--sage-attention-path", default=None)
     guarded.add_argument("--lora-path", default=None)
+    guarded.add_argument(
+        "--sync-stage-profiling",
+        action="store_true",
+        help="Enable synchronized stage profiling (required for stage attribution)",
+    )
     guarded.add_argument(
         "--reference-assets-path",
         default=None,
