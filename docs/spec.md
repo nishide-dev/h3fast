@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.42（online FP8を既定へ、quality profile比4.22×・VRAM −22%）
+- **状態:** Draft v0.43（balanced profileをfl2vaへ適用、ref2vaはI/O律速で未検証）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1624,6 +1624,10 @@ profile階梯は4段階となる。
 online FP8は近似であるため、BF16 weightや数値再現性を要する用途のために`bf16-balanced`を保持する。`quantization`を設定したprofileは`lora.merge_mode: dynamic`を必須とし、この制約はprotocolのpinned identityとregression testで固定する。
 
 この評価でもpairwiseとtemporal metricが逆方向を示した(pairwise +0.20に対しtemporal delta p50 +0.0303、20件中17件で悪化)。experiment 0013と同じ不一致であり、temporal metricは構成間の差異を検出できても知覚的劣化を判定できないという観測が量子化でも再現した。合否はblind pairwiseで判定し、metricは異常検知の証跡として記録する方針を維持する。評価の詳細と限界は[`docs/experiments/0015-fp8-default-adoption.md`](experiments/0015-fp8-default-adoption.md)に記録する。
+
+2026-08-21にbalanced profileをreference条件付きfamilyへ適用した。fl2vaはformal 20 caseを生成し、全caseで`task: fl2va`と`conditions` 2件(`role: keyframe`、`frame_index` 0 / -1)が保たれ、LoRAは259層へdynamic適用された(t2va構成と同一層数)。総時間1.15h、per-case p50 173秒、peak VRAM p50 27,310 MiBである。同一case(smoke-002)は[experiment 0010](experiments/0010-reference-conditioned-families.md)のSage 50 stepで470.95秒(server inference時間)であったのに対し97.9秒(client elapsed)であり約4.8×だが、指標が異なるため厳密な比較には同一指標での再測定を要する。**fl2vaの品質は評価していない。** 最適化の中身はt2vaで品質評価済みであり、本適用で変えた次元はtask familyのみである。
+
+ref2vaは**未検証**である。Ref2VA variantのserver起動が3600秒のtimeoutで失敗した。原因はstorage I/O(実測84.9 MB/s、共有filesystem使用率99%)であり、135GBの読み込みに要する時間がtimeoutを超えた。CUDA error、OOM、partition拒否のいずれも記録されておらず、重みは健全でprotocolはvalidatorを通過している。最適化・実装とは無関係な環境要因である。`protocol-balanced-ref2va.yaml`はrepositoryへ残すが未検証として扱い、profile registryへは登録しない。turbo LoRAがRef2VA DiT(`transformer_ref`)へ適用されるかもREADMEに記載がなく不明である。詳細は[`docs/experiments/0016-balanced-profile-fl2va.md`](experiments/0016-balanced-profile-fl2va.md)に記録する。
 
 2026-08-18の測定で、component-scopedなbackend指定がMiniMax H3へ届かないことを確認した。SGLangのcomponent overrideはtransformerロード中だけ有効なContextVarだが、H3はattention backendの解決を最初のforwardまで遅延するため、解決時点でcontextが終了しており指定が失われる。この構成では生成物がFA baselineとbit単位で一致し、比較が成立しない。global指定（`--attention-backend sage_attn`と`--component-attention-backends text_encoder=torch_sdpa`の併用、ring-degree 1）では遅延解決後もSageが選ばれ、出力がFAと異なる（[experiment 0009](experiments/0009-sage-attention-noop.md)）。launchはこのglobal構成を出す。
 
