@@ -81,6 +81,7 @@ def build_singularity_launch(
     lora: dict[str, object] | None = None,
     lora_path: Path | None = None,
     quantization: str | None = None,
+    synchronized_stage_profiling: bool = False,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -189,6 +190,14 @@ def build_singularity_launch(
         f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}",
         "--env",
         "SGLANG_USE_RUNAI_MODEL_STREAMER=false",
+        # Without this, queued denoise work leaks into the next blocking
+        # stage and inflates the decoding stage by 2-3x, so stage times
+        # cannot be used to choose an optimization target.
+        *(
+            ()
+            if not synchronized_stage_profiling
+            else ("--env", "SGLANG_DIFFUSION_SYNC_STAGE_PROFILING=1")
+        ),
         "--bind",
         f"{snapshot}:/models/MiniMax-H3:ro",
         "--bind",
@@ -298,5 +307,6 @@ def build_singularity_launch(
             "model_variant": model_variant,
             "lora": dict(lora) if lora is not None else None,
             "quantization": quantization,
+            "synchronized_stage_profiling": synchronized_stage_profiling,
         },
     )

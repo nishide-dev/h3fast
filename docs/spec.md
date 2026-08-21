@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.43（balanced profileをfl2vaへ適用、ref2vaはI/O律速で未検証）
+- **状態:** Draft v0.45（既定profileのstage内訳を実測、denoise 77% / decode 22%）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1464,7 +1464,36 @@ H3 LicenseのAUPは、Outputをpublic environmentへ配布する場合にmachine
 - GPU、driver、CUDA/ROCm、PyTorch、Triton、runtime、model revisionを記録する。
 - prompt/seed/input条件を固定し、再現可能にする。
 
-### 14.2 必須比較
+### 14.2 stage profilingの前提
+
+最適化候補をstage時間から選定する場合、次を満たさない測定を根拠にしてはならない。上流のprofiling手順([`sglang-diffusion-benchmark-profile`](https://github.com/sgl-project/sglang/tree/main/python/sglang/multimodal_gen/.claude/skills/sglang-diffusion-benchmark-profile))が明示する制約である。
+
+- **`SGLANG_DIFFUSION_SYNC_STAGE_PROFILING=1`を設定する。** stage durationはasynchronous GPU launchを囲むhost wall timeであり、同期がない場合はqueuedなdenoise処理が次のblocking stageへ漏れて`DecodingStage`を2〜3倍に膨張させる。before/afterの対で設定を一致させる。
+- **`MiniMaxH3DecodingStage`の集計値を単一のVAEへ帰属させない。** このstageはvideo decodeとrank-0 audio decodeの両方を含む。内訳が必要な場合は`video_vae.decode_base`と`_decode_audio`のinner scopeを設定して再測定する。
+- **diffusers backendへfallbackした後のperf dumpを使用しない。**
+- denoise内部のkernel単位の分布はstage時間から導出できない。kernel最適化の対象選定には`--profile-all-stages`またはtorch.profilerによる内訳測定を要する。
+
+同期なしのstage時間は、最適化前後の比較には使えるが(設定が一致していれば)、**どのstageを最適化すべきかの判断には使えない**。H3Fastの過去記録のうち、この設定を伴わないstage比率は候補選定の根拠として扱わない。
+
+launchは`--sync-stage-profiling`でこの環境変数を設定する。既定OFFでpinned argvは不変である。timing帰属のみを変えcompute graphを変えないため`runtime_settings`へ記録するが、protocolの一致検査からは除外する。
+
+2026-08-22に既定profileのstage内訳を実測した(smoke-001、measured 3 runのp50)。
+
+| stage | 時間 | 比率 |
+|---|---|---|
+| `MiniMaxH3DenoisingStage` | 133.3秒 | 77.3% |
+| `MiniMaxH3DecodingStage` | 38.1秒 | 22.1% |
+| その他 | 1.0秒 | 0.6% |
+
+denoiseは11 step、per-step p50 11.51秒である。decodeを一切改善しない場合の上限は4.52×、denoiseを一切改善しない場合は1.29×である。
+
+**本構成では同期の有無によるdecodeの差は0.1秒(0.3%)であり、上流が警告する2〜3倍の膨張は起きていなかった。** 11実効stepまで蒸留されてdenoiseのqueueが浅いためと推定される(同期のオーバーヘッドはdenoise側に+6.3秒として現れた)。上流文書の警告を根拠にdecode比率を無効と判断していれば実在するボトルネックを見落としていたため、この確認は実測の価値があった。ただしstep数が多い構成では膨張が起きる可能性があり、stage帰属を要する測定では設定を維持する。
+
+denoise内部の内訳(attention / MLP / AdaLN / norm)とdecodeの内訳(video VAE / audio decode)はいずれも未取得であり、kernel最適化の対象選定にはこれらの測定が前提となる。詳細と限界は[`docs/experiments/0017-default-profile-stage-breakdown.md`](experiments/0017-default-profile-stage-breakdown.md)に記録する。
+
+VAE decode modeについては、上流が`spatial`、`spatial_shard`、patch decodeをH3で出力不一致を理由に拒否しており、released overlapping tiled video-VAE decodeを維持する方針である。decode mode変更による高速化はこの制約下で検討する。
+
+### 14.3 必須比較
 
 ```text
 BF16 50-step reference
@@ -1479,7 +1508,7 @@ BF16 50-step reference
 
 上記は最適化が揃った段階の最終比較matrixであり、Phase 0/1Aで未実装の行を要求しない。各Pull Requestでは「固定BF16 reference」と「そのPull Requestが変更する最適化」のA/B比較をMUST実施し、複数最適化を同時に有効化した結果だけを提示してはならない。
 
-### 14.3 性能指標
+### 14.4 性能指標
 
 - E2E latency
 - Time to first accepted job / queue delay
@@ -1495,7 +1524,7 @@ BF16 50-step reference
 - jobs/hour
 - energy/job（取得可能なら）
 
-### 14.4 品質指標
+### 14.5 品質指標
 
 - Prompt adherence
 - VBench系の動画品質
@@ -1509,7 +1538,7 @@ BF16 50-step reference
 - stereo consistency
 - 人手pairwise評価
 
-### 14.5 テストセット
+### 14.6 テストセット
 
 正式な品質主張とPhase 2以降では最低200ケースを推奨し、次を含める。Phase 0では公開可能な10件以上のsmoke setと、代表条件を層化した50件以上のregression setから開始してよい。ただし件数、選定方法、除外、失敗例を結果と共に公開する。
 
@@ -1644,7 +1673,7 @@ component loaderのログやpipeline validationの成功は、実装が各attent
 - 会話、環境音、音楽、無音に近い場面
 - 画像、動画、音声、混合参照
 
-### 14.6 品質ゲート
+### 14.7 品質ゲート
 
 固定した単一閾値だけで「無損失」を宣言しない。次の方法を採用する。
 
@@ -1660,7 +1689,7 @@ component loaderのログやpipeline validationの成功は、実装が各attent
 
 formal set contractは[`docs/decisions/0005-formal-quality-set-contract.md`](decisions/0005-formal-quality-set-contract.md)に記録する。`h3fast benchmark check-quality-set --record benchmarks/quality/formal-quality-set.json`は、60件以上のmetadata、全coverage、per-case rights evidence、versioned metric/budget、rights/quality approvalが揃った場合だけ終了code 0を返す。recordの存在やschema validation成功だけを品質承認として扱わない。
 
-### 14.7 Phase 0 baseline protocol
+### 14.8 Phase 0 baseline protocol
 
 実装開始前にbenchmark protocolとschemaを作り、少なくとも次を固定する。
 

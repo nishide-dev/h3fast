@@ -241,7 +241,12 @@ def _load_lifecycle(
         message = "server lifecycle report does not match the ready endpoint"
         raise ValidationError(message)
     _required_number(value, "startup_seconds")
-    if value.get("runtime_settings") != expected_runtime_settings:
+    # Synchronized stage profiling is a launch-time diagnostic switch, not a
+    # protocol-owned setting: it changes timing attribution, not the compute
+    # graph, so it is recorded but excluded from the protocol match.
+    observed = dict(value.get("runtime_settings") or {})
+    observed.pop("synchronized_stage_profiling", None)
+    if observed != expected_runtime_settings:
         message = "server lifecycle runtime settings do not match the protocol"
         raise ValidationError(message)
     return value

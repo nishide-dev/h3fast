@@ -65,6 +65,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "model_variant": "fl2va",
         "lora": None,
         "quantization": None,
+        "synchronized_stage_profiling": False,
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -349,6 +350,43 @@ def test_launch_passes_a_supported_quantization(tmp_path: Path, monkeypatch) -> 
     for method in ("mxfp4", "mxfp8", "modelslim", "int4", ""):
         with pytest.raises(ValidationError, match="quantization"):
             build_singularity_launch(**arguments, quantization=method)
+
+
+def test_launch_can_enable_synchronized_stage_profiling(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Stage attribution needs the sync flag; without it decode inflates 2-3x."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, synchronized_stage_profiling=True)
+
+    assert "SGLANG_DIFFUSION_SYNC_STAGE_PROFILING=1" in plan.argv
+    assert plan.runtime_settings["synchronized_stage_profiling"] is True
+
+    # The pinned default must stay byte-identical.
+    default = build_singularity_launch(**arguments)
+    assert not any("SYNC_STAGE_PROFILING" in value for value in default.argv)
+    assert default.runtime_settings["synchronized_stage_profiling"] is False
 
 
 def test_build_singularity_launch_rejects_missing_runtime(
