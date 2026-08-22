@@ -64,13 +64,6 @@ AllReduce 24.5%は48 GB GPUでH3を動かすための構造的コストです。
 
 silentなfallbackを拒否する仕組みは実際に機能しました。Sage Attentionはログ上「有効」と表示されながら実行されておらず、生成物digestの照合で初めて判明しています（[experiment 0009](docs/experiments/0009-sage-attention-noop.md)）。
 
-## Upstream contribution
-
-調査中に見つけたSGLangのバグを報告しました。
-
-- [sgl-project/sglang#35970](https://github.com/sgl-project/sglang/issues/35970) — online FP8とLoRAの併用時、`--lora-merge-mode auto`がquantized weightへstatic mergeを試みてクラッシュする
-- [sgl-project/sglang#35975](https://github.com/sgl-project/sglang/pull/35975) — 上記のfix
-
 ## Setup
 
 Python 3.12とuvを使用します。
