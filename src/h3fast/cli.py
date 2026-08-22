@@ -168,6 +168,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
         text_encoder_path=(
             Path(args.text_encoder_path) if args.text_encoder_path is not None else None
         ),
+        layerwise_offload_components=tuple(args.offload_components.split(",")),
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -224,6 +225,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         text_encoder_path=(
             Path(args.text_encoder_path) if args.text_encoder_path is not None else None
         ),
+        layerwise_offload_components=tuple(args.offload_components.split(",")),
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -630,6 +632,11 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--ulysses-degree", type=int, default=1)
     launch.add_argument("--text-encoder-path", default=None)
     launch.add_argument(
+        "--offload-components",
+        default="dit,text_encoder",
+        help="Comma-separated layerwise offload components (must include dit)",
+    )
+    launch.add_argument(
         "--sync-stage-profiling",
         action="store_true",
         help="Enable synchronized stage profiling (required for stage attribution)",
@@ -665,6 +672,11 @@ def build_parser() -> argparse.ArgumentParser:
     guarded.add_argument("--lora-path", default=None)
     guarded.add_argument("--ulysses-degree", type=int, default=1)
     guarded.add_argument("--text-encoder-path", default=None)
+    guarded.add_argument(
+        "--offload-components",
+        default="dit,text_encoder",
+        help="Comma-separated layerwise offload components (must include dit)",
+    )
     guarded.add_argument(
         "--sync-stage-profiling",
         action="store_true",

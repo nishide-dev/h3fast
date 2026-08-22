@@ -32,6 +32,7 @@ def _lifecycle(path: Path) -> None:
                     "tensor_parallel_size": 2,
                     "ulysses_degree": 1,
                     "text_encoder_override": False,
+                    "layerwise_offload_components": ["dit", "text_encoder"],
                 },
             }
         ),
@@ -143,6 +144,7 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
         "tensor_parallel_size": 2,
         "ulysses_degree": 1,
         "text_encoder_override": False,
+        "layerwise_offload_components": ["dit", "text_encoder"],
     }
 
 
