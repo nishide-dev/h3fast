@@ -1,0 +1,4 @@
+# Working copies of upstream submissions (issue/PR bodies, check_env dumps).
+# The submitted content lives in the upstream repository; these are local drafts.
+*
+!.gitignore
