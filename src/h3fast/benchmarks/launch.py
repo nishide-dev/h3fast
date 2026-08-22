@@ -98,6 +98,7 @@ def build_singularity_launch(
     ulysses_degree: int = 1,
     text_encoder_path: Path | None = None,
     layerwise_offload_components: tuple[str, ...] = DEFAULT_OFFLOAD_COMPONENTS,
+    sglang_revision: str = REFERENCE_SGLANG_COMMIT,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -247,7 +248,7 @@ def build_singularity_launch(
             else "PYTHONPATH=/opt/h3fast/sage:/opt/h3fast/sglang/python"
         ),
         "--env",
-        f"SGLANG_GIT_COMMIT={REFERENCE_SGLANG_COMMIT}",
+        f"SGLANG_GIT_COMMIT={sglang_revision}",
         "--env",
         "SGLANG_USE_RUNAI_MODEL_STREAMER=false",
         # Without this, queued denoise work leaks into the next blocking
@@ -371,7 +372,7 @@ def build_singularity_launch(
     return LaunchPlan(
         argv=argv,
         selected_gpus=selected_gpus,
-        sglang_revision=REFERENCE_SGLANG_COMMIT,
+        sglang_revision=sglang_revision,
         base_image=REFERENCE_RUNTIME_IMAGE,
         ffprobe_adapter_sha256=sha256_file(media_probe),
         runtime_settings={

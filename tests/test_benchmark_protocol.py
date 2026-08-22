@@ -6,7 +6,19 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from h3fast.benchmarks.protocol import load_runtime_settings, validate_protocol
+from h3fast.backends.sglang import (
+    PREVIOUS_SGLANG_COMMIT,
+    REFERENCE_SGLANG_COMMIT,
+)
+from h3fast.benchmarks.profiles import (
+    DEFAULT_GENERATION_PROFILE,
+    GENERATION_PROFILES,
+)
+from h3fast.benchmarks.protocol import (
+    load_runtime_settings,
+    load_sglang_revision,
+    validate_protocol,
+)
 from h3fast.exceptions import ValidationError
 
 
@@ -399,3 +411,51 @@ def test_protocol_rejects_missing_and_malformed_files(tmp_path: Path) -> None:
 
     with pytest.raises(ValidationError, match="root must be an object"):
         validate_protocol(_write_protocol(tmp_path, []))
+
+
+def test_protocol_pins_its_own_sglang_revision(tmp_path: Path) -> None:
+    """A candidate revision is fixed per protocol, not by editing a constant."""
+    protocol = _ready_protocol()
+    candidate = "b" * 40
+    protocol["environment"] = {
+        "accelerator": {"model": "H100"},
+        "software": {"sglang": f"git:{candidate}"},
+    }
+
+    assert load_sglang_revision(_write_protocol(tmp_path, protocol)) == candidate
+
+
+def test_protocol_without_a_git_revision_falls_back_to_the_reference(
+    tmp_path: Path,
+) -> None:
+    """A released version string is not a commit, so the reference still applies."""
+    protocol = _ready_protocol()
+    environment = protocol["environment"]
+    assert isinstance(environment, dict)
+    software = environment["software"]
+    assert isinstance(software, dict)
+
+    assert software["sglang"] == "0.5.15.post1", "fixture must not pin a commit"
+    assert (
+        load_sglang_revision(_write_protocol(tmp_path, protocol))
+        == REFERENCE_SGLANG_COMMIT
+    )
+
+
+def test_every_protocol_pins_an_adopted_or_superseded_revision() -> None:
+    """A protocol names either the adopted revision or the one it was measured on.
+
+    Phase 1 protocols keep ``PREVIOUS_SGLANG_COMMIT`` because rewriting them to
+    the adopted commit would claim their recorded numbers came from a revision
+    that did not produce them. Any third revision is an unpinned candidate.
+    """
+    known = {REFERENCE_SGLANG_COMMIT, PREVIOUS_SGLANG_COMMIT}
+    for path in sorted(Path("benchmarks").glob("protocol*.yaml")):
+        assert load_sglang_revision(path) in known, path
+
+
+def test_the_default_profile_protocol_pins_the_adopted_revision() -> None:
+    """The profile that is actually served must not run on a superseded pin."""
+    default = GENERATION_PROFILES[DEFAULT_GENERATION_PROFILE]
+
+    assert load_sglang_revision(default.protocol_path) == REFERENCE_SGLANG_COMMIT

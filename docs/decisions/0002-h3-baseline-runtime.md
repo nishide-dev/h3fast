@@ -13,7 +13,7 @@ hostには4基のRTX 6000 Ada Generation 48GBがありますが、GPU 0は別pro
 ## Decision
 
 - MiniMax H3をHugging Face commit `42ed227ee7df40d41602854ae760620d6eb651fe`へ固定する。
-- 参照backend sourceをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定する。
+- 参照backend sourceをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定する。**2026-08-23に`7d22b7a8750f53a04e41a5a5671f9a56ab6cd001`へ更新した**（[experiment 0021](../experiments/0021-sglang-revision-candidate.md)）。artifactはbit単位で一致し、peak VRAMは7.99%減少した。既測定protocolは測定時のrevisionを保持する。
 - CUDA user-spaceは公式amd64 image `lmsysorg/sglang@sha256:29f0f645122be1799a594c15907d81da326dbbe6ccd6395710a07a4292125a5f`をSingularity SIFへ変換して使用する。
 - image内のrelease sourceは使用せず、固定SGLang checkoutの`python/`をread-only bindし、`PYTHONPATH`で優先する。
 - RunAI model streamerは固定hostで長時間進捗が止まる試行が再現したため、`SGLANG_USE_RUNAI_MODEL_STREAMER=false`を明示し、通常safetensors loaderへ固定する。

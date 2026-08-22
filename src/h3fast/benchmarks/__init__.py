@@ -39,6 +39,7 @@ from h3fast.benchmarks.protocol import (
     ProtocolReport,
     RuntimeSettings,
     load_runtime_settings,
+    load_sglang_revision,
     validate_protocol,
 )
 from h3fast.benchmarks.quality import build_quality_reference, check_quality
@@ -96,6 +97,7 @@ __all__ = [
     "check_quality_metric_plan",
     "compile_quality_registry",
     "load_runtime_settings",
+    "load_sglang_revision",
     "prepare_human_pairwise_ballot",
     "prepare_quality_registry_review",
     "record_human_pairwise_selection",

@@ -22,6 +22,7 @@ from h3fast.benchmarks import (
     check_quality_metric_plan,
     compile_quality_registry,
     load_runtime_settings,
+    load_sglang_revision,
     prepare_human_pairwise_ballot,
     prepare_quality_registry_review,
     record_human_pairwise_selection,
@@ -149,6 +150,7 @@ def _benchmark_preflight(args: argparse.Namespace) -> int:
 
 def _benchmark_plan_launch(args: argparse.Namespace) -> int:
     runtime_settings = load_runtime_settings(Path(args.protocol))
+    sglang_revision = load_sglang_revision(Path(args.protocol))
     plan = build_singularity_launch(
         snapshot_path=Path(args.snapshot),
         runtime_image=Path(args.runtime_image),
@@ -169,6 +171,7 @@ def _benchmark_plan_launch(args: argparse.Namespace) -> int:
             Path(args.text_encoder_path) if args.text_encoder_path is not None else None
         ),
         layerwise_offload_components=tuple(args.offload_components.split(",")),
+        sglang_revision=sglang_revision,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
@@ -206,6 +209,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
         return 1
 
     runtime_settings = load_runtime_settings(Path(args.protocol))
+    sglang_revision = load_sglang_revision(Path(args.protocol))
     plan = build_singularity_launch(
         snapshot_path=Path(args.snapshot),
         runtime_image=Path(args.runtime_image),
@@ -226,6 +230,7 @@ def _benchmark_serve_guarded(args: argparse.Namespace) -> int:
             Path(args.text_encoder_path) if args.text_encoder_path is not None else None
         ),
         layerwise_offload_components=tuple(args.offload_components.split(",")),
+        sglang_revision=sglang_revision,
         lora_path=(Path(args.lora_path) if args.lora_path is not None else None),
         sage_attention_path=(
             Path(args.sage_attention_path)
