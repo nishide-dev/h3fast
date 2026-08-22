@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.45（既定profileのstage内訳を実測、denoise 77% / decode 22%）
+- **状態:** Draft v0.46（48 GB GPUでTP2が必須と確定、text encoder量子化が未対応）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1490,6 +1490,25 @@ denoiseは11 step、per-step p50 11.51秒である。decodeを一切改善しな
 **本構成では同期の有無によるdecodeの差は0.1秒(0.3%)であり、上流が警告する2〜3倍の膨張は起きていなかった。** 11実効stepまで蒸留されてdenoiseのqueueが浅いためと推定される(同期のオーバーヘッドはdenoise側に+6.3秒として現れた)。上流文書の警告を根拠にdecode比率を無効と判断していれば実在するボトルネックを見落としていたため、この確認は実測の価値があった。ただしstep数が多い構成では膨張が起きる可能性があり、stage帰属を要する測定では設定を維持する。
 
 denoise内部の内訳(attention / MLP / AdaLN / norm)とdecodeの内訳(video VAE / audio decode)はいずれも未取得であり、kernel最適化の対象選定にはこれらの測定が前提となる。詳細と限界は[`docs/experiments/0017-default-profile-stage-breakdown.md`](experiments/0017-default-profile-stage-breakdown.md)に記録する。
+
+2026-08-22にdenoise内部のkernel分布を測定した(3 step、GPU時間41.3秒)。**最大の単一要因はkernelではなく通信である。**
+
+| 分類 | 時間 | 比率 |
+|---|---|---|
+| NCCL AllReduce(TP2通信) | 10.12秒 | 24.5% |
+| CUTLASS GEMM(FP8 linear) | 13.13秒 | 31.8% |
+| Sage INT8 attention | 9.06秒 | 21.9% |
+| elementwise(vectorized済み) | 3.14秒 | 7.6% |
+
+上流手順§4の分類表に照らした結果、既存のfast pathはすべて機能していた(`fused_qknorm_rope_warp`が216回動作、`_indexed_scale_shift_bf16_kernel`と`_indexed_gate_bf16_kernel`が融合済み、packed-QKV missなし)。計算側はFP8とINT8で量子化済みであり、**新規融合を提案する根拠はない**。詳細は[`docs/experiments/0018-denoise-kernel-profile.md`](experiments/0018-denoise-kernel-profile.md)に記録する。
+
+通信を削減する並列構成を探索したが、**48 GB GPUではTP2が必須である**。TP1(1 GPU、resident 40および20)とTP1 × Ulysses2(2 GPU)のいずれもCUDA OOMで起動しない。`tp_size`と`ulysses_degree`は独立した並列軸(World size = TP × Ulysses × Ring)であり、上流はB200 8 GPUで`TP=1, Ulysses=8`を推奨するが、TP=1ではweightが分割されないため48 GBに収まらない。H3の56 headsはUlysses degree 2で割り切れ、Sageとの併用も可能である(`supports_ring_rotation`はring専用のチェックであり、Ulyssesには適用されない)が、VRAM制約が先に効く。
+
+主因は**text encoderが量子化対象外**であることである。`--quantization`はtransformerにのみ適用され、text encoder(Qwen3-VL 32B)はBF16のまま63 GBである(transformerは62 GB)。resident層数を40から20へ半減しても空きが増えなかったのはこのためである。同じ`Qwen3VLTextModel`を使う`encoders/ideogram.py`は`quant_config`を渡す経路を持つが、`encoders/minimax_h3_qwen3vl.py`は持たない。実装の非対称性であり、[Issue #62](https://github.com/nishide-dev/h3fast/issues/62)で追跡する。pinned SGLangへのpatchは再現性を壊すため行わない。
+
+より小さい量子化形式(NVFP4、GGUF、pre-quantized `.pt`、INT8 ConvRot)はいずれも本runtimeで使用できない。NVFP4は`get_min_capability() == 100`でBlackwell専用、GGUFはComfyUI/llama.cpp前提、`.pt`はH3 DiTが`safetensors.torch.safe_open`のみを使用するため読めない。ComfyUI形式の変換には上流discussion #34079が5件の非公式patchを要すると報告しており、同discussionはコミュニティのpruned FP8 checkpointが数学的に壊れている(time-embeddingの次元置換により出力がグレースケールへ崩壊)ことも報告している。
+
+したがって**NCCL AllReduceの24.5%は48 GB GPUでH3を動かすための構造的コスト**であり、現時点で削減できない。既定profileは現行構成を維持する。`--ulysses-degree`のlaunch対応(topology検証とhead divisibility検証を含む)はrepositoryへ残し、大容量GPU環境またはtext encoder量子化が可能になった時点で使用する。詳細と限界は[`docs/experiments/0019-parallelism-and-quantization-limits.md`](experiments/0019-parallelism-and-quantization-limits.md)に記録する。
 
 VAE decode modeについては、上流が`spatial`、`spatial_shard`、patch decodeをH3で出力不一致を理由に拒否しており、released overlapping tiled video-VAE decodeを維持する方針である。decode mode変更による高速化はこの制約下で検討する。
 

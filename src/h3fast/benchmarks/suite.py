@@ -246,6 +246,10 @@ def _load_lifecycle(
     # graph, so it is recorded but excluded from the protocol match.
     observed = dict(value.get("runtime_settings") or {})
     observed.pop("synchronized_stage_profiling", None)
+    # The GPU topology is a launch-time fact recorded for reproducibility, not
+    # a protocol-owned setting; the protocol pins compute, not placement.
+    observed.pop("tensor_parallel_size", None)
+    observed.pop("ulysses_degree", None)
     if observed != expected_runtime_settings:
         message = "server lifecycle runtime settings do not match the protocol"
         raise ValidationError(message)

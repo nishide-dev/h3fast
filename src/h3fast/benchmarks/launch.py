@@ -52,6 +52,10 @@ LORA_MOUNT = "/opt/h3fast/lora"
 # another vendor (ROCm MI350+, Ascend NPU), so they fail closed here.
 SUPPORTED_QUANTIZATION = ("fp8",)
 
+# MiniMax H3 DiT attention head count; the sequence-parallel degree must
+# divide it evenly.
+H3_ATTENTION_HEADS = 56
+
 # A served partition only answers its own task families. Requesting a family
 # outside the loaded variant fails in the scheduler after the model is
 # resident, so the variant is selected up front and checked against the
@@ -82,6 +86,7 @@ def build_singularity_launch(
     lora_path: Path | None = None,
     quantization: str | None = None,
     synchronized_stage_profiling: bool = False,
+    ulysses_degree: int = 1,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -101,8 +106,13 @@ def build_singularity_launch(
     if not ffprobe_adapter.stat().st_mode & 0o111:
         message = f"ffprobe adapter is not executable: {ffprobe_adapter}"
         raise ValidationError(message)
-    if len(selected_gpus) != 2 or len(set(selected_gpus)) != 2:
-        message = "the pinned launch profile requires two distinct GPUs"
+    # TP2 is the pinned profile; TP1 is supported upstream (the H3 DiT has a
+    # tp_size == 1 path) and removes the AllReduce that dominates the TP2
+    # denoise profile. No other topology has been validated here.
+    if len(selected_gpus) not in (1, 2) or len(set(selected_gpus)) != len(
+        selected_gpus
+    ):
+        message = "the launch profile requires one or two distinct GPUs"
         raise ValidationError(message)
     if not (1 <= port <= 65535):
         message = "port must be between 1 and 65535"
@@ -124,6 +134,21 @@ def build_singularity_launch(
         message = (
             f"model variant {model_variant!r} requires {variant_dir} weights in the "
             f"snapshot: {snapshot_path / variant_dir}"
+        )
+        raise ValidationError(message)
+    # World size = TP x Ulysses x Ring, and H3's 56 attention heads must
+    # divide evenly across the sequence-parallel degree.
+    world_size = len(selected_gpus)
+    if (
+        not isinstance(ulysses_degree, int)
+        or isinstance(ulysses_degree, bool)
+        or ulysses_degree < 1
+        or world_size % ulysses_degree != 0
+        or H3_ATTENTION_HEADS % ulysses_degree != 0
+    ):
+        message = (
+            f"ulysses degree {ulysses_degree!r} must divide the world size "
+            f"({world_size}) and H3's {H3_ATTENTION_HEADS} attention heads"
         )
         raise ValidationError(message)
     if quantization is not None and quantization not in SUPPORTED_QUANTIZATION:
@@ -237,11 +262,11 @@ def build_singularity_launch(
         "--model-variant",
         model_variant,
         "--num-gpus",
-        "2",
+        str(world_size),
         "--tp-size",
-        "2",
+        str(world_size // ulysses_degree),
         "--ulysses-degree",
-        "1",
+        str(ulysses_degree),
         "--performance-mode",
         "memory",
         "--layerwise-offload-components",
@@ -308,5 +333,7 @@ def build_singularity_launch(
             "lora": dict(lora) if lora is not None else None,
             "quantization": quantization,
             "synchronized_stage_profiling": synchronized_stage_profiling,
+            "tensor_parallel_size": world_size // ulysses_degree,
+            "ulysses_degree": ulysses_degree,
         },
     )

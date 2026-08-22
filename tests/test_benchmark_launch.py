@@ -66,6 +66,8 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "lora": None,
         "quantization": None,
         "synchronized_stage_profiling": False,
+        "tensor_parallel_size": 2,
+        "ulysses_degree": 1,
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -389,6 +391,96 @@ def test_launch_can_enable_synchronized_stage_profiling(
     assert default.runtime_settings["synchronized_stage_profiling"] is False
 
 
+def test_launch_supports_a_single_gpu_topology(tmp_path: Path, monkeypatch) -> None:
+    """TP1 removes the AllReduce that dominates the TP2 denoise profile."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, selected_gpus=(1,))
+
+    assert "CUDA_VISIBLE_DEVICES=1" in plan.argv
+    gpus_index = plan.argv.index("--num-gpus")
+    assert plan.argv[gpus_index + 1] == "1"
+    tp_index = plan.argv.index("--tp-size")
+    assert plan.argv[tp_index + 1] == "1"
+    assert plan.runtime_settings["tensor_parallel_size"] == 1
+
+    # The pinned two-GPU profile keeps TP2.
+    two = build_singularity_launch(**arguments, selected_gpus=(1, 2))
+    assert two.argv[two.argv.index("--tp-size") + 1] == "2"
+    assert two.runtime_settings["tensor_parallel_size"] == 2
+
+    # Only 1 or 2 GPUs are validated topologies; anything else fails closed.
+    for gpus in ((), (1, 1), (1, 2, 3)):
+        with pytest.raises(ValidationError, match="GPU"):
+            build_singularity_launch(**arguments, selected_gpus=gpus)
+
+
+def test_launch_supports_ulysses_sequence_parallel(tmp_path: Path, monkeypatch) -> None:
+    """World size = TP x Ulysses x Ring; H3's 56 heads must divide by Ulysses."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, ulysses_degree=2)
+
+    assert plan.argv[plan.argv.index("--ulysses-degree") + 1] == "2"
+    assert plan.argv[plan.argv.index("--tp-size") + 1] == "1"
+    assert plan.runtime_settings["ulysses_degree"] == 2
+    assert plan.runtime_settings["tensor_parallel_size"] == 1
+
+    # Default keeps the pinned TP2 topology.
+    default = build_singularity_launch(**arguments)
+    assert default.argv[default.argv.index("--ulysses-degree") + 1] == "1"
+    assert default.argv[default.argv.index("--tp-size") + 1] == "2"
+    assert default.runtime_settings["ulysses_degree"] == 1
+
+    # World size must equal TP x Ulysses; degree 3 does not fit two GPUs.
+    with pytest.raises(ValidationError, match="world size"):
+        build_singularity_launch(**arguments, ulysses_degree=3)
+
+    # H3 has 56 attention heads, so the degree must divide them evenly.
+    single = {**arguments, "selected_gpus": (1,)}
+    with pytest.raises(ValidationError, match="world size"):
+        build_singularity_launch(**single, ulysses_degree=2)
+
+
 def test_build_singularity_launch_rejects_missing_runtime(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -431,9 +523,9 @@ def test_build_singularity_launch_rejects_bad_gpu_count_and_port(
         "output_path": tmp_path / "output",
     }
 
-    with pytest.raises(ValidationError, match="two distinct GPUs"):
+    with pytest.raises(ValidationError, match="one or two distinct GPUs"):
         build_singularity_launch(
-            **arguments, selected_gpus=(1,), dit_layerwise_resident_layers=20
+            **arguments, selected_gpus=(1, 2, 3), dit_layerwise_resident_layers=20
         )
     with pytest.raises(ValidationError, match="port"):
         build_singularity_launch(
