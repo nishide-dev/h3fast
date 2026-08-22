@@ -107,7 +107,7 @@ artifactが相違するため、起動成功だけでなく**LoRAがforwardで�
 
 FP8 + LoRAを使う構成では`merge_mode: dynamic`が必須である。`auto`は量子化状態を考慮せずstatic mergeを選び、shape mismatchで起動に失敗する。protocolの`runtime.lora.merge_mode`はこの選択を機械可読に固定する。
 
-upstream報告の価値がある最小再現が揃った。
+upstream報告の価値がある最小再現が揃った。2026-08-22にSGLang upstreamへ報告した([issue #35970](https://github.com/sgl-project/sglang/issues/35970)、[PR #35975](https://github.com/sgl-project/sglang/pull/35975))。報告にあたりpinned commitではなくupstream mainのソースで再現を確認しており(commit `5c03069d4bce87c97b257ad05f9d497729a47c4f`、同一の`linear.py:264`で同一のshape mismatch)、この確認runはpinned環境外のためbenchmark記録には使用していない。提出したissue/PR本文の作業コピーは`docs/upstream/`にGit管理外で保持する。
 
 ```
 online --quantization fp8 + standard BF16 LoRA
