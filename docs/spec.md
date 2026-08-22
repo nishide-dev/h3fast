@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.48（video VAEを常駐化、decode 65%短縮でE2E 15.8%改善）
+- **状態:** Draft v0.49（参照SGLang revisionを7d22b7a8へ更新、bit一致でpeak VRAM 7.99%削減）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -2329,7 +2329,7 @@ Public Runtimeのrelease判断またはPhase 2開始前に、少なくとも次�
 1. **Resolved for current H3 use / tracked in #11:** `nishide-dev`によるJapan-local single-operator researchとしてdevelopment host、GPU host、benchmark Output storage、runtime execution、Output useをowner申告とともに承認した。第三者access、Hosted Service、derivative/Output配布、Japan外利用またはoperator/machine/storage変更前にはinventoryを`incomplete`へ戻す。この承認は独立sourceのreleaseや将来のH3-use scopeを承認しない。
 2. **Resolved for independent code:** 現在の公開repositoryとwheelにH3公式source fileのcopyは検出されていない。H3Fast source、schema、CLI、wheelおよび独自documentationはApache-2.0境界へ分類した。将来BYOW converterへ公式code、configurationまたはDocumentationを取り込む場合は再reviewする。
 3. **Partially resolved / tracked in #16:** 初期ローカル候補（FL2VA/T2VA、768p、5秒、2×RTX 6000 Ada 48GB）は、warmup 1回と規定3回のBF16 baseline測定、stage集計、memory capacity、media contract、単一caseのplacement-only exact quality gate、およびDiT resident 20→40層の最初のA/Bを確認した。formal quality-set schema/compilerに加え、Git外の10 smoke / 50 regression candidateとsynthetic referenceを生成してregistry全体digestと件数をattestし、digest拘束されたprivate review workflowと6-family metric plan contractを実装した。`nishide-dev`による60件すべてのrights/selection review、immutable evidenceのprivate registry適用、redacted per-case metadataとcoverageの登録も完了した。6-family candidate assessmentへ候補、固定revision、license scopeと採用条件を記録し、human-pairwise ballot/key/scorer contract、offline presentation runner、synthetic-media pilotとsingle-reviewer policy承認を完了した。metric adapter/owner/budget approval、formal set approval、知覚・audio・semantic A/V実装とGPU実測は引き続きBlockerとする。4 GPU構成は空きGPU確保後に別途検証する。
-4. **Resolved for Phase 1A:** 参照backendをSGLang commit `6eb941a34cb100b708a42ed1d26d2bdefafbd01e`へ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。
+4. **Resolved for Phase 1A / revision更新済み:** 参照backendをSGLang commitへ固定し、SGLangの公開CLI `sglang serve`と非同期`/v1/videos`だけをadapter境界とする。根拠とruntime imageは[`docs/decisions/0002-h3-baseline-runtime.md`](decisions/0002-h3-baseline-runtime.md)に記録する。Phase 1Aは`6eb941a34cb100b708a42ed1d26d2bdefafbd01e`で測定した。現在の参照revisionは`7d22b7a8750f53a04e41a5a5671f9a56ab6cd001`であり、bit単位で同一のartifactを生成しつつpeak VRAMを7.99%削減する（[experiment 0021](experiments/0021-sglang-revision-candidate.md)）。既測定protocolは測定時のrevisionを保持し、書き換えない。
 5. MiniMaxが派生重みのHF手動gate配布を十分と認めるか。
 6. Sparse Attentionの方式と公式Sparse実装公開後の移行戦略。
 7. FP8の保存形式と各backend間の互換性。

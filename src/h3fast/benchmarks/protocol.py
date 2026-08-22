@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
+from h3fast.backends.sglang import REFERENCE_SGLANG_COMMIT
 from h3fast.benchmarks.quality_sets import check_formal_quality_set
 from h3fast.exceptions import ValidationError
 
@@ -312,3 +313,21 @@ def load_runtime_settings(path: Path) -> RuntimeSettings:
         lora=lora,
         quantization=quantization,
     )
+
+
+def load_sglang_revision(path: Path) -> str:
+    """Load the SGLang commit a protocol pins, else the reference commit.
+
+    Kept out of :class:`RuntimeSettings` because that carries the ``runtime``
+    section, which is compared field by field against what the server reports;
+    the revision lives in ``environment.software`` and is a launch-time
+    identity instead.
+    """
+    validate_protocol(path)
+    protocol = _load_protocol(path)
+    environment = _object(protocol.get("environment"), "environment")
+    software = _object(environment.get("software"), "environment.software")
+    declared = software.get("sglang")
+    if isinstance(declared, str) and declared.startswith("git:"):
+        return declared.removeprefix("git:")
+    return REFERENCE_SGLANG_COMMIT

@@ -418,14 +418,25 @@ def run_preflight(
 
     if sglang_source is not None:
         try:
+            # The protocol pins the revision it was measured on, so a candidate
+            # revision is fixed per protocol rather than by editing a constant.
+            # Falling back to the reference keeps older protocols valid.
+            # The protocol pins the revision it was measured on, so the
+            # same ``git:<sha>`` rule applies as in load_sglang_revision.
+            declared = software.get("sglang")
+            expected_revision = (
+                declared.removeprefix("git:")
+                if isinstance(declared, str) and declared.startswith("git:")
+                else REFERENCE_SGLANG_COMMIT
+            )
             actual_revision = _source_revision(sglang_source)
-            status = "pass" if actual_revision == REFERENCE_SGLANG_COMMIT else "fail"
+            status = "pass" if actual_revision == expected_revision else "fail"
             checks.append(
                 PreflightCheck(
                     "sglang-source",
                     status,
                     f"SGLang source revision is {actual_revision}",
-                    {"expected_revision": REFERENCE_SGLANG_COMMIT},
+                    {"expected_revision": expected_revision},
                 )
             )
         except (OSError, subprocess.TimeoutExpired, ValidationError) as error:
