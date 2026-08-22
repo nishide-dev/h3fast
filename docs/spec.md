@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.47（48 GB GPUでTP2が必須と確定、主因はtransformer weightの非分割）
+- **状態:** Draft v0.48（video VAEを常駐化、decode 65%短縮でE2E 15.8%改善）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1490,6 +1490,20 @@ denoiseは11 step、per-step p50 11.51秒である。decodeを一切改善しな
 **本構成では同期の有無によるdecodeの差は0.1秒(0.3%)であり、上流が警告する2〜3倍の膨張は起きていなかった。** 11実効stepまで蒸留されてdenoiseのqueueが浅いためと推定される(同期のオーバーヘッドはdenoise側に+6.3秒として現れた)。上流文書の警告を根拠にdecode比率を無効と判断していれば実在するボトルネックを見落としていたため、この確認は実測の価値があった。ただしstep数が多い構成では膨張が起きる可能性があり、stage帰属を要する測定では設定を維持する。
 
 denoise内部の内訳(attention / MLP / AdaLN / norm)とdecodeの内訳(video VAE / audio decode)はいずれも未取得であり、kernel最適化の対象選定にはこれらの測定が前提となる。詳細と限界は[`docs/experiments/0017-default-profile-stage-breakdown.md`](experiments/0017-default-profile-stage-breakdown.md)に記録する。
+
+2026-08-23にvideo VAEのplacementを変更した。`--layerwise-offload-components`を`dit,text_encoder,vae`から`dit,text_encoder`へ変え、VAEを常駐させる。計算内容、量子化、attention backend、step数、DiT resident層数はいずれも変更しない。
+
+| stage | VAE offload | VAE resident |
+|---|---|---|
+| pipeline total | 172.4秒 | **145.1秒**(15.8%短縮) |
+| denoise | 133.3秒 (77.3%) | 130.6秒 (90.0%) |
+| decode | 38.1秒 (22.1%) | **13.5秒 (9.3%)**(65%短縮) |
+
+peak VRAMは26,204から32,602 MiBへ増加する(+24.4%、48 GBに対し16,550 MiBの余裕)。生成物のSHA-256は両構成で一致し、measured 3 run内でも一致した。**Tier 1のper-case digest gateを通過したため品質差は0であり、metric実測とpairwise判定を要しない。**
+
+[experiment 0017](experiments/0017-default-profile-stage-breakdown.md)がdecodeを最適化対象外と判断した根拠は、上流がH3で`spatial`、`spatial_shard`、patch decode modeを拒否している点であった。しかしそれはdecode modeの制約であってplacementの選択とは別である。この混同により、22.1%を占めるstageを不必要に対象外としていた。詳細と限界は[`docs/experiments/0020-vae-residency.md`](experiments/0020-vae-residency.md)に記録する。
+
+decodeの比率が9.3%へ下がり、denoiseが90.0%を占める構成になった。今後の最適化対象はdenoiseへさらに集中する。
 
 2026-08-22にdenoise内部のkernel分布を測定した(3 step、GPU時間41.3秒)。**最大の単一要因はkernelではなく通信である。**
 

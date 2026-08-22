@@ -9,7 +9,7 @@ H3FastはローカルのMiniMax H3-Base推論を高速化する研究プロジ�
 
 ## 測定結果
 
-2×RTX 6000 Ada（48 GB、sm89）、TP2、t2va formal 20 caseでの実測です。FlashAttention 50-step baselineに対して**約6.9倍**、生成時間は14.0時間から2.04時間になりました。
+2×RTX 6000 Ada（48 GB、sm89）、TP2での実測です。FlashAttention 50-step baselineに対し、t2va formal 20 caseで**約6.9倍**（14.0時間 → 2.04時間）。その後のVAE常駐化でsmoke-001のE2Eがさらに15.8%短縮しています（20 case総計での再測定は未実施）。
 
 | 段 | 最適化 | 効果 | 品質判定 |
 |---|---|---|---|
@@ -17,6 +17,7 @@ H3FastはローカルのMiniMax H3-Base推論を高速化する研究プロジ�
 | 2 | Sage Attention（INT8） | 1.63× | 劣化なし（pairwise +0.20） |
 | 3 | Turbo LoRA 11 step | 3.86× | 引き分け（6勝6敗8tie） |
 | 4 | online FP8 | 4.22× | 劣化なし（+0.20）、VRAM −22% |
+| 5 | video VAE常駐 | E2E 15.8%短縮 | bit-exact（digest一致） |
 
 品質判定はblind human-pairwise（single-reviewer、[ADR 0010](docs/decisions/0010-human-pairwise-review-policy.md)）が一次で、objective metricは証跡として記録します。数字の根拠と限界は各[experiment記録](docs/experiments/)にあります。
 
@@ -44,6 +45,7 @@ sm89 / 48 GB × 2 での探索は尽きています。denoise内部のkernel分�
 | 試した経路 | 結果 |
 |---|---|
 | kernel融合 | 既存fast pathが全て機能中。新規融合の根拠なし |
+| VAE placement | **有効だった**（decode 65%短縮、[experiment 0020](docs/experiments/0020-vae-residency.md)） |
 | TP1 / Ulysses（通信削減） | transformer weightが分割されず48 GBに載らない |
 | `subblock_sparse` | compute capability 9.0/10.0のみ。sm89は拒否 |
 | NVFP4 | capability 100（Blackwell専用） |

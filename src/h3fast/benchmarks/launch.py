@@ -57,6 +57,14 @@ SUPPORTED_QUANTIZATION = ("fp8",)
 # divide it evenly.
 H3_ATTENTION_HEADS = 56
 
+# Components the pinned profile offloads layer by layer. The DiT must stay
+# in the set because dit_layerwise_resident_layers only means something
+# for an offloaded DiT.
+OFFLOADABLE_COMPONENTS = ("dit", "text_encoder", "vae")
+# Keeping the video VAE resident cut decode by 65% with bit-identical
+# artifacts (experiment 0020), so it is no longer offloaded by default.
+DEFAULT_OFFLOAD_COMPONENTS = ("dit", "text_encoder")
+
 # A served partition only answers its own task families. Requesting a family
 # outside the loaded variant fails in the scheduler after the model is
 # resident, so the variant is selected up front and checked against the
@@ -89,6 +97,7 @@ def build_singularity_launch(
     synchronized_stage_profiling: bool = False,
     ulysses_degree: int = 1,
     text_encoder_path: Path | None = None,
+    layerwise_offload_components: tuple[str, ...] = DEFAULT_OFFLOAD_COMPONENTS,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -163,6 +172,18 @@ def build_singularity_launch(
         message = (
             "text encoder override must be a directory containing config.json: "
             f"{text_encoder_path}"
+        )
+        raise ValidationError(message)
+    offload = tuple(layerwise_offload_components)
+    if (
+        "dit" not in offload
+        or len(set(offload)) != len(offload)
+        or any(component not in OFFLOADABLE_COMPONENTS for component in offload)
+    ):
+        supported = ", ".join(OFFLOADABLE_COMPONENTS)
+        message = (
+            "layerwise offload components must be distinct values from "
+            f"{supported} and must include dit; got {offload}"
         )
         raise ValidationError(message)
     if quantization is not None and quantization not in SUPPORTED_QUANTIZATION:
@@ -292,7 +313,7 @@ def build_singularity_launch(
         "--performance-mode",
         "memory",
         "--layerwise-offload-components",
-        "dit,text_encoder,vae",
+        ",".join(offload),
         "--dit-offload-prefetch-size",
         "1",
         "--dit-layerwise-resident-layers",
@@ -363,5 +384,6 @@ def build_singularity_launch(
             "tensor_parallel_size": world_size // ulysses_degree,
             "ulysses_degree": ulysses_degree,
             "text_encoder_override": text_encoder_path is not None,
+            "layerwise_offload_components": list(offload),
         },
     )

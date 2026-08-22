@@ -69,6 +69,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "tensor_parallel_size": 2,
         "ulysses_degree": 1,
         "text_encoder_override": False,
+        "layerwise_offload_components": ["dit", "text_encoder"],
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -529,6 +530,55 @@ def test_launch_can_override_the_text_encoder(tmp_path: Path, monkeypatch) -> No
         build_singularity_launch(**arguments, text_encoder_path=bare)
     with pytest.raises(ValidationError, match="text encoder"):
         build_singularity_launch(**arguments, text_encoder_path=tmp_path / "missing")
+
+
+def test_launch_can_keep_the_vae_resident(tmp_path: Path, monkeypatch) -> None:
+    """Offload placement changes transfer scheduling, not the compute graph."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(
+        **arguments, layerwise_offload_components=("dit", "text_encoder")
+    )
+
+    index = plan.argv.index("--layerwise-offload-components")
+    assert plan.argv[index + 1] == "dit,text_encoder"
+    assert plan.runtime_settings["layerwise_offload_components"] == [
+        "dit",
+        "text_encoder",
+    ]
+
+    # The default keeps the VAE resident (experiment 0020: 65% faster decode,
+    # bit-identical artifacts).
+    default = build_singularity_launch(**arguments)
+    default_index = default.argv.index("--layerwise-offload-components")
+    assert default.argv[default_index + 1] == "dit,text_encoder"
+
+    # The DiT must stay offloaded; its residency knob assumes it.
+    for components in ((), ("vae",), ("dit", "dit"), ("dit", "unknown")):
+        with pytest.raises(ValidationError, match="offload"):
+            build_singularity_launch(
+                **arguments, layerwise_offload_components=components
+            )
 
 
 def test_build_singularity_launch_rejects_missing_runtime(
