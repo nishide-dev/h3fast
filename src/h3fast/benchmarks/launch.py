@@ -46,6 +46,7 @@ class LaunchPlan:
 
 REFERENCE_ASSETS_MOUNT = "/reference-assets"
 LORA_MOUNT = "/opt/h3fast/lora"
+TEXT_ENCODER_MOUNT = "/opt/h3fast/text-encoder"
 
 # Only methods that quantize online from the BF16 snapshot on the tested
 # hardware. Other SGLang methods need a pre-quantized checkpoint or
@@ -87,6 +88,7 @@ def build_singularity_launch(
     quantization: str | None = None,
     synchronized_stage_profiling: bool = False,
     ulysses_degree: int = 1,
+    text_encoder_path: Path | None = None,
 ) -> LaunchPlan:
     """Build the pinned two-GPU reference launch command."""
     executable = shutil.which("singularity")
@@ -149,6 +151,18 @@ def build_singularity_launch(
         message = (
             f"ulysses degree {ulysses_degree!r} must divide the world size "
             f"({world_size}) and H3's {H3_ATTENTION_HEADS} attention heads"
+        )
+        raise ValidationError(message)
+    # A component override must be a loadable HF directory; SGLang resolves
+    # the component by path and reads its config, so a bare directory or a
+    # single weight file would fail only after the model is resident.
+    if (
+        text_encoder_path is not None
+        and not (text_encoder_path / "config.json").is_file()
+    ):
+        message = (
+            "text encoder override must be a directory containing config.json: "
+            f"{text_encoder_path}"
         )
         raise ValidationError(message)
     if quantization is not None and quantization not in SUPPORTED_QUANTIZATION:
@@ -248,6 +262,14 @@ def build_singularity_launch(
             if lora_path is None
             else ("--bind", f"{lora_path.resolve()}:{LORA_MOUNT}:ro")
         ),
+        *(
+            ()
+            if text_encoder_path is None
+            else (
+                "--bind",
+                f"{text_encoder_path.resolve()}:{TEXT_ENCODER_MOUNT}:ro",
+            )
+        ),
         "--bind",
         f"{media_probe}:/usr/local/bin/ffprobe:ro",
         "--bind",
@@ -278,6 +300,11 @@ def build_singularity_launch(
         "--enable-torch-compile",
         "false",
         *(() if quantization is None else ("--quantization", quantization)),
+        *(
+            ()
+            if text_encoder_path is None
+            else ("--text-encoder-path", TEXT_ENCODER_MOUNT)
+        ),
         *(
             ()
             if lora is None
@@ -335,5 +362,6 @@ def build_singularity_launch(
             "synchronized_stage_profiling": synchronized_stage_profiling,
             "tensor_parallel_size": world_size // ulysses_degree,
             "ulysses_degree": ulysses_degree,
+            "text_encoder_override": text_encoder_path is not None,
         },
     )

@@ -2,7 +2,7 @@
 
 - **文書名:** MiniMax H3 高速・効率化派生版 配布仕様
 - **略称:** H3 Fast Distribution Spec
-- **状態:** Draft v0.46（48 GB GPUでTP2が必須と確定、text encoder量子化が未対応）
+- **状態:** Draft v0.47（48 GB GPUでTP2が必須と確定、主因はtransformer weightの非分割）
 - **最終外部調査日:** 2026-08-16 (Asia/Tokyo)
 - **最終更新日:** 2026-08-16 (Asia/Tokyo)
 - **対象:** MiniMax H3-Base FL2VA / Ref2VA を基礎とする高速化・効率化ランタイムおよび派生モデル
@@ -1504,7 +1504,11 @@ denoise内部の内訳(attention / MLP / AdaLN / norm)とdecodeの内訳(video V
 
 通信を削減する並列構成を探索したが、**48 GB GPUではTP2が必須である**。TP1(1 GPU、resident 40および20)とTP1 × Ulysses2(2 GPU)のいずれもCUDA OOMで起動しない。`tp_size`と`ulysses_degree`は独立した並列軸(World size = TP × Ulysses × Ring)であり、上流はB200 8 GPUで`TP=1, Ulysses=8`を推奨するが、TP=1ではweightが分割されないため48 GBに収まらない。H3の56 headsはUlysses degree 2で割り切れ、Sageとの併用も可能である(`supports_ring_rotation`はring専用のチェックであり、Ulyssesには適用されない)が、VRAM制約が先に効く。
 
-主因は**text encoderが量子化対象外**であることである。`--quantization`はtransformerにのみ適用され、text encoder(Qwen3-VL 32B)はBF16のまま63 GBである(transformerは62 GB)。resident層数を40から20へ半減しても空きが増えなかったのはこのためである。同じ`Qwen3VLTextModel`を使う`encoders/ideogram.py`は`quant_config`を渡す経路を持つが、`encoders/minimax_h3_qwen3vl.py`は持たない。実装の非対称性であり、[Issue #62](https://github.com/nishide-dev/h3fast/issues/62)で追跡する。pinned SGLangへのpatchは再現性を壊すため行わない。
+主因は**TP1でtransformer weightが分割されない**ことである。TP2でのtransformerのmodel sizeは15.47 GBであり、これは2 GPUへshardされた後の値である。TP=1では全shardが1枚へ載るため約2倍を要し、`video_vae`の9.73 GBとactivationを加えて48 GBに収まらない。実際の失敗もtransformerのロード時である(`Error while loading component: transformer`)。resident層数の調整が効かないのは、その設定がoffload対象のDiT blockにしか作用せず、ロード時に必要なweight総量を変えないためである。
+
+当初この主因を「text encoderがBF16の63 GBで量子化対象外であること」と記述したが、**これは誤りであった**。ディスク上のcomponentサイズをVRAM使用量と混同した推論である。実測ではtext encoderのVRAM使用は3.10 GB(model size 3.01 GB)であり、H3はQwen3-VLの64層のうち50層までしか読み込まず、layerwise offloadで常駐も一部に限られる。公式の`Qwen/Qwen3-VL-32B-Instruct-FP8`を実際に投入してもpeak VRAMは26,204 MiBで既定構成と完全に同一であった。text encoderは制約要因ではない。
+
+text encoderの事前量子化checkpointはSGLangが`checkpoint_quantization_capability`で正式に対応している(`methods={"fp8"}`)。ただし`--text-encoder-path`によるoverride経路では`quant_config`が渡らず`weight_scale_inv`のKeyErrorで失敗する。同じcheckpointをcontainer内でsnapshot位置へbind mountすれば起動する。実用上の利益がないため優先度は低いが実在するバグである。詳細は[Issue #62](https://github.com/nishide-dev/h3fast/issues/62)で追跡する。
 
 より小さい量子化形式(NVFP4、GGUF、pre-quantized `.pt`、INT8 ConvRot)はいずれも本runtimeで使用できない。NVFP4は`get_min_capability() == 100`でBlackwell専用、GGUFはComfyUI/llama.cpp前提、`.pt`はH3 DiTが`safetensors.torch.safe_open`のみを使用するため読めない。ComfyUI形式の変換には上流discussion #34079が5件の非公式patchを要すると報告しており、同discussionはコミュニティのpruned FP8 checkpointが数学的に壊れている(time-embeddingの次元置換により出力がグレースケールへ崩壊)ことも報告している。
 

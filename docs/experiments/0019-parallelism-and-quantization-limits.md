@@ -4,7 +4,7 @@
 - Configuration: `balanced` profile(既定、online FP8 + turbo LoRA dynamic + Sage)
 - Host: 承認済みJapan-local GPU host(2×RTX 6000 Ada、48 GB each、sm89)
 - Related: [experiment 0018](0018-denoise-kernel-profile.md)(NCCL AllReduce 24.5%), [Issue #55](https://github.com/nishide-dev/h3fast/issues/55)
-- Outcome: **TP2が必須。** AllReduceの24.5%はこのハードウェアでは削減できない。主因はtext encoderが量子化対象外であること。
+- Outcome: **TP2が必須。** AllReduceの24.5%はこのハードウェアでは削減できない。主因はTP1でtransformer weightが分割されないことである(当初「text encoderが量子化対象外」と記述したが誤りであり、2026-08-22に訂正した)。
 
 ## Purpose
 
@@ -34,18 +34,35 @@ H3の56 attention headsはUlysses degree 2で割り切れる(56 / 2 = 28)。Sage
 
 ## Root cause
 
-snapshot内のcomponentサイズ(BF16)。
+**2026-08-22訂正**: 当初この節は「text encoderがBF16の63 GBであることが主因」と記述していた。これは誤りであった。ディスク上のcomponentサイズをVRAM使用量と混同した推論であり、測定していなかった。実測値は次である。
 
-| component | サイズ |
-|---|---|
-| `text_encoder` | **63 GB** |
-| `transformer` (DiT) | 62 GB |
+TP2(動作する構成)のserver log。
 
-**`--quantization fp8`はtransformerにのみ適用される。** server_argsのhelp textが「Quantization method for **the transformer**」と明記している。text encoderはBF16のまま63 GBであり、layerwise offloadされていても展開時のピークが48 GBに収まらない。
+| component | model size | consumed GPU mem |
+|---|---|---|
+| `text_encoder` | 3.01 GB | **3.10 GB** |
+| `transformer` | 15.47 GB | 0.00 GB(layerwise offload) |
+| `video_vae` | 9.7 GB | 9.73 GB |
+| `audio_vae` | 0.56 GB | 0.58 GB |
 
-resident層数の調整が効かなかったのはこのためである。私が調整していたのはDiT側のみであった。
+**text encoderのVRAM使用は3.10 GBであり、63 GBではない。** H3はQwen3-VLの64層のうち50層までしか読み込まず(`MINIMAX_H3_QWEN3VL_SELECTED_LM_LAYER = 50`)、`lm_head`とlayer 50以降のweightを捨てる。さらにlayerwise offloadで常駐は一部のみである。ディスク上の63 GBはVRAMへ載っていない。
 
-TP2ではtext encoderも2 GPUへ分散されるため成立している。
+FP8 text encoder(`Qwen/Qwen3-VL-32B-Instruct-FP8`、35.5 GB)を実際に投入して確認した結果、**peak VRAMは26,204 MiBで既定構成と完全に同一**であり、encoderのmodel sizeも3.01 GBで変わらなかった。text encoderは制約要因ではない。
+
+### 実際の主因: TP1ではtransformer weightが分割されない
+
+TP1の失敗はtransformerのロード時である。
+
+```
+Error while loading component: transformer
+torch.OutOfMemoryError: ... GPU 0 has 47.37 GiB total, 99.62 MiB free
+```
+
+TP2ではtransformerのmodel sizeが**15.47 GB**であり、これは2 GPUへshardされた後の値である。TP=1では全shardが1枚へ載るため約2倍を要し、`video_vae`の9.73 GBとactivationを加えると48 GBに収まらない。
+
+resident層数を40から20へ半減しても改善しなかったのは、**resident設定がoffload対象のDiT blockにしか効かず、ロード時に必要なweight総量を変えない**ためである。
+
+Ulysses2(TP=1、2 GPU)も同じ理由で失敗した。Ulyssesはsequence次元を分割するのみで、weightは各GPUが全量を保持する。
 
 ### 上流の推奨構成が使えない理由
 
@@ -57,20 +74,45 @@ TP2ではtext encoderも2 GPUへ分散されるため成立している。
 
 上流がTP=1 + Ulysses8を推奨するのは大容量GPU構成である。48 GBではweight分割なしにH3は載らない。
 
-## Text encoder quantization: an implementation asymmetry
+## Text encoder quantization: supported, but without effect here
 
-**H3のtext encoderを量子化する経路は、現時点のSGLangに存在しない。** ただしこれはモデルや形式の制約ではなく、実装の非対称性である。
+**2026-08-22訂正**: 当初この節は「H3 encoderに量子化経路がなく、実装の非対称性である」と記述していた。これも誤りであった。
 
-| encoder実装 | `quant_config` | 使用モデル |
+`MiniMaxH3Qwen3VLEncoder`はcapabilityを宣言している(`models/encoders/minimax_h3_qwen3vl.py` 51-54行)。
+
+```python
+checkpoint_quantization_capability = CheckpointQuantizationCapability(
+    backend="diffusion",
+    methods=frozenset({"fp8"}),
+)
+```
+
+`loader/component_loaders/text_encoder_loader.py:132`がこれを読み、事前量子化checkpointの方式と突き合わせる。ideogramとは別方式(loader経由のcapability契約)で実装されており、欠落ではなかった。`grep`で`quant_config`を探しただけで結論したのが誤りである。
+
+公式の`Qwen/Qwen3-VL-32B-Instruct-FP8`(35.5 GB、7 shards、`quant_method: fp8`)は要件を満たす。tensor名はscale 448個を除いて我々のsnapshotと完全一致し(1058個、双方向の差分0)、architectures・layers・hidden・headsも一致する。
+
+実測の結果、**起動・生成には成功したがVRAMは変わらなかった**。
+
+| 指標 | BF16 encoder | FP8 encoder |
 |---|---|---|
-| `models/encoders/ideogram.py` | **あり**(bitsandbytes 4-bit、weight-only FP8) | `Qwen3VLTextModel` |
-| `models/encoders/minimax_h3_qwen3vl.py` | **なし**(206行中に記述ゼロ) | 同じ`Qwen3VLTextModel` |
+| encoder model size | 3.01 GB | 3.01 GB |
+| encoder GPU mem | 3.10 GB | 3.10 GB |
+| peak VRAM | 26,204 MiB | 26,204 MiB |
 
-`Qwen3VLTextModel`自体は`quant_config`と`use_weight_only_fp8`を受け取る設計であり、ideogram encoderはそれを利用している。H3 encoderが同じ配線を持たないため、`--quantization`がtext encoderへ届かない。
+上記のとおりVRAM制約の要因はtext encoderではないため、これを量子化しても効果がない。
 
-text encoderをFP8化できれば63 GB → 約32 GBとなり、TP1やUlyssesが成立する可能性がある。VRAM制約の主因がここにあるため、影響は大きい。
+### 副産物: `--text-encoder-path` override のバグ
 
-**pinned SGLangへのpatchは行わない。** 再現性が壊れ、benchmark結果の比較可能性が失われる。upstreamでの対応を待つか、報告する。
+同じFP8 checkpointで、投入方法により結果が分かれた。
+
+| 方法 | 結果 |
+|---|---|
+| `--text-encoder-path <dir>` | `KeyError: Unexpected MiniMax H3 Qwen3-VL checkpoint weight: ...weight_scale_inv` |
+| container内でsnapshot位置へbind mount | 起動成功 |
+
+override経路では`quant_config`が渡らず、scale tensorを受け取るparameterが作られないためと考えられる。capability実装自体は機能する。実用上の利益がないため優先度は低いが、実在するバグである。
+
+なおhost側snapshotをsymlinkで差し替える方法はpreflightが拒否する(`snapshot symlinks are not accepted`)。これはsnapshot同一性を保証する正しい設計である。
 
 ## Quantization format survey
 
@@ -100,8 +142,8 @@ ComfyUI形式をSGLangで読む試みについては、上流discussion [#34079]
 
 ## Limits
 
-- OOMの内訳を計測していない。text encoderが主因という判断は、componentサイズ(63 GB)、`--quantization`のスコープ(transformerのみ)、resident層数調整が無効であったことからの推論である。component別のGPUメモリ内訳は測定していない。
+- component別のGPUメモリ内訳はserver logの報告値であり、torch側のallocator内訳やactivationのピークは分離していない。TP1でtransformer weightが約2倍になるという説明はTP2実測の15.47 GBからの推論であり、TP1でのweight総量を直接測っていない(OOMのため到達しない)。
 - Ulysses degree 2のみを試した。本機は2 GPUであり他の値は取り得ない。
-- text encoder量子化の実装可能性は、ideogram encoderとの比較による推定である。H3固有の制約(dual-tower bridgeとの整合など)は検証していない。
+- FP8 text encoderの評価は単一case・単一runである。出力がBF16 encoderと一致するかは比較していない(digest比較を行っていない)。
 - GGUF・`.pt`形式は読み込みを試行していない。実装のweight loader経路(`safe_open`のみ)からの判断である。
 - 上流discussion #34079の内容は本環境で再現確認していない。

@@ -250,6 +250,7 @@ def _load_lifecycle(
     # a protocol-owned setting; the protocol pins compute, not placement.
     observed.pop("tensor_parallel_size", None)
     observed.pop("ulysses_degree", None)
+    observed.pop("text_encoder_override", None)
     if observed != expected_runtime_settings:
         message = "server lifecycle runtime settings do not match the protocol"
         raise ValidationError(message)
