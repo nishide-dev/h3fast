@@ -31,6 +31,7 @@ def _lifecycle(path: Path) -> None:
                     "synchronized_stage_profiling": False,
                     "tensor_parallel_size": 2,
                     "ulysses_degree": 1,
+                    "text_encoder_override": False,
                 },
             }
         ),
@@ -141,6 +142,7 @@ def test_run_suite_executes_protocol_plan_and_aggregates(tmp_path: Path) -> None
         "synchronized_stage_profiling": False,
         "tensor_parallel_size": 2,
         "ulysses_degree": 1,
+        "text_encoder_override": False,
     }
 
 

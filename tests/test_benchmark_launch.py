@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from h3fast.backends.sglang import REFERENCE_SGLANG_COMMIT
-from h3fast.benchmarks.launch import build_singularity_launch
+from h3fast.benchmarks.launch import TEXT_ENCODER_MOUNT, build_singularity_launch
 from h3fast.exceptions import ValidationError
 
 
@@ -68,6 +68,7 @@ def test_build_singularity_launch_is_pinned(tmp_path: Path, monkeypatch) -> None
         "synchronized_stage_profiling": False,
         "tensor_parallel_size": 2,
         "ulysses_degree": 1,
+        "text_encoder_override": False,
     }
     variant_index = plan.argv.index("--model-variant")
     assert plan.argv[variant_index + 1] == "fl2va"
@@ -479,6 +480,55 @@ def test_launch_supports_ulysses_sequence_parallel(tmp_path: Path, monkeypatch) 
     single = {**arguments, "selected_gpus": (1,)}
     with pytest.raises(ValidationError, match="world size"):
         build_singularity_launch(**single, ulysses_degree=2)
+
+
+def test_launch_can_override_the_text_encoder(tmp_path: Path, monkeypatch) -> None:
+    """A pre-quantized text encoder cuts VRAM but changes numerics."""
+    snapshot = tmp_path / "snapshot"
+    source = tmp_path / "sglang"
+    image = tmp_path / "runtime.sif"
+    adapter = tmp_path / "ffprobe.py"
+    (snapshot / "FL2VA").mkdir(parents=True)
+    source.mkdir()
+    image.write_bytes(b"image")
+    adapter.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    adapter.chmod(0o755)
+    encoder = tmp_path / "encoder"
+    encoder.mkdir()
+    (encoder / "config.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        "h3fast.benchmarks.launch.shutil.which", lambda _name: "/usr/bin/singularity"
+    )
+    arguments = {
+        "snapshot_path": snapshot,
+        "runtime_image": image,
+        "sglang_source": source,
+        "ffprobe_adapter": adapter,
+        "output_path": tmp_path / "server-output",
+        "selected_gpus": (1, 2),
+        "dit_layerwise_resident_layers": 40,
+    }
+
+    plan = build_singularity_launch(**arguments, text_encoder_path=encoder)
+
+    index = plan.argv.index("--text-encoder-path")
+    assert plan.argv[index + 1] == TEXT_ENCODER_MOUNT
+    assert any(
+        f"{encoder.resolve()}:{TEXT_ENCODER_MOUNT}:ro" in value for value in plan.argv
+    )
+    assert plan.runtime_settings["text_encoder_override"] is True
+
+    default = build_singularity_launch(**arguments)
+    assert "--text-encoder-path" not in default.argv
+    assert default.runtime_settings["text_encoder_override"] is False
+
+    # A directory without a config is not a loadable component.
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    with pytest.raises(ValidationError, match="text encoder"):
+        build_singularity_launch(**arguments, text_encoder_path=bare)
+    with pytest.raises(ValidationError, match="text encoder"):
+        build_singularity_launch(**arguments, text_encoder_path=tmp_path / "missing")
 
 
 def test_build_singularity_launch_rejects_missing_runtime(
