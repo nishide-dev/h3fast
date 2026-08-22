@@ -38,22 +38,6 @@ uv run h3fast benchmark profiles
 
 profileの選択は明示指定のみで、暗黙に切り替わりません。
 
-## 到達した上限
-
-sm89 / 48 GB × 2 での探索は尽きています。denoise内部のkernel分布を測定した結果、最大の単一要因は計算ではなく**TP2のNCCL AllReduce（24.5%）**でした（[experiment 0018](docs/experiments/0018-denoise-kernel-profile.md)）。
-
-| 試した経路 | 結果 |
-|---|---|
-| kernel融合 | 既存fast pathが全て機能中。新規融合の根拠なし |
-| VAE placement | **有効だった**（decode 65%短縮、[experiment 0020](docs/experiments/0020-vae-residency.md)） |
-| TP1 / Ulysses（通信削減） | transformer weightが分割されず48 GBに載らない |
-| `subblock_sparse` | compute capability 9.0/10.0のみ。sm89は拒否 |
-| NVFP4 | capability 100（Blackwell専用） |
-| GGUF / 事前量子化`.pt` | H3 DiTはsafetensorsのみ読む |
-| FP8 text encoder | 効果ゼロ（VRAM使用は3.10 GBで制約要因ではない） |
-
-AllReduce 24.5%は48 GB GPUでH3を動かすための構造的コストです。詳細は[experiment 0019](docs/experiments/0019-parallelism-and-quantization-limits.md)にあります。
-
 ## 提供するもの
 
 - ローカルH3 snapshotの構造・revision検証、manifest/checksum検証
